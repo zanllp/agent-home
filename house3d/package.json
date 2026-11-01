@@ -1,0 +1,1 @@
+{"name":"dafeiyu-house","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1 --port 19131 --strictPort","build":"vite build"},"dependencies":{"vue":"^3.5.0","three":"^0.180.0"},"devDependencies":{"vite":"^7.0.0"}}

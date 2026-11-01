@@ -1,0 +1,2 @@
+export function roomDimensions(room={}){return {width:room.width??6,depth:room.depth??5,height:room.height??2.4}}
+export function wallSides(room={}){const {width:w,depth:d}=roomDimensions(room);return [{id:'back',x:0,z:-d/2,yaw:0,width:w,axis:'z',sign:-1},{id:'front',x:0,z:d/2,yaw:Math.PI,width:w,axis:'z',sign:1},{id:'left',x:-w/2,z:0,yaw:Math.PI/2,width:d,axis:'x',sign:-1},{id:'right',x:w/2,z:0,yaw:-Math.PI/2,width:d,axis:'x',sign:1}]}

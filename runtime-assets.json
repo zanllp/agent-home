@@ -1,0 +1,229 @@
+{
+  "note": "Runtime assets copied byte-for-byte from the complete local project. No mesh, animation, material or texture modification.",
+  "assets": {
+    "house3d/assets/dafeiyu-contact.glb": {
+      "bytes": 5574568,
+      "sha256": "ba77ffe8f161201ba515577b006620ee9f12468794908aa997c7946f4e4e2ae6"
+    },
+    "house3d/assets/materials/honey-oak-floor-v1.png": {
+      "bytes": 1773528,
+      "sha256": "067f39a65d7345a9fab8ebd7780cf3a1ff0bc347d4f9467fdac87289c634830a"
+    },
+    "house3d/assets/furniture/oak-dining-table-stylized-v2.glb": {
+      "bytes": 839592,
+      "sha256": "9a096e261ae928a49c47cd503eadcddb07c2611f4ad8f3aea774da6ec0a8c125"
+    },
+    "house3d/assets/furniture/urban-blue-rug-v1.glb": {
+      "bytes": 4272680,
+      "sha256": "b3bc9962a308dcdbfdcfa6b15de0c64a926f9894b576595d033a4e6e6dc01b7e"
+    },
+    "house3d/assets/furniture/urban-floor-window-v2.glb": {
+      "bytes": 3378456,
+      "sha256": "8f98e78162ae40f2dcb06e6e30b24cdf410c1a9f2549b533ef675b48c4a5e893"
+    },
+    "house3d/assets/furniture/oak-sideboard-v1.glb": {
+      "bytes": 1027072,
+      "sha256": "39eae3138356f278e07943bff929ba98f1322df373039e55ac3d709c1bbeb625"
+    },
+    "house3d/assets/furniture/urban-storage-bin-v1.glb": {
+      "bytes": 35488,
+      "sha256": "968a70f734f8b9e418c4ca09f9161a453fa8290629dfc368160fcfb3a0ef0764"
+    },
+    "house3d/assets/furniture/urban-botanical-frame-v1.glb": {
+      "bytes": 1697944,
+      "sha256": "f2cd0256f45dec250a2974e99e61972646637a7a734a4da7423d2fb1b069e580"
+    },
+    "house3d/assets/furniture/urban-tabletop-tv-v1.glb": {
+      "bytes": 94464,
+      "sha256": "52ae39dacde95a7a46de185b5db69f09ba0624b0143235848c6cf418b523a150"
+    },
+    "house3d/assets/furniture/urban-city-window-v1.glb": {
+      "bytes": 2303816,
+      "sha256": "060167d3ac1e86c0af3df4305c53e97dcbf3f850cc1c3195c9e3333158acf83a"
+    },
+    "house3d/assets/furniture/whale-bed-v1.glb": {
+      "bytes": 1271308,
+      "sha256": "dccd464268c060d9bdc3ec7377f533c5366ca5748ac40b0d5cb36277df3d80b6"
+    },
+    "house3d/assets/furniture/urban-floating-shelf-v1.glb": {
+      "bytes": 39556,
+      "sha256": "6b466ed4056b3b5c7b487b91c56ef29803d4e4260e1c7f650bf36de474fac728"
+    },
+    "house3d/assets/furniture/urban-school-books-v1.glb": {
+      "bytes": 44948,
+      "sha256": "0a987341960b86bb1cb5753d3f28f58f391fef54e9545711a7076d8efc871fe1"
+    },
+    "house3d/assets/furniture/urban-dual-monitor-kit-v1.glb": {
+      "bytes": 466780,
+      "sha256": "848a764197ec5a3f1342405041d75041242ccb5a43897dd2f4007c5913358ac7"
+    },
+    "house3d/assets/furniture/urban-wide-tv-v1.glb": {
+      "bytes": 95140,
+      "sha256": "cac4caaa9128728dba099a313e16a5e403e37040122c2594d3ac1377a1b36e56"
+    },
+    "house3d/assets/furniture/whale-nightstand-v1.glb": {
+      "bytes": 1087624,
+      "sha256": "776b39eb6149184447e0aef15d30381d933e22faccf7eeec0411377b55a7099b"
+    },
+    "house3d/assets/furniture/sage-fridge-v1.glb": {
+      "bytes": 782800,
+      "sha256": "b2ab2195d2c9879342125cb10806aaadf467bd3d67d53470169b99ad0842a4c7"
+    },
+    "house3d/assets/furniture/oak-dining-chair-stylized-v2.glb": {
+      "bytes": 750452,
+      "sha256": "83e4bb529e383fb64175a9dd69e31b8abcb91058999f0c2249d0e8a799e1dc74"
+    },
+    "house3d/assets/furniture/urban-air-purifier-v1.glb": {
+      "bytes": 123256,
+      "sha256": "c428d01358d092f1faed6953f7ac1a26ef941b50784f0fbcc884270572939f8f"
+    },
+    "house3d/assets/furniture/whale-shelf-v1.glb": {
+      "bytes": 1248132,
+      "sha256": "a13c8dd9f4e6689af8aec11c299c6ce7ab7c5e6b70d6a5852aef8483b73f996e"
+    },
+    "house3d/assets/furniture/urban-shelf-pothos-v1.glb": {
+      "bytes": 1517208,
+      "sha256": "1351e7b261d71a1e1284086aa9ed927bf4976e75401156b1dbc60439c91bcc8d"
+    },
+    "house3d/assets/furniture/whale-lamp-v1.glb": {
+      "bytes": 1601652,
+      "sha256": "9946a9bdc7adcb2a7927dca15e22e3fef215ddb9f24db7563e8efbcccbdca09d"
+    },
+    "house3d/assets/furniture/ergonomic-chair-stylized-v2.glb": {
+      "bytes": 1022992,
+      "sha256": "48033df1994fbf3729ddea91ad1c822386b22056eb215a1fc6e18b9d0fe15102"
+    },
+    "house3d/assets/furniture/urban-child-desk-v1.glb": {
+      "bytes": 76916,
+      "sha256": "4a255759dcbea883439ccc1fa8b4352034bea6c5bd61845a42d63dbc338ae83e"
+    },
+    "house3d/assets/furniture/whale-chair-v1.glb": {
+      "bytes": 1328556,
+      "sha256": "c51f2614632ea6f9c99cab04e8b039eeebde8271e230ccb56aef5b1b39305dd5"
+    },
+    "house3d/assets/furniture/urban-long-media-console-v1.glb": {
+      "bytes": 834772,
+      "sha256": "a2f78c3a8e529795c6bb346928870682d70bb39b63bfd4a078cc70d4c1b1b610"
+    },
+    "house3d/assets/furniture/urban-wall-ac-v1.glb": {
+      "bytes": 52880,
+      "sha256": "ded4ba5c8ed93079b5d7fa2b3fd017396834143263691d85fa9b3c66125b0bc8"
+    },
+    "house3d/assets/furniture/urban-study-lamp-v1.glb": {
+      "bytes": 45956,
+      "sha256": "c56a34e0130b8c864994c753fb1c6d949d80debcca77b4172c0ead651ee59c32"
+    },
+    "house3d/assets/furniture/cloud-sofa-v1.glb": {
+      "bytes": 1351136,
+      "sha256": "395147429ee6955796b5103fd7e32c5706e454096d1456e6b6a97cff3ef586b3"
+    },
+    "house3d/assets/furniture/whale-desk-v1.glb": {
+      "bytes": 1235720,
+      "sha256": "ed3ebba9d234228d3fff2088c54987bb6a6e6acb4e09531d2f723b4fbf26bb32"
+    },
+    "house3d/assets/furniture/urban-books-v1.glb": {
+      "bytes": 45028,
+      "sha256": "9a9235847778b22370aed8fafa2556e6263ce44b57d135f09746e670397f75b5"
+    },
+    "house3d/assets/furniture/urban-upright-books-v1.glb": {
+      "bytes": 142744,
+      "sha256": "d4d634121cd2ab5c08e60ebd13e94d12b4bb07314b1f5516c0c23d5efab99b70"
+    },
+    "house3d/assets/furniture/urban-coffee-kit-v1.glb": {
+      "bytes": 100148,
+      "sha256": "3975f9c5a94d5880b8cc7ab3a83260f2114f6209d5a3b35a4a5c92ddb984357b"
+    },
+    "house3d/assets/furniture/whale-window-v1.glb": {
+      "bytes": 1392552,
+      "sha256": "9a3de6ea6e549183958f957fd5f39ec4691151716340ed02600f0fcf95303dc5"
+    },
+    "house3d/assets/furniture/urban-compact-dining-v1.glb": {
+      "bytes": 66228,
+      "sha256": "e048014f04db16adb3418f7e785e8bb66f2be74f41966b39a51282e3707b3e10"
+    },
+    "house3d/assets/furniture/oak-coffee-table-stylized-v2.glb": {
+      "bytes": 669992,
+      "sha256": "21bcfdf3cf3687cba08d76fa6dab50f635ecbf0cba7dfede82c16961addc0a2d"
+    },
+    "house3d/assets/furniture/whale-rug-v1.glb": {
+      "bytes": 3062040,
+      "sha256": "a05975afd54c2a9005f750f6201e193a7f6d60bd00efc193fb0d1149d36457a2"
+    },
+    "house3d/assets/furniture/urban-pencil-cup-v1.glb": {
+      "bytes": 110800,
+      "sha256": "2b127945874a5bbfe6224dc8e432591f521db660dc3e55c720764ad90e6d37f2"
+    },
+    "house3d/assets/furniture/oak-workdesk-v1.glb": {
+      "bytes": 788980,
+      "sha256": "0f941874c775a7bcbcc4876c3dd60387a07feb6143df1d1a69b85b3d084d2c46"
+    },
+    "house3d/assets/furniture/washer-stylized-v2.glb": {
+      "bytes": 750988,
+      "sha256": "0dfe3897a349327f29745fc0efb0a85a7e7a694a85bc8452735cf593e66c3307"
+    },
+    "house3d/assets/furniture/urban-workbook-v1.glb": {
+      "bytes": 16016,
+      "sha256": "51d008e9456845ac5a38c9e6f49a3bb0b659c3583567777c38c22e3331398530"
+    },
+    "house3d/assets/furniture/urban-child-desk-tripo-v1.glb": {
+      "bytes": 963704,
+      "sha256": "76454e5f908fa5e625feb01867ca1729924cf57494200ad9873a89246a0852a4"
+    },
+    "house3d/assets/furniture/family-sofa-stylized-v2.glb": {
+      "bytes": 1014184,
+      "sha256": "ea7dd4cca0df2b6023095b489e16e1cba1e140f732366e9c9060ef38726c7ce3"
+    },
+    "house3d/assets/furniture/urban-study-kit-v1.glb": {
+      "bytes": 209852,
+      "sha256": "cf380d5442ceb96007830e07654820ad16b66eed629db2142a6fd62cd6b1ec3d"
+    },
+    "house3d/assets/furniture/urban-large-rug-v2.glb": {
+      "bytes": 4272728,
+      "sha256": "12540c1c34b83e774d9e0b2da6a9d732c13073e3e4583840e74d6b93e504ef59"
+    },
+    "house3d/assets/furniture/linen-armchair-v1.glb": {
+      "bytes": 1271288,
+      "sha256": "083a1b1052e10389a59dee0c7132f0033e2dc8e8f99b4be6968f86bc1b545924"
+    },
+    "house3d/assets/furniture/graphite-bookcase-stylized-v2.glb": {
+      "bytes": 943408,
+      "sha256": "aae7fbc8a665ec2a70c4aefae4db515d1b48dd167c7ecd9317bc6788d80f3655"
+    },
+    "house3d/assets/furniture/urban-child-chair-tripo-v1.glb": {
+      "bytes": 1189800,
+      "sha256": "195566a11a7da9fa7802c0f498f9ba9ac27262cabf26cde59a5a388b1a77b6db"
+    },
+    "house3d/assets/furniture/floor-tv-stylized-v2.glb": {
+      "bytes": 684220,
+      "sha256": "95a3698e5c3983c49449cf63510fc771f619a9b364ed748021d06e41657d563d"
+    },
+    "house3d/assets/furniture/urban-floor-ficus-v1.glb": {
+      "bytes": 1684828,
+      "sha256": "c52f5ccfe3f7b80016cae3017087de2511e9ad03712bf891417c86bc592569a5"
+    },
+    "house3d/assets/furniture/workstation-tower-stylized-v2.glb": {
+      "bytes": 1103556,
+      "sha256": "b517ef2de4fa38753fb9cedc96f42245707741d8c54db150600e34c8ea32cd28"
+    },
+    "house3d/assets/furniture/walnut-media-console-stylized-v2.glb": {
+      "bytes": 834764,
+      "sha256": "ee7dc622a201df48119883add7f3845913535e3ee7a028f8d32f0a2c38f03907"
+    },
+    "house3d/assets/furniture/whale-plant-v1.glb": {
+      "bytes": 1581760,
+      "sha256": "1459ebff067f6490776b6b89d9bcb841a7b751b9765d6fe581c25ee389e0ea5e"
+    },
+    "house3d/assets/wallpapers/daisy-meadow.svg": {
+      "bytes": 1151,
+      "sha256": "40fef4fecdf910c8d02e0c4c03732574509dbe8936e6d022a580b54c382d4151"
+    },
+    "house3d/assets/wallpapers/blue-linen.svg": {
+      "bytes": 486,
+      "sha256": "2b525a1f2dbbafe0291639e503c8efd797f9597735ed381c879f29956351f955"
+    },
+    "house3d/assets/wallpapers/whale-breeze.svg": {
+      "bytes": 1301,
+      "sha256": "59dd41beee811fd0674ceff4df1071eb17b021998ec6e344cc3b10fd1344f974"
+    }
+  }
+}

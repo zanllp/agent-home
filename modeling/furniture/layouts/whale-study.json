@@ -1,0 +1,76 @@
+{
+  "objects": [
+    {
+      "id": "bed",
+      "kind": "bed",
+      "asset_id": "whale-bed-v1",
+      "x": 1.85,
+      "z": -1.25,
+      "yaw": 0
+    },
+    {
+      "id": "desk",
+      "kind": "desk",
+      "asset_id": "whale-desk-v1",
+      "x": -1.15,
+      "z": -1.6,
+      "yaw": 0
+    },
+    {
+      "id": "chair",
+      "kind": "chair",
+      "asset_id": "whale-chair-v1",
+      "x": -1.15,
+      "z": -0.65,
+      "yaw": 3.141592653589793
+    },
+    {
+      "id": "shelf",
+      "kind": "shelf",
+      "asset_id": "whale-shelf-v1",
+      "x": -2.35,
+      "z": -1.9,
+      "yaw": 0
+    },
+    {
+      "id": "sofa",
+      "kind": "sofa",
+      "asset_id": "cloud-sofa-v1",
+      "x": -1.9,
+      "z": 1.3,
+      "yaw": 1.5707963267948966
+    },
+    {
+      "id": "plant",
+      "kind": "plant",
+      "asset_id": "whale-plant-v1",
+      "x": 2.3,
+      "z": 1.65,
+      "yaw": 0
+    },
+    {
+      "id": "lamp",
+      "kind": "lamp",
+      "asset_id": "whale-lamp-v1",
+      "x": 0.45,
+      "z": -1.45,
+      "yaw": 0
+    },
+    {
+      "id": "rug",
+      "kind": "rug",
+      "asset_id": "whale-rug-v1",
+      "x": 0,
+      "z": 0.65,
+      "yaw": 0
+    },
+    {
+      "id": "window",
+      "kind": "window",
+      "asset_id": "whale-window-v1",
+      "x": 0,
+      "z": -2.2523113608360292,
+      "yaw": 0
+    }
+  ]
+}

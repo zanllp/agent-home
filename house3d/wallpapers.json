@@ -1,0 +1,6 @@
+{
+  "plain": {"label":"纯色墙面","tile_m":1,"texture":null,"source":"Original project design"},
+  "whale-breeze": {"label":"鲸鱼与小云","tile_m":0.9,"texture":"/models/wallpapers/whale-breeze.svg","source":"Original, code-authored seamless SVG"},
+  "daisy-meadow": {"label":"奶油小雏菊","tile_m":0.65,"texture":"/models/wallpapers/daisy-meadow.svg","source":"Original, code-authored seamless SVG"},
+  "blue-linen": {"label":"雾蓝细条纹","tile_m":0.55,"texture":"/models/wallpapers/blue-linen.svg","source":"Original, code-authored seamless SVG"}
+}

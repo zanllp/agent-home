@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+ <rect width="512" height="512" fill="#f7f2e7"/>
+ <defs>
+  <g id="flower">
+   <g fill="#fffdf4" stroke="#d9d2bb" stroke-width="1.6"><ellipse cy="-13" rx="6" ry="11"/><ellipse cy="-13" rx="6" ry="11" transform="rotate(60)"/><ellipse cy="-13" rx="6" ry="11" transform="rotate(120)"/><ellipse cy="-13" rx="6" ry="11" transform="rotate(180)"/><ellipse cy="-13" rx="6" ry="11" transform="rotate(240)"/><ellipse cy="-13" rx="6" ry="11" transform="rotate(300)"/></g>
+   <circle r="6.5" fill="#d6bd7f"/><path d="M0 22Q-2 38 7 49M1 35Q-14 26-13 37Q-6 44 3 40M4 42Q17 28 19 38Q16 46 5 46" fill="none" stroke="#acbaa2" stroke-width="2" stroke-linecap="round"/>
+  </g>
+ </defs>
+ <use href="#flower" transform="translate(112 107) rotate(-15)"/><use href="#flower" transform="translate(369 358) rotate(18)"/>
+ <g fill="#c6cfb9"><ellipse cx="366" cy="110" rx="3" ry="6" transform="rotate(25 366 110)"/><ellipse cx="110" cy="363" rx="3" ry="6" transform="rotate(-25 110 363)"/></g>
+ <g fill="#dfd5b7"><circle cx="245" cy="230" r="2"/><circle cx="489" cy="475" r="2"/></g>
+</svg>

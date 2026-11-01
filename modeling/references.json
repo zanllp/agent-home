@@ -1,0 +1,48 @@
+{
+  "references": [
+    {
+      "id": "generated-standing-concept",
+      "path": "frontend/characters/dafeiyu/stand-v1.png",
+      "bytes": 2102531,
+      "sha256": "5b9c591f08a17c8be84b633a4e103ae673105757da597e7d995b9d82ca852a36",
+      "role": "Identity reference; not a final approved 10-year-old costume or 3D texture."
+    },
+    {
+      "id": "community-standard",
+      "path": "research/characters/yunyue-character-standard.png",
+      "bytes": 2274256,
+      "sha256": "75972692391d451a8302b6aed9fcbe300fb5fbbc60db643127d15d6067f64019",
+      "role": "Face, hair, fins, and tail from multiple views; adapt proportions."
+    },
+    {
+      "id": "community-idle",
+      "path": "research/characters/yunyue-idle-front.png",
+      "bytes": 1516887,
+      "sha256": "79d3952acfe7620e0c2cfe7b80e9e6793d5f115252962f81cd56778402f4cdcd",
+      "role": "Two poses in one transparent sheet; not a single 2K character."
+    },
+    {
+      "id": "community-base-views",
+      "path": "research/characters/xiaoweigen-base-six-views.png",
+      "bytes": 1647623,
+      "sha256": "451fccc6f5ce644d65ba4d63981a94745bc38dff8a51679e33528f853942f259",
+      "role": "Body and tail reference only; six views, not animation."
+    },
+    {
+      "id": "community-pet-atlas",
+      "path": "research/characters/arvin-spritesheet.webp",
+      "bytes": 2891500,
+      "sha256": "bebef87e67ff540b0bffce691d6896b0661e03f2ac6cca78f4ad6537bc596052",
+      "role": "Low-resolution per-frame fallback; do not upscale and call it HD."
+    },
+    {
+      "id": "existing-avatar",
+      "path": "../note/transfer/avatars/dafeiyu.png",
+      "bytes": 111052,
+      "sha256": "ebf3cc4dce709a3a43eeaf8a1f2e01035e273934a5d408cf603ab0660d6cdf2f",
+      "role": "Existing face reference only; source outside this project."
+    }
+  ],
+  "license_directory": "research/characters",
+  "generated_source_notice": "frontend/characters/dafeiyu/SOURCE.md"
+}

@@ -1,0 +1,71 @@
+import * as T from 'three';
+import {roomDimensions} from './room-size.js';
+import {createRoomWalls} from './room-walls.js';
+import {RectAreaLightUniformsLib} from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {useFurnitureLighting} from './furniture-material.js';
+export function baseHeight(item,objects,assets,seen=new Set()){if(seen.has(item.id))return 0;seen.add(item.id);if(!item.on)return assets[item.asset_id]?.elevation||0;const parent=objects.find(o=>o.id===item.on.id),surface=assets[parent?.asset_id]?.surfaces?.[item.on.surface];return parent&&surface?baseHeight(parent,objects,assets,seen)+surface.height+(assets[item.asset_id]?.support_offset||0):0}
+export function createPreviewRoom(scene){
+ RectAreaLightUniformsLib.init();const windowFill=new T.RectAreaLight('#edf4ff',1.2,2.4,2.1);windowFill.visible=false;const bounce=new T.RectAreaLight('#fff4df',.65,2,2);bounce.visible=false;scene.add(windowFill,bounce);
+ const cache=new Map(),loader=new GLTFLoader();
+ const glowCanvas=document.createElement('canvas');glowCanvas.width=glowCanvas.height=64;const gc=glowCanvas.getContext('2d'),gradient=gc.createRadialGradient(32,32,1,32,32,32);gradient.addColorStop(0,'rgba(255,226,155,.6)');gradient.addColorStop(1,'rgba(255,226,155,0)');gc.fillStyle=gradient;gc.fillRect(0,0,64,64);const glowTexture=new T.CanvasTexture(glowCanvas);glowTexture.colorSpace=T.SRGBColorSpace;
+ function disposeModel(root){
+  const textures=new Set(),materials=new Set(),geometry=new Set();
+  root.traverse(o=>{if(o.geometry)geometry.add(o.geometry);for(const m of [].concat(o.material||[])){materials.add(m);for(const value of Object.values(m))if(value?.isTexture)textures.add(value)}});
+  textures.forEach(t=>t.dispose());materials.forEach(m=>m.dispose());geometry.forEach(g=>g.dispose());
+ }
+
+ async function assetModel(asset){
+  const key=asset.model+'|'+(asset.painted!==false);
+  if(!cache.has(key))cache.set(key,loader.loadAsync(asset.model).then(g=>{useFurnitureLighting(g.scene,asset);return g.scene}));
+  try{return await cache.get(key)}catch(e){cache.delete(key);throw e}
+ }
+
+ const furniture=new T.Group(),walls=new T.Group(),fixtures=new T.Group(),legacyWindow=new T.Group();scene.add(furniture,walls);walls.add(fixtures,legacyWindow);const enclosure=createRoomWalls(walls);
+ function material(color){return new T.MeshStandardMaterial({color,roughness:.85})}
+ function box(parent,size,pos,color,round=.025){const obj=new T.Mesh(new RoundedBoxGeometry(...size,2,round),material(color));obj.position.set(...pos);obj.castShadow=true;obj.receiveShadow=true;parent.add(obj);return obj}
+ function cylinder(parent,r,h,pos,color){const o=new T.Mesh(new T.CylinderGeometry(r,r,h,24),material(color));o.position.set(...pos);o.castShadow=true;parent.add(o);return o}
+ function buildItem(item,parent,model,asset,baseY=asset?.elevation||0){const g=new T.Group(),c=item.color;g.userData.id=item.id;if(asset?.placement==='wall')g.userData.wall=Math.abs(item.yaw)<.001?'back':'left';g.position.set(item.x,baseY,item.z);g.rotation.y=item.yaw;
+ if(model){g.add(model.clone(true));if(item.kind==='lamp'){
+  const properties={on:true,brightness:.7,...item.properties};const glow=new T.Sprite(new T.SpriteMaterial({map:glowTexture,color:'#fff1cf',transparent:true,depthWrite:false,toneMapped:false,opacity:properties.on?properties.brightness*.45:0}));glow.position.y=asset.height*.87;glow.scale.set(.72,.72,1);g.add(glow);const light=new T.PointLight('#ffdb95',properties.on?properties.brightness*1.2:0,2);light.position.y=asset.height*.83;g.add(light);
+ }parent.add(g);return g}g.userData.procedural=true;
+ const legs=(w,d,h)=>{for(const x of [-w/2+.06,w/2-.06])for(const z of [-d/2+.06,d/2-.06])box(g,[.055,h,.055],[x,h/2,z],'#986e4c')};
+ if(item.kind==='desk'){legs(1.25,.65,.67);box(g,[1.25,.07,.65],[0,.70,0],c);box(g,[.35,.12,.45],[.38,.6,0],'#ddba91');box(g,[.25,.035,.18],[-.2,.755,0],'#f7edcf');box(g,[.1,.11,.1],[.38,.79,-.16],'#ebdcd1')}
+ if(item.kind==='chair'){legs(.55,.55,.35);box(g,[.55,.07,.55],[0,.38,0],c);box(g,[.55,.36,.06],[0,.64,-.24],c)}
+ if(item.kind==='shelf'){box(g,[.9,1.65,.06],[0,.825,-.14],c);for(const x of [-.43,.43])box(g,[.05,1.65,.35],[x,.825,0],c);for(const h of [.06,.55,1.08,1.62])box(g,[.9,.05,.35],[0,h,0],c);for(let n=0;n<12;n++){const x=-.33+(n%4)*.19,y=.07+Math.floor(n/4)*.52;box(g,[.10,.28+(n%3)*.04,.19],[x,y+.17,0],['#a5babb','#d2ad97','#e7d7b5'][n%3])}}
+ if(item.kind==='bed'){legs(1.2,1.9,.28);box(g,[1.23,.60,.08],[0,.43,-.9],'#c59e79');box(g,[1.18,.18,1.85],[0,.36,0],'#fff3df');box(g,[1.18,.11,1.25],[0,.49,.27],c);box(g,[.8,.12,.37],[0,.52,-.58],'#f5ead5')}
+ if(item.kind==='sofa'){box(g,[1.6,.3,.7],[0,.25,0],c);box(g,[1.6,.5,.15],[0,.64,-.28],c);for(const x of [-.73,.73])box(g,[.15,.35,.7],[x,.5,0],c);box(g,[.55,.11,.5],[-.32,.46,.03],'#e1be9f')}
+ if(item.kind==='rug')box(g,[1.8,.018,1.3],[0,.012,0],c,.01);
+ if(item.kind==='lamp'){cylinder(g,.15,.06,[0,.03,0],'#b59467');cylinder(g,.018,1.35,[0,.7,0],'#b59467');cylinder(g,.22,.28,[0,1.47,0],'#fff0c9')}
+ if(item.kind==='plant'){cylinder(g,.16,.3,[0,.15,0],'#c99a7c');for(let n=0;n<7;n++){const o=new T.Mesh(new T.SphereGeometry(.16,12,8),material(c));o.scale.set(.48,1.7,.7);o.position.set(Math.sin(n*2)*.13,.4+(n%3)*.13,Math.cos(n*2)*.12);o.rotation.z=Math.sin(n)*.5;g.add(o)}}
+ parent.add(g);return g}
+
+ const plinth=box(scene,[6,.12,5],[0,-.08,0],'#b99573');let sizeKey='';
+ const floorMap=new T.TextureLoader().load('/models/materials/honey-oak-floor-v1.png');floorMap.colorSpace=T.SRGBColorSpace;floorMap.wrapS=floorMap.wrapT=T.RepeatWrapping;floorMap.repeat.set(2,2.5);floorMap.anisotropy=8;
+ const floor=new T.Mesh(new T.PlaneGeometry(6,5),new T.MeshStandardMaterial({map:floorMap,roughness:.84,metalness:0,emissive:'#ffffff',emissiveMap:floorMap,emissiveIntensity:.04}));floor.rotation.x=-Math.PI/2;floor.position.y=.001;floor.receiveShadow=true;scene.add(floor);
+
+ box(legacyWindow,[1.1,1.05,.04],[.05,1.55,-2.43],'#bdd8d5');for(const x of [-.52,.62,.05])box(legacyWindow,[.04,1.12,.05],[x,1.55,-2.39],'#fff6e6');box(legacyWindow,[1.18,.04,.05],[.05,1.55,-2.39],'#fff6e6');
+ async function update(objects,assets={},room={}){
+  const dimensions=roomDimensions(room),key=JSON.stringify(dimensions);
+  if(key!==sizeKey){sizeKey=key;await enclosure.setSize(room);plinth.scale.set(dimensions.width/6,1,dimensions.depth/5);floor.geometry.dispose();floor.geometry=new T.PlaneGeometry(dimensions.width,dimensions.depth);floorMap.repeat.set(dimensions.width/3,dimensions.depth/2);legacyWindow.position.z=-(dimensions.depth-5)/2;}
+  const loaded=new Map();
+  await Promise.all(objects.filter(o=>o.asset_id).map(async o=>{
+   const asset=assets[o.asset_id];if(!asset||asset.kind!==o.kind)throw Error('家具目录不完整，请刷新重试');
+   loaded.set(o.id,await assetModel(asset));
+  }));
+  enclosure.setOpenings(objects,assets);const window=objects.find(o=>assets[o.asset_id]?.wall_opening);windowFill.visible=bounce.visible=!!window;if(window){const a=assets[window.asset_id],hole=a.wall_opening;windowFill.position.set(window.x+Math.sin(window.yaw)*.12,(a.elevation||0)+(hole.bottom||0)+hole.height/2,window.z+Math.cos(window.yaw)*.12);windowFill.width=hole.width;windowFill.height=hole.height;bounce.position.set(0,1.7,window.z+.8);bounce.lookAt(window.x,1.3,window.z);windowFill.lookAt(windowFill.position.x+Math.sin(window.yaw),windowFill.position.y,windowFill.position.z+Math.cos(window.yaw));}
+  const next=new T.Group(),nextFixtures=new T.Group();objects.forEach(o=>{const asset=assets[o.asset_id];buildItem(o,asset?.placement==='wall'?nextFixtures:next,loaded.get(o.id),asset,baseHeight(o,objects,assets))});
+  fixtures.clear();while(nextFixtures.children.length)fixtures.add(nextFixtures.children[0]);
+  legacyWindow.userData.enabled=!objects.some(o=>o.kind==='window'&&assets[o.asset_id]?.placement==='wall');
+  for(const old of [...furniture.children]){
+   old.traverse(o=>{if(old.userData.procedural)o.geometry?.dispose();if(old.userData.procedural||o.isSprite)for(const m of [].concat(o.material||[]))m.dispose()});
+   furniture.remove(old);
+  }
+  while(next.children.length)furniture.add(next.children[0]);
+  const keep=new Set(objects.filter(o=>o.asset_id).map(o=>{const a=assets[o.asset_id];return a.model+'|'+(a.painted!==false)}));
+  for(const [key,promise] of cache)if(!keep.has(key)){cache.delete(key);promise.then(disposeModel,()=>{})}
+
+ }
+ return {furniture,walls,update,setLighting(preset){windowFill.intensity={day:1.2,evening:1.3,night:.08}[preset]??1.2;bounce.intensity={day:.65,evening:.35,night:.03}[preset]??.65},setFinish:enclosure.setFinish,updateView(position){const hidden=enclosure.updateView(position);for(const fixture of fixtures.children)fixture.visible=!hidden.has(fixture.userData.wall);legacyWindow.visible=legacyWindow.userData.enabled&&!hidden.has('back')},dispose(){scene.remove(windowFill,bounce);enclosure.dispose();for(const promise of cache.values())promise.then(disposeModel,()=>{});cache.clear();floorMap.dispose();glowTexture.dispose()}};
+}

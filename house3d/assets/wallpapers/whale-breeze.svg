@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+ <rect width="512" height="512" fill="#edf3f4"/>
+ <defs>
+  <g id="whale" fill="none" stroke="#9eb9c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M-35 4C-41-14-25-26-4-22C13-20 22-9 27 2C34-7 39-11 45-10C46-2 43 6 32 11C22 29-23 29-35 4Z" fill="#d5e4e9"/>
+   <path d="M-25 13C-15 22 10 22 20 12M-1-24Q-7-39-16-31M-1-24Q7-40 15-32"/>
+   <circle cx="-22" cy="-1" r="2.2" fill="#8ca8b8" stroke="none"/>
+  </g>
+  <g id="cloud" fill="#f8faf8" stroke="#c4d2d4" stroke-width="2"><path d="M-24 8C-42 7-35-15-22-13C-17-31 8-29 12-13C31-16 36 9 19 10Z"/></g>
+  <g id="spark" stroke="#d9c69b" stroke-width="2" stroke-linecap="round"><path d="M0-5V5M-5 0H5"/></g>
+ </defs>
+ <use href="#whale" transform="translate(113 135) rotate(-7)"/>
+ <use href="#whale" transform="translate(364 387) rotate(8)"/>
+ <use href="#cloud" transform="translate(364 132) scale(.8)"/>
+ <use href="#cloud" transform="translate(110 389) scale(.8)"/>
+ <use href="#spark" transform="translate(247 58)"/><use href="#spark" transform="translate(252 310)"/>
+ <g fill="#c5d6dc"><circle cx="40" cy="260" r="2"/><circle cx="300" cy="240" r="2"/><circle cx="465" cy="34" r="2"/><circle cx="207" cy="445" r="2"/></g>
+</svg>

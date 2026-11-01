@@ -1,0 +1,352 @@
+{
+  "objects": [
+    {
+      "id": "parent-desk",
+      "kind": "desk",
+      "asset_id": "oak-workdesk-v1",
+      "yaw": 0,
+      "x": -0.15,
+      "z": -2.04
+    },
+    {
+      "id": "parent-computer",
+      "kind": "desktop",
+      "asset_id": "urban-dual-monitor-kit-v1",
+      "yaw": 0,
+      "on": {
+        "id": "parent-desk",
+        "surface": "top",
+        "x": 0,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "parent-chair",
+      "kind": "office_chair",
+      "asset_id": "ergonomic-chair-stylized-v2",
+      "yaw": 3.141592653589793,
+      "x": -0.15,
+      "z": -1.22
+    },
+    {
+      "id": "child-desk",
+      "kind": "desk",
+      "asset_id": "urban-child-desk-tripo-v1",
+      "yaw": 0,
+      "x": 1.1,
+      "z": -2.08
+    },
+    {
+      "id": "child-chair",
+      "kind": "chair",
+      "asset_id": "whale-chair-v1",
+      "yaw": 3.141592653589793,
+      "x": 1.1,
+      "z": -1.2
+    },
+    {
+      "id": "bookcase",
+      "kind": "shelf",
+      "asset_id": "graphite-bookcase-stylized-v2",
+      "yaw": 1.5707963267948966,
+      "x": 2.68,
+      "z": -1.89
+    },
+    {
+      "id": "window",
+      "kind": "window",
+      "asset_id": "urban-city-window-v1",
+      "yaw": 1.5707963267948966,
+      "x": -2.864560005068779,
+      "z": -1.25
+    },
+    {
+      "id": "sofa",
+      "kind": "sofa",
+      "asset_id": "family-sofa-stylized-v2",
+      "yaw": -1.5707963267948966,
+      "x": -0.5,
+      "z": 0.6
+    },
+    {
+      "id": "media-console",
+      "kind": "media_console",
+      "asset_id": "walnut-media-console-stylized-v2",
+      "yaw": 1.5707963267948966,
+      "x": -2.710909900069237,
+      "z": 0.75
+    },
+    {
+      "id": "television",
+      "kind": "tv",
+      "asset_id": "urban-tabletop-tv-v1",
+      "yaw": 0,
+      "on": {
+        "id": "media-console",
+        "surface": "top",
+        "x": 0,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "coffee-table",
+      "kind": "coffee_table",
+      "asset_id": "oak-coffee-table-stylized-v2",
+      "yaw": 1.5707963267948966,
+      "x": -1.57,
+      "z": 0.6
+    },
+    {
+      "id": "coffee-essentials",
+      "kind": "desktop",
+      "asset_id": "urban-coffee-kit-v1",
+      "yaw": 0,
+      "on": {
+        "id": "coffee-table",
+        "surface": "top",
+        "x": 0,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "rug",
+      "kind": "rug",
+      "asset_id": "urban-blue-rug-v1",
+      "yaw": 1.5707963267948966,
+      "x": -1.3,
+      "z": 0.6
+    },
+    {
+      "id": "air-conditioner",
+      "kind": "air_conditioner",
+      "asset_id": "urban-wall-ac-v1",
+      "yaw": 1.5707963267948966,
+      "x": -2.844749999046326,
+      "z": 1.5
+    },
+    {
+      "id": "purifier",
+      "kind": "appliance",
+      "asset_id": "urban-air-purifier-v1",
+      "yaw": 0,
+      "x": -2.68,
+      "z": -0.04
+    },
+    {
+      "id": "dining-table",
+      "kind": "dining_table",
+      "asset_id": "urban-compact-dining-v1",
+      "yaw": 0,
+      "x": 2.15,
+      "z": 1.7
+    },
+    {
+      "id": "dining-chair",
+      "kind": "dining_chair",
+      "asset_id": "oak-dining-chair-stylized-v2",
+      "yaw": 3.141592653589793,
+      "x": 2.15,
+      "z": 0.9
+    },
+    {
+      "id": "dining-books",
+      "kind": "books",
+      "asset_id": "urban-books-v1",
+      "yaw": 0,
+      "on": {
+        "id": "dining-table",
+        "surface": "top",
+        "x": -0.1,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "plant",
+      "kind": "plant",
+      "asset_id": "whale-plant-v1",
+      "yaw": 0,
+      "x": -2.48,
+      "z": 2.05
+    },
+    {
+      "id": "workstation",
+      "asset_id": "workstation-tower-stylized-v2",
+      "kind": "computer",
+      "x": -1.02,
+      "z": -2.04,
+      "yaw": 0
+    },
+    {
+      "id": "shelf-item-0-0",
+      "asset_id": "urban-storage-bin-v1",
+      "kind": "storage_box",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-1",
+        "x": -0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-0-1",
+      "asset_id": "urban-upright-books-v1",
+      "kind": "books",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-1",
+        "x": 0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-1-0",
+      "asset_id": "urban-upright-books-v1",
+      "kind": "books",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-2",
+        "x": -0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-1-1",
+      "asset_id": "urban-storage-bin-v1",
+      "kind": "storage_box",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-2",
+        "x": 0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-2-0",
+      "asset_id": "urban-storage-bin-v1",
+      "kind": "storage_box",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-3",
+        "x": -0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-2-1",
+      "asset_id": "urban-upright-books-v1",
+      "kind": "books",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-3",
+        "x": 0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-3-0",
+      "asset_id": "urban-upright-books-v1",
+      "kind": "books",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-4",
+        "x": -0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-3-1",
+      "asset_id": "urban-storage-bin-v1",
+      "kind": "storage_box",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-4",
+        "x": 0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-4-0",
+      "asset_id": "urban-storage-bin-v1",
+      "kind": "storage_box",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-5",
+        "x": -0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "shelf-item-4-1",
+      "asset_id": "urban-upright-books-v1",
+      "kind": "books",
+      "on": {
+        "id": "bookcase",
+        "surface": "shelf-5",
+        "x": 0.25,
+        "z": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "study-lamp",
+      "kind": "desktop",
+      "asset_id": "urban-study-lamp-v1",
+      "on": {
+        "id": "child-desk",
+        "surface": "top",
+        "x": -0.35,
+        "z": -0.1,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "pencils",
+      "kind": "desktop",
+      "asset_id": "urban-pencil-cup-v1",
+      "on": {
+        "id": "child-desk",
+        "surface": "top",
+        "x": -0.35,
+        "z": 0.08,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "school-books",
+      "kind": "books",
+      "asset_id": "urban-school-books-v1",
+      "on": {
+        "id": "child-desk",
+        "surface": "top",
+        "x": 0.34,
+        "z": -0.1,
+        "yaw": 0
+      }
+    },
+    {
+      "id": "workbook",
+      "kind": "books",
+      "asset_id": "urban-workbook-v1",
+      "on": {
+        "id": "child-desk",
+        "surface": "top",
+        "x": 0.27,
+        "z": 0.14,
+        "yaw": 0
+      }
+    }
+  ]
+}

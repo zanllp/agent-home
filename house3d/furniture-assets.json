@@ -1,0 +1,1144 @@
+{
+  "whale-bed-v1": {
+    "label": "鲸梦小床",
+    "kind": "bed",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-bed-v1.glb",
+    "size": [
+      1.65,
+      1.798
+    ],
+    "height": 0.982,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task d77b0620-c3f9-40cf-86e6-55f3568446aa",
+    "interactions": {
+      "sleep": {
+        "root": [
+          0,
+          0.64,
+          0.65
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            0,
+            0,
+            1.55
+          ],
+          [
+            -1.48,
+            0,
+            0.05
+          ],
+          [
+            1.48,
+            0,
+            0.05
+          ]
+        ],
+        "surface_height": 0.54
+      }
+    }
+  },
+  "whale-desk-v1": {
+    "label": "鲸梦书桌",
+    "kind": "desk",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-desk-v1.glb",
+    "size": [
+      1.25,
+      0.7509784698486328
+    ],
+    "height": 0.7216241955757141,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task cb2ba860-16f4-475c-af4d-327df1243e5c"
+  },
+  "whale-chair-v1": {
+    "label": "鲸梦软椅",
+    "kind": "chair",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-chair-v1.glb",
+    "size": [
+      0.5999999642372131,
+      0.5591241121292114
+    ],
+    "height": 0.7459853887557983,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task 4508cce6-9299-4f76-b924-f02449d95ffb",
+    "limitations": [
+      "Preset seat contact fitted; no universal IK"
+    ],
+    "interactions": {
+      "sit": {
+        "root": [
+          0,
+          0,
+          0.09
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            0,
+            0,
+            1.05
+          ],
+          [
+            -1.1,
+            0,
+            0.05
+          ],
+          [
+            1.1,
+            0,
+            0.05
+          ],
+          [
+            -1.0,
+            0,
+            -0.35
+          ],
+          [
+            1.0,
+            0,
+            -0.35
+          ]
+        ],
+        "seat_height": 0.3515
+      }
+    }
+  },
+  "whale-shelf-v1": {
+    "label": "鲸梦矮书架",
+    "kind": "shelf",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-shelf-v1.glb",
+    "size": [
+      0.9500000476837158,
+      0.3625245690345764
+    ],
+    "height": 0.8458904027938843,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task c0dee64d-0314-4df7-bb39-d5098bbd8b18",
+    "limitations": [
+      "Shelves are static; separate prop placement not implemented yet"
+    ]
+  },
+  "whale-rug-v1": {
+    "label": "鲸梦编织地毯",
+    "kind": "rug",
+    "style": "cloud-cottage",
+    "model": "/models/furniture/whale-rug-v1.glb",
+    "size": [
+      2.0,
+      1.25
+    ],
+    "height": 0.018,
+    "shape": "ellipse",
+    "painted": true,
+    "recolorable": false,
+    "source": "Generated original woven rug albedo, procedural shallow oval mesh; no Tripo credits"
+  },
+  "cloud-sofa-v1": {
+    "label": "云朵软沙发",
+    "kind": "sofa",
+    "style": "cloud-cottage",
+    "model": "/models/furniture/cloud-sofa-v1.glb",
+    "size": [
+      1.5,
+      0.7367905378341675
+    ],
+    "height": 0.7954989075660706,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task ec51b5f9-c99f-404d-b6d0-91b146c4c053",
+    "interactions": {
+      "sit": {
+        "root": [
+          -0.31,
+          -0.012,
+          0.2
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            -0.31,
+            0,
+            1.2
+          ],
+          [
+            -1.4,
+            0,
+            0.25
+          ],
+          [
+            1.4,
+            0,
+            0.25
+          ]
+        ],
+        "seat_height": 0.34
+      }
+    }
+  },
+  "whale-lamp-v1": {
+    "label": "鲸梦阅读灯",
+    "kind": "lamp",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-lamp-v1.glb",
+    "size": [
+      0.6602740287780762,
+      0.6547945737838745
+    ],
+    "height": 1.399999976158142,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task 9892f5a9-a2e5-486a-bdb2-1de7c0a98fe5"
+  },
+  "whale-plant-v1": {
+    "label": "鲸梦小绿植",
+    "kind": "plant",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-plant-v1.glb",
+    "size": [
+      0.8235812187194824,
+      0.47035232186317444
+    ],
+    "height": 0.949999988079071,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task 4f10304f-214f-40e9-b42a-6298846d23f9"
+  },
+  "whale-window-v1": {
+    "label": "鲸梦窗帘小窗",
+    "kind": "window",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-window-v1.glb",
+    "size": [
+      1.6163016557693481,
+      0.3953772783279419
+    ],
+    "height": 1.2999999523162842,
+    "elevation": 1.0,
+    "placement": "wall",
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1, original isolated image reference; task 87bd2eb3-e3fa-40df-954d-1f6f80b70c28",
+    "repairs": [
+      "Recessed solid sky backing closes generated cloud-shaped holes"
+    ],
+    "limitations": [
+      "Decorative sky panel, not a transparent opening through the room wall",
+      "Curtains are static within this movable assembly"
+    ]
+  },
+  "whale-nightstand-v1": {
+    "label": "鲸梦床头柜",
+    "kind": "nightstand",
+    "style": "whale-storybook",
+    "model": "/models/furniture/whale-nightstand-v1.glb",
+    "size": [
+      0.46000000834465027,
+      0.3501761853694916
+    ],
+    "height": 0.41138944029808044,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, original isolated built-in image_gen reference; task 8245dded-b261-44a5-a609-092c97d40e37",
+    "limitations": [
+      "Closed decorative drawers; not separately rigged."
+    ]
+  },
+  "oak-workdesk-v1": {
+    "label": "浅木小书桌",
+    "kind": "desk",
+    "style": "scandinavian-oak",
+    "model": "/models/furniture/oak-workdesk-v1.glb",
+    "size": [
+      1.2999999523162842,
+      0.6589042544364929
+    ],
+    "height": 0.6131115555763245,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, original isolated built-in image_gen reference; task df649349-831b-44ae-bb4b-f2442d7ed2ae",
+    "limitations": [
+      "Static drawer. Read uses a separately compatible chair; no drawer-opening action."
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          1.22,
+          0.58
+        ],
+        "height": 0.6131115555763245
+      }
+    }
+  },
+  "linen-armchair-v1": {
+    "label": "亚麻单人椅",
+    "kind": "armchair",
+    "style": "modern-linen",
+    "model": "/models/furniture/linen-armchair-v1.glb",
+    "size": [
+      0.8199999928474426,
+      0.8199999928474426
+    ],
+    "height": 0.6819961071014404,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, original isolated built-in image_gen reference; task 4b4a2eae-182f-463d-9fdf-d2343d15ea30",
+    "limitations": [
+      "Placement asset; seated contact anchors not yet validated for this chair."
+    ]
+  },
+  "sage-fridge-v1": {
+    "label": "鼠尾草绿冰箱",
+    "kind": "fridge",
+    "style": "everyday-appliance",
+    "model": "/models/furniture/sage-fridge-v1.glb",
+    "size": [
+      0.6521527171134949,
+      0.7128180861473083
+    ],
+    "height": 1.5500000715255737,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, original isolated built-in image_gen reference; task a0725992-db3a-4c17-b4de-0107f7cf07c4",
+    "limitations": [
+      "Closed decorative appliance; no opening doors, food storage or refrigeration simulation. Slightly softened top seam."
+    ]
+  },
+  "oak-sideboard-v1": {
+    "label": "浅木收纳柜",
+    "kind": "sideboard",
+    "style": "scandinavian-oak",
+    "model": "/models/furniture/oak-sideboard-v1.glb",
+    "size": [
+      1.0499999523162842,
+      0.42534253001213074
+    ],
+    "height": 0.5773972272872925,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, original isolated built-in image_gen reference; task d0a5006a-3f32-45ea-88d5-f33424ab62ca",
+    "limitations": [
+      "Closed decorative doors and drawers; no storage/opening tool yet."
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          0.97,
+          0.35
+        ],
+        "height": 0.5773972272872925
+      }
+    }
+  },
+  "family-sofa-stylized-v2": {
+    "label": "奶油三人沙发",
+    "kind": "sofa",
+    "limitations": [
+      "靠垫与沙发为整体静态模型；未标定坐卧接触点"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/family-sofa-stylized-v2.glb",
+    "size": [
+      2.0,
+      0.8493152260780334
+    ],
+    "height": 0.7788649797439575,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 78f2ba59-aa97-422d-9d3d-7b1188051ea1"
+  },
+  "ergonomic-chair-stylized-v2": {
+    "label": "软垫办公椅",
+    "kind": "office_chair",
+    "limitations": [
+      "椅轮、扶手与椅背不能独立调节；网布为不透明彩绘；未标定坐点"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/ergonomic-chair-stylized-v2.glb",
+    "size": [
+      0.7089040875434875,
+      0.6638942956924438
+    ],
+    "height": 1.149999976158142,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 710661f5-e444-4fba-9b12-562cd1fb46bc"
+  },
+  "oak-coffee-table-stylized-v2": {
+    "label": "浅木双层茶几",
+    "kind": "coffee_table",
+    "limitations": [
+      "层板为静态网格；顶部可布置摆件，尚无拿取动作"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/oak-coffee-table-stylized-v2.glb",
+    "size": [
+      0.9500000476837158,
+      0.5447162389755249
+    ],
+    "height": 0.3141878843307495,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 15487534-8f8d-4648-879c-7a9f9c442889",
+    "surfaces": {
+      "top": {
+        "size": [
+          0.87,
+          0.46
+        ],
+        "height": 0.3141878843307495
+      }
+    }
+  },
+  "walnut-media-console-stylized-v2": {
+    "label": "胡桃木电视柜",
+    "kind": "media_console",
+    "limitations": [
+      "柜门为整体静态模型，不能开合；表面有少量生成纹理瑕疵"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/walnut-media-console-stylized-v2.glb",
+    "size": [
+      1.350000023841858,
+      0.4781801998615265
+    ],
+    "height": 0.44119372963905334,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 11f9aa07-bf6f-4eaf-ab7d-a2da8d1f4d1e",
+    "surfaces": {
+      "top": {
+        "size": [
+          1.27,
+          0.4
+        ],
+        "height": 0.44119372963905334
+      }
+    }
+  },
+  "floor-tv-stylized-v2": {
+    "label": "落地支架电视",
+    "kind": "tv",
+    "limitations": [
+      "屏幕为静态彩绘；不是可播放视频的显示器；支架包含在整体高度中"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/floor-tv-stylized-v2.glb",
+    "size": [
+      1.440187931060791,
+      0.56085604429245
+    ],
+    "height": 1.350000023841858,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task b6f0d8ea-6fa3-4489-8a64-04cf0d3eae38"
+  },
+  "oak-dining-table-stylized-v2": {
+    "label": "浅木圆餐桌",
+    "kind": "dining_table",
+    "limitations": [
+      "尚未提供用餐动作及桌面吸附点"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/oak-dining-table-stylized-v2.glb",
+    "size": [
+      1.4428235292434692,
+      1.4428235292434692
+    ],
+    "height": 0.7200000286102295,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task a246cac6-48f5-4dc3-8a02-b35f5461dc06",
+    "surfaces": {
+      "top": {
+        "height": 0.7200000286102295,
+        "size": [
+          0.94,
+          0.94
+        ]
+      }
+    }
+  },
+  "oak-dining-chair-stylized-v2": {
+    "label": "浅木软垫餐椅",
+    "kind": "dining_chair",
+    "limitations": [
+      "椅垫不可拆；未标定角色坐点"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/oak-dining-chair-stylized-v2.glb",
+    "size": [
+      0.5638943314552307,
+      0.6337573528289795
+    ],
+    "height": 0.8500000238418579,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 82bb065f-4ed1-49d5-ac4d-d75d48b62754"
+  },
+  "graphite-bookcase-stylized-v2": {
+    "label": "铁木开放书架",
+    "kind": "shelf",
+    "limitations": [
+      "静态层板与框架；承载面按实测网格标定，仍使用保守边界检查"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/graphite-bookcase-stylized-v2.glb",
+    "size": [
+      1.1010764837265015,
+      0.4811156094074249
+    ],
+    "height": 1.649999976158142,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 644ef2b1-9b4a-478a-95e0-4c269db29a27",
+    "surfaces": {
+      "shelf-1": {
+        "height": 0.15,
+        "size": [
+          0.94,
+          0.34
+        ]
+      },
+      "shelf-2": {
+        "height": 0.48,
+        "size": [
+          0.94,
+          0.34
+        ]
+      },
+      "shelf-3": {
+        "height": 0.84,
+        "size": [
+          0.94,
+          0.34
+        ]
+      },
+      "shelf-4": {
+        "height": 1.19,
+        "size": [
+          0.94,
+          0.34
+        ]
+      },
+      "shelf-5": {
+        "height": 1.55,
+        "size": [
+          0.94,
+          0.34
+        ]
+      }
+    }
+  },
+  "washer-stylized-v2": {
+    "label": "奶油滚筒洗衣机",
+    "kind": "washer",
+    "limitations": [
+      "机门不能开合，滚筒和按钮没有运行功能"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/washer-stylized-v2.glb",
+    "size": [
+      0.6670254468917847,
+      0.6936399340629578
+    ],
+    "height": 0.8500000238418579,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task a64178d3-a3dc-4570-ad19-36aad1be61cb"
+  },
+  "workstation-tower-stylized-v2": {
+    "label": "石墨灰工作站主机",
+    "kind": "computer",
+    "limitations": [
+      "机箱为静态装饰，不连接真实电脑状态；按落地物品摆放",
+      "背部生成破洞已用本地检修盖修复；不是精细真实接口背板"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/workstation-tower-stylized-v2.glb",
+    "size": [
+      0.27146774530410767,
+      0.48424261808395386
+    ],
+    "height": 0.48000001907348633,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 3491cb7b-bde8-4444-ac93-e719e17accdd; local matte rear service-cover repair"
+  },
+  "urban-dual-monitor-kit-v1": {
+    "label": "双屏键鼠工作台套件",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-dual-monitor-kit-v1.glb",
+    "size": [
+      0.9050000309944153,
+      0.40700000524520874
+    ],
+    "height": 0.6330000162124634,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-study-kit-v1": {
+    "label": "台灯课本与彩笔",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-study-kit-v1.glb",
+    "size": [
+      0.5679999589920044,
+      0.46299999952316284
+    ],
+    "height": 0.33249998092651367,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-child-desk-v1": {
+    "label": "浅木升降学习桌",
+    "kind": "desk",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-child-desk-v1.glb",
+    "size": [
+      1.0800000429153442,
+      0.5899999737739563
+    ],
+    "height": 0.6324999928474426,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          1.02,
+          0.53
+        ],
+        "height": 0.6325
+      }
+    }
+  },
+  "urban-tabletop-tv-v1": {
+    "label": "窄边框台式电视",
+    "kind": "tv",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-tabletop-tv-v1.glb",
+    "size": [
+      1.0800000429153442,
+      0.17559543251991272
+    ],
+    "height": 0.6775743961334229,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-coffee-kit-v1": {
+    "label": "纸巾水杯与遥控器",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-coffee-kit-v1.glb",
+    "size": [
+      0.6449999809265137,
+      0.20750001072883606
+    ],
+    "height": 0.18549999594688416,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-wall-ac-v1": {
+    "label": "壁挂空调",
+    "kind": "air_conditioner",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-wall-ac-v1.glb",
+    "size": [
+      0.800000011920929,
+      0.21050000190734863
+    ],
+    "height": 0.24500000476837158,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "wall",
+    "elevation": 2.04
+  },
+  "urban-city-window-v1": {
+    "label": "落地窗与城市窗景",
+    "kind": "window",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-city-window-v1.glb",
+    "size": [
+      2.240000009536743,
+      0.17087998986244202
+    ],
+    "height": 1.4820001125335693,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "wall",
+    "elevation": 0.7
+  },
+  "urban-blue-rug-v1": {
+    "label": "蓝灰编织地毯",
+    "kind": "rug",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-blue-rug-v1.glb",
+    "size": [
+      2.0,
+      1.3200000524520874
+    ],
+    "height": 0.01600000075995922,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ]
+  },
+  "urban-air-purifier-v1": {
+    "label": "奶油空气净化器",
+    "kind": "appliance",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-air-purifier-v1.glb",
+    "size": [
+      0.23999999463558197,
+      0.24950000643730164
+    ],
+    "height": 0.6025000214576721,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ]
+  },
+  "urban-books-v1": {
+    "label": "日常书籍叠放",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-books-v1.glb",
+    "size": [
+      0.23000000417232513,
+      0.17000000178813934
+    ],
+    "height": 0.10599999874830246,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-compact-dining-v1": {
+    "label": "小户型浅木餐桌",
+    "kind": "dining_table",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-compact-dining-v1.glb",
+    "size": [
+      0.949999988079071,
+      0.699999988079071
+    ],
+    "height": 0.7008790969848633,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          0.87,
+          0.62
+        ],
+        "height": 0.72
+      }
+    }
+  },
+  "urban-upright-books-v1": {
+    "label": "彩色日常藏书",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-upright-books-v1.glb",
+    "size": [
+      0.32199999690055847,
+      0.1720000058412552
+    ],
+    "height": 0.23000000417232513,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-storage-bin-v1": {
+    "label": "布艺整理盒",
+    "kind": "storage_box",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-storage-bin-v1.glb",
+    "size": [
+      0.3050000071525574,
+      0.2789999842643738
+    ],
+    "height": 0.2029999941587448,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-child-chair-tripo-v1": {
+    "label": "雾蓝双背学习椅",
+    "kind": "chair",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-child-chair-tripo-v1.glb",
+    "size": [
+      0.6370413899421692,
+      0.6068131327629089
+    ],
+    "height": 0.800000011920929,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, built-in reference; task 594916de-2553-4e63-ab5c-9585ae1645e0; aligned front +Z by 57.14 degrees",
+    "limitations": [
+      "外观已检查；实测坐姿扶手与裙摆干涉，未开放坐下/阅读动作",
+      "椅轮与软垫为静态网格，不能转动/调高"
+    ]
+  },
+  "urban-child-desk-tripo-v1": {
+    "label": "浅木蓝扣学习桌",
+    "kind": "desk",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-child-desk-tripo-v1.glb",
+    "size": [
+      1.095618724822998,
+      0.6925340294837952
+    ],
+    "height": 0.6324999928474426,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, generated reference; task 2202b047-16e7-4d1c-9768-5c2ef983b444",
+    "surfaces": {
+      "top": {
+        "size": [
+          1.01,
+          0.52
+        ],
+        "height": 0.6324999928474426
+      }
+    },
+    "limitations": [
+      "静态桌架与纹理；尚不支持调高或抽屉开合"
+    ]
+  },
+  "urban-study-lamp-v1": {
+    "label": "护眼学习台灯",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-study-lamp-v1.glb",
+    "size": [
+      0.2930000126361847,
+      0.1404999941587448
+    ],
+    "height": 0.33249998092651367,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Local native Blender object subset; urban-v4/split_study_props.py",
+    "limitations": [
+      "静态摆件，可以独立布置；未开放拿取动作"
+    ]
+  },
+  "urban-pencil-cup-v1": {
+    "label": "彩笔笔筒",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-pencil-cup-v1.glb",
+    "size": [
+      0.06999999284744263,
+      0.07000000774860382
+    ],
+    "height": 0.1736779510974884,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Local native Blender object subset; urban-v4/split_study_props.py",
+    "limitations": [
+      "静态摆件，可以独立布置；未开放拿取动作"
+    ]
+  },
+  "urban-school-books-v1": {
+    "label": "叠放的课本",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-school-books-v1.glb",
+    "size": [
+      0.17000001668930054,
+      0.23000000417232513
+    ],
+    "height": 0.06849999725818634,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Local native Blender object subset; urban-v4/split_study_props.py",
+    "limitations": [
+      "静态摆件，可以独立布置；未开放拿取动作"
+    ]
+  },
+  "urban-workbook-v1": {
+    "label": "摊开的练习册",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-workbook-v1.glb",
+    "size": [
+      0.27000001072883606,
+      0.18000000715255737
+    ],
+    "height": 0.01599999889731407,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Local native Blender object subset; urban-v4/split_study_props.py",
+    "limitations": [
+      "静态摆件，可以独立布置；未开放拿取动作"
+    ]
+  },
+  "urban-floor-window-v2": {
+    "label": "通顶落地窗与亚麻窗帘",
+    "kind": "window",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-floor-window-v2.glb",
+    "size": [
+      2.9600000381469727,
+      0.18268847465515137
+    ],
+    "height": 2.248499870300293,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; atmosphere-v5/make_window.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "wall",
+    "elevation": 0.07,
+    "wall_opening": {
+      "width": 2.42,
+      "height": 2.17,
+      "bottom": 0.025
+    },
+    "unlit_nodes": [
+      "WindowView"
+    ],
+    "no_shadow_nodes": [
+      "WindowView"
+    ]
+  },
+  "urban-floating-shelf-v1": {
+    "label": "浅木壁上置物板",
+    "kind": "wall_shelf",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-floating-shelf-v1.glb",
+    "size": [
+      0.6499999761581421,
+      0.3400000035762787
+    ],
+    "height": 0.17249999940395355,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; atmosphere-v5/make_accents.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "wall",
+    "elevation": 1.5,
+    "surfaces": {
+      "top": {
+        "size": [
+          0.59,
+          0.3
+        ],
+        "height": 0.1725
+      }
+    }
+  },
+  "urban-botanical-frame-v1": {
+    "label": "木框植物画",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-botanical-frame-v1.glb",
+    "size": [
+      0.4000000059604645,
+      0.03150000050663948
+    ],
+    "height": 0.5199999809265137,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; atmosphere-v5/make_accents.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "wall",
+    "elevation": 1.4
+  },
+  "urban-long-media-console-v1": {
+    "label": "胡桃木长电视柜",
+    "kind": "media_console",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-long-media-console-v1.glb",
+    "size": [
+      2.200000047683716,
+      0.5499072074890137
+    ],
+    "height": 0.44119372963905334,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local nonuniform size variant of walnut-media-console-stylized-v2; original Tripo task 11f9aa07-bf6f-4eaf-ab7d-a2da8d1f4d1e; existing attribution retained",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          2.12,
+          0.47
+        ],
+        "height": 0.44119373
+      }
+    }
+  },
+  "urban-wide-tv-v1": {
+    "label": "窄边框大屏电视",
+    "kind": "tv",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-wide-tv-v1.glb",
+    "size": [
+      1.4040000438690186,
+      0.22827404737472534
+    ],
+    "height": 0.8808467388153076,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local geometry size variant of native urban-tabletop-tv-v1; source urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface"
+  },
+  "urban-large-rug-v2": {
+    "label": "蓝灰客厅大地毯",
+    "kind": "rug",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-large-rug-v2.glb",
+    "size": [
+      3.0999999046325684,
+      2.0460000038146973
+    ],
+    "height": 0.01600000075995922,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; atmosphere-v5/make_accents.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ]
+  },
+  "urban-floor-ficus-v1": {
+    "label": "陶盆落地榕树",
+    "kind": "plant",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-floor-ficus-v1.glb",
+    "size": [
+      0.7854207158088684,
+      0.6233855485916138
+    ],
+    "height": 1.1500000953674316,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, generated original reference; task 3d57ba0a-1da7-4430-87d4-625b0f10d08b",
+    "limitations": [
+      "静态叶片与花盆，可以布置；没有浇水、生长或拿取动作"
+    ]
+  },
+  "urban-shelf-pothos-v1": {
+    "label": "垂枝绿萝",
+    "kind": "plant",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-shelf-pothos-v1.glb",
+    "size": [
+      0.3172505795955658,
+      0.2638581097126007
+    ],
+    "height": 0.2800000011920929,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, generated original reference; task ac3db6e6-7342-49f4-b789-cab5f10783da",
+    "limitations": [
+      "静态叶片与花盆，可以布置；没有浇水、生长或拿取动作"
+    ],
+    "placement": "surface",
+    "support_offset": -0.02276933193206787
+  },
+  "urban-floating-shelf-high-v1": {
+    "label": "浅木高位置物板",
+    "kind": "wall_shelf",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-floating-shelf-v1.glb",
+    "size": [
+      0.6499999761581421,
+      0.3400000035762787
+    ],
+    "height": 0.17249999940395355,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; atmosphere-v5/make_accents.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "wall",
+    "elevation": 1.8,
+    "surfaces": {
+      "top": {
+        "size": [
+          0.59,
+          0.3
+        ],
+        "height": 0.1725
+      }
+    }
+  }
+}
