@@ -10,7 +10,7 @@ function garden(c,x,y,w,h){fill(c,x,y,w,h,'#e5eee1');fill(c,x,y+h*.68,w,h*.32,'#
 function workbookPage(c,w,h,right){fill(c,0,0,w,h,'#f6f0e0');text(c,right?'给小花安个家':'今天的小发现',32,60,27,'#647e72',true);fill(c,30,80,w-60,2,'#cad5ba');if(right){garden(c,35,115,w-70,h*.55);text(c,'阳光 · 小屋 · 花园',42,h-75,20,'#8b9786');for(let i=0;i<3;i++){fill(c,40+i*110,h-46,75,2,['#c4b287','#aac0bd','#c6a694'][i])}}else{for(const [i,t] of ['观察一片叶子的形状','给植物画一个新花盆','留一点时间发呆'].entries()){text(c,String(i+1)+'.',36,140+i*90,20,'#a5b29b');text(c,t,70,140+i*90,21);fill(c,70,158+i*90,w-110,1,'#e2dcc8')}garden(c,45,h*.69,w-90,h*.23)}for(let i=0;i<12;i++)fill(c,w-5,i*h/12,2,h/20,'#ded4bd')}
 function faceOverlay(parent,name,w,h,pos,texture,rotation){const face=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:texture,transparent:true,toneMapped:false,depthWrite:false}));face.name=name;face.position.set(...pos);if(rotation)face.rotation.set(...rotation);face.castShadow=false;parent.add(face);return face}
 export function applyDeskFinishes(root,{canvasFactory=()=>document.createElement('canvas'),pictureBookImage}={}){
- let wood;const replacements=new Map();root.traverse(o=>{if(!o.isMesh||!o.name.startsWith('Wood-'))return;if(!wood)wood=woodTexture();const source=o.material;if(!replacements.has(source)){const mat=source.clone();mat.map=wood;mat.color.set('#ffffff');mat.roughness=.65;replacements.set(source,mat)}o.material=replacements.get(source)});
+ let wood;const replacements=new Map();root.traverse(o=>{if(!o.isMesh||!o.name.startsWith('Wood-'))return;if(!wood)wood=woodTexture();const source=o.material;if(!replacements.has(source)){const mat=source.clone();mat.map=wood;mat.color.set('#ffffff');mat.roughness=.48;mat.envMapIntensity=.72;replacements.set(source,mat)}o.material=replacements.get(source)});
  const left=root.getObjectByName('Workbook-page-left'),right=root.getObjectByName('Workbook-page-right');for(const [i,page] of [left,right].entries()){if(!page)continue;const t=imageTexture(canvasFactory,480,640,(c,w,h)=>workbookPage(c,w,h,!!i));const mat=page.material.clone();mat.map=t;mat.color.set('#ffffff');mat.roughness=.97;page.material=mat}
  if(pictureBookImage)for(const [i,name] of ['Picturebook-page-left','Picturebook-page-right'].entries()){
   const page=root.getObjectByName(name);if(!page)continue;const t=new T.Texture(pictureBookImage);t.colorSpace=T.SRGBColorSpace;t.anisotropy=8;t.repeat.set(.5,1);t.offset.set(i*.5,0);t.needsUpdate=true;
@@ -27,4 +27,17 @@ export function applyDeskFinishes(root,{canvasFactory=()=>document.createElement
  const calendar=root.getObjectByName('Calendar-paper');if(calendar){const t=imageTexture(canvasFactory,340,460,(c,w,h)=>{fill(c,0,0,w,h,'#f5eedf');text(c,'日子慢慢过',25,52,24,'#7b8b75',true);text(c,'NOVEMBER',25,88,15,'#a6ad98');for(let i=0;i<35;i++){const x=34+(i%7)*44,y=142+Math.floor(i/7)*52;text(c,String(i%30+1),x,y,16,'#81917f');if(i===11){c.strokeStyle='#cb9c84';c.lineWidth=3;c.beginPath();c.arc(x+7,y-5,16,0,Math.PI*2);c.stroke()}}text(c,'记得一起散步',28,430,19,'#a7ad95')});faceOverlay(calendar,'Calendar-print',.165,.225,[0,0,.001],t)}
  const postcard=root.getObjectByName('Drawing-postcard');if(postcard){const t=imageTexture(canvasFactory,570,390,(c,w,h)=>{fill(c,0,0,w,h,'#f7f0df');garden(c,20,20,w-40,h-55);text(c,'小花园',30,h-12,18,'#83947a')});faceOverlay(postcard,'Garden-postcard',.18,.12,[0,0,.001],t)}
  return root;
+}
+
+// This material belongs to one placed book, not to the cached furniture model.
+export function showCrayonDrawing(instance, image, title, canvasFactory=()=>document.createElement('canvas')){
+ const page=instance.getObjectByName('Picturebook-page-right')||instance.getObjectByName('Workbook-page-right');
+ if(!page)return;
+ const texture=imageTexture(canvasFactory,512,640,(c,w,h)=>{
+  fill(c,0,0,w,h,'#f7f2e5');text(c,title,24,65,27,'#647e72',true);
+  const width=w-32,height=width*image.height/image.width;
+  c.drawImage(image,16,(h-height)/2,width,height);
+ });
+ const mat=new T.MeshBasicMaterial({map:texture,side:T.DoubleSide,toneMapped:false});page.material=mat;
+ return ()=>{texture.dispose();mat.dispose()};
 }

@@ -710,6 +710,14 @@
           "z": 0,
           "yaw": 0
         }
+      },
+      {
+        "id": "floor-workshop",
+        "kind": "toy_set",
+        "asset_id": "floor-robot-kit-v1",
+        "x": -1.86,
+        "z": 1.44,
+        "yaw": 0.12
       }
     ],
     "spawn": {

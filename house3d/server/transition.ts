@@ -1,3 +1,4 @@
+import {drawable, validateDrawing, drawingWidth, drawingHeight} from './crayon.mjs';
 import {createSpace,spaceBounds} from '../shared/space.mjs';
 import {
   type State,
@@ -19,7 +20,7 @@ import {
   validateLayout,
   definition,
 } from "./geometry.js";
-import { busy, actionsFor, readingDesk } from "./objects.js";
+import { busy, actionsFor, readingDesk, drawingBook } from "./objects.js";
 export function transition(
   input: State,
   command: Data,
@@ -58,7 +59,18 @@ export function transition(
       "Finish the current object interaction with interact/leave before moving furniture or the character",
     );
   const mutate = (s: State, c: Data, o: Data = {}) => transition(s, c, ctx, o);
-  if (op === "set_wallpaper") {
+  if (op === "draw_crayon") {
+    validateDrawing(args.title,args.marks);
+    const sessionBook = busy(state) && state.interaction?.pose==="draw" ? state.interaction.related_id : null;
+    const target = 'target_id' in args ? args.target_id : sessionBook;
+    const book = ('target_id' in args || target!=null) ? state.objects.find(o=>o.id===target && drawable(o)) : state.objects.find(drawable);
+    requireValue(!('target_id' in args) || book, "Target must be an open workbook or picture book");
+    const previous = book ? book.artwork : state.last_drawing;
+    if ("base_url" in args) requireValue(typeof args.base_url==="string" && previous?.url===args.base_url &&
+      (previous.target_id??null)===(book?.id??null), "base_url must match the current drawing on this page");
+    state.last_drawing = {title:args.title.trim(),width:drawingWidth,height:drawingHeight,target_id:book?.id ?? null,url:`/api/drawings/${state.revision+1}.png`};
+    if(book) book.artwork = state.last_drawing;
+  } else if (op === "set_wallpaper") {
     if (Array.isArray(args.wallpaper_id))
       throw Error("unhashable type: 'list'");
     requireValue(
@@ -168,7 +180,9 @@ export function transition(
       actionsFor(obj, ctx, state).some((a) => a.id === action && a.available),
       "Action unavailable for this object/state",
     );
-    if (["turn_on", "turn_off"].includes(action)) {
+    if (action==="tidy" || action==="unpack") {
+      obj.properties = {...obj.properties, packed: action==="tidy"};
+    } else if (["turn_on", "turn_off"].includes(action)) {
       obj.properties ??= { on: true, brightness: 0.7 };
       obj.properties.on = action === "turn_on";
     } else if (["cover", "uncover"].includes(action)) {
@@ -182,7 +196,7 @@ export function transition(
         action,
         pose: action === "leave" ? old.pose : action,
         related_id:
-          action === "read"
+          action === "draw" ? drawingBook(obj,state)!.id : action === "read"
             ? readingDesk(obj, state)!.id
             : action === "leave"
               ? (old.related_id ?? null)

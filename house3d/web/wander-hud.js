@@ -21,7 +21,7 @@ export function createCanvasHud(){
  function rounded(c,x,y,w,h,r,fill){c.fillStyle=fill;c.beginPath();c.roundRect(x,y,w,h,r);c.fill()}
  function update(s){if(!rects.length)return;const key=JSON.stringify(s);if(key===previous)return;previous=key;const light=LIGHTING[s.light||'day'];veil.material.color.set(light.tint);veil.material.opacity=light.opacity;
   const c=bar.context;c.clearRect(0,0,470,54);rounded(c,0,0,470,54,22,'rgba(255,253,247,.95)');
-  const objectLabel=['approaching','entering'].includes(s.objectPhase)?'取消':s.objectPhase==='leaving'?'起身中':s.objectPose==='sleep'?'起床':['sit','read'].includes(s.objectPose)?'起身':null;
+  const objectLabel=['approaching','entering'].includes(s.objectPhase)?'取消':s.objectPhase==='leaving'?'起身中':s.objectPose==='sleep'?'起床':['sit','read','play','draw'].includes(s.objectPose)?'起身':null;
   const labels=[objectLabel||(s.auto?'逛逛':'休息'),s.paused?'继续':'暂停',s.brisk?'走跑走':'慢慢走',{home:'全景',follow:'跟随',front:'正面',face:'看脸',portrait:'斜侧',side:'侧面',back:'背面',top:'俯视'}[s.cameraMode],s.sound?'有声':'静音'];
   for(let i=0;i<5;i++){const active=[s.auto,s.paused,s.brisk,s.cameraMode!=='home',s.sound][i];if(active)rounded(c,i*94+5,6,84,42,16,'#e4ede1');
    c.font=`bold ${13*470/(rects[0].w*5)}px -apple-system,"PingFang SC",sans-serif`;c.fillStyle=s.ready?'#4b6252':'#9ba396';c.textAlign='center';c.textBaseline='middle';c.fillText(labels[i],i*94+47,28);

@@ -1,5 +1,5 @@
 import * as T from 'three';
-const categories=[['all','全部'],['seating','坐具'],['sleeping','寝具'],['study','学习'],['lighting','灯光'],['storage','收纳'],['appliances','家电'],['decoration','装饰'],['environment','环境'],['tables','桌几']];
+const categories=[['all','全部'],['seating','坐具'],['sleeping','寝具'],['study','学习'],['play','玩具'],['lighting','灯光'],['storage','收纳'],['appliances','家电'],['decoration','装饰'],['environment','环境'],['tables','桌几']];
 export function createObjectPanel(){
  const scene=new T.Scene(),camera=new T.OrthographicCamera(-1,1,1,-1,.1,10);camera.position.z=2;
  const canvas=document.createElement('canvas'),c=canvas.getContext('2d'),texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
@@ -11,7 +11,7 @@ export function createObjectPanel(){
  function update(next){data=next||data;const key=JSON.stringify([width,height,open,category,page,selected,data,pending]);if(key===previous)return;previous=key;c.clearRect(0,0,width,height);rects=[];
   button('toggle',open?'收起物品':'物品',width-94,18,76,36,open);
   if(open){const w=Math.min(380,width-24),x=width-w-12,y=78,h=Math.min(510,height-168);c.fillStyle='rgba(255,253,247,.98)';c.beginPath();c.roundRect(x,y,w,h,20);c.fill();rects.push({id:'panel',x,y,w,h,enabled:true});text('家里的东西',x+18,y+18,true);
-   categories.forEach(([id,label],i)=>button('category:'+id,label,x+14+(i%5)*(w-28)/5,y+46+Math.floor(i/5)*36,(w-36)/5,30,category===id));
+   categories.forEach(([id,label],i)=>button('category:'+id,label,x+14+(i%6)*(w-28)/6,y+46+Math.floor(i/6)*36,(w-36)/6,30,category===id));
    const items=data.objects.filter(o=>category==='all'||o.category===category),perPage=Math.max(1,Math.min(4,Math.floor((h-255)/44)));page=Math.max(0,Math.min(page,Math.ceil(items.length/perPage)-1));
    items.slice(page*perPage,(page+1)*perPage).forEach((o,i)=>button('select:'+o.id,o.label,x+18,y+128+i*44,w-36,38,selected===o.id));
    const bottom=y+128+perPage*44;button('prev','‹',x+18,bottom+4,34,28);button('next','›',x+w-52,bottom+4,34,28);text(`${page+1} / ${Math.max(1,Math.ceil(items.length/perPage))}`,x+w/2-18,bottom+10);

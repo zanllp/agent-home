@@ -1,7 +1,11 @@
+import {packFloorToys} from './floor-toys.js';
+import {createContactShadows} from './contact-shadows.js';
+import {LIGHTING} from './wander-state.js';
 import {createStudyProp} from './desk-models.js';
-import {applyDeskFinishes} from './desk-finishes.js';
+import {applyDeskFinishes,showCrayonDrawing} from './desk-finishes.js';
 import {createBalcony,disposeBalcony} from './balcony.js';
 import * as T from 'three';
+import {groundHeightAt} from './wander-navigation.js';
 import {roomDimensions} from './room-size.js';
 import {createRoomWalls} from './room-walls.js';
 import {RectAreaLightUniformsLib} from 'three/addons/lights/RectAreaLightUniformsLib.js';
@@ -11,7 +15,8 @@ import {useFurnitureLighting} from './furniture-material.js';
 import {enhanceScreens} from './screen-detail.js';
 import {createWindowDetail,disposeWindowDetail} from './window-detail.js';
 export function baseHeight(item,objects,assets,seen=new Set()){if(seen.has(item.id))return 0;seen.add(item.id);if(!item.on)return assets[item.asset_id]?.elevation||0;const parent=objects.find(o=>o.id===item.on.id),surface=assets[parent?.asset_id]?.surfaces?.[item.on.surface];return parent&&surface?baseHeight(parent,objects,assets,seen)+surface.height+(assets[item.asset_id]?.support_offset||0):0}
-export function createPreviewRoom(scene){
+export function createPreviewRoom(scene,{renderer}={}){
+ const contacts=renderer?createContactShadows(renderer,scene):null;let lightPreset='day';
  RectAreaLightUniformsLib.init();const windowFill=new T.RectAreaLight('#edf4ff',1.2,2.4,2.1);windowFill.visible=false;const bounce=new T.RectAreaLight('#fff4df',.65,2,2);bounce.visible=false;scene.add(windowFill,bounce);
  const cache=new Map(),loader=new GLTFLoader();let balconyRoot=null,roomSpec={},filmImage;
  const printImages=new Map();
@@ -34,9 +39,9 @@ export function createPreviewRoom(scene){
  function material(color){return new T.MeshStandardMaterial({color,roughness:.85})}
  function box(parent,size,pos,color,round=.025){const obj=new T.Mesh(new RoundedBoxGeometry(...size,2,round),material(color));obj.position.set(...pos);obj.castShadow=true;obj.receiveShadow=true;parent.add(obj);return obj}
  function cylinder(parent,r,h,pos,color){const o=new T.Mesh(new T.CylinderGeometry(r,r,h,24),material(color));o.position.set(...pos);o.castShadow=true;parent.add(o);return o}
- function buildItem(item,parent,model,asset,baseY=asset?.elevation||0,stencilRef=1){const g=new T.Group(),c=item.color;g.userData.id=item.id;if(asset?.placement==='wall')g.userData.wall=Math.abs(item.yaw)<.001?'back':'left';g.position.set(item.x,baseY,item.z);g.rotation.y=item.yaw;
+ function buildItem(item,parent,model,asset,baseY=asset?.elevation||0,stencilRef=1,drawingImage){const g=new T.Group(),c=item.color;g.userData.id=item.id;g.userData.isRug=item.kind==='rug';if(asset?.placement==='wall')g.userData.wall=Math.abs(item.yaw)<.001?'back':'left';g.position.set(item.x,baseY,item.z);g.rotation.y=item.yaw;
  if(item.id===roomSpec.balcony?.door_id)g.position.y=0;
- if(model){const instance=model.clone(true);g.add(instance);if(asset.wall_opening){const detail=createWindowDetail(instance,{walkable:item.id===roomSpec.balcony?.door_id,open:item.properties?.open!==false});g.add(detail)}if(item.kind==='lamp'){
+ if(model){const instance=model.clone(true);if(item.kind==='toy_set'&&item.properties?.packed)packFloorToys(instance);if(drawingImage)g.userData.disposeArtwork=showCrayonDrawing(instance,drawingImage,item.artwork.title);if(item.kind==='toy_set')instance.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true});g.add(instance);if(asset.wall_opening){const detail=createWindowDetail(instance,{walkable:item.id===roomSpec.balcony?.door_id,open:item.properties?.open!==false});g.add(detail)}if(item.kind==='lamp'){
   const properties={on:true,brightness:.7,...item.properties};const glow=new T.Sprite(new T.SpriteMaterial({map:glowTexture,color:'#fff1cf',transparent:true,depthWrite:false,toneMapped:false,opacity:properties.on?properties.brightness*.45:0}));glow.position.y=asset.height*.87;glow.scale.set(.72,.72,1);g.add(glow);const light=new T.PointLight('#ffdb95',properties.on?properties.brightness*1.2:0,2);light.position.y=asset.height*.83;g.add(light);
  }parent.add(g);return g}g.userData.procedural=true;
  const legs=(w,d,h)=>{for(const x of [-w/2+.06,w/2-.06])for(const z of [-d/2+.06,d/2-.06])box(g,[.055,h,.055],[x,h/2,z],'#986e4c')};
@@ -52,33 +57,38 @@ export function createPreviewRoom(scene){
 
  const plinth=box(scene,[6,.12,5],[0,-.08,0],'#b99573');let sizeKey='';
  const floorMap=new T.TextureLoader().load('/models/materials/honey-oak-floor-v1.png');floorMap.colorSpace=T.SRGBColorSpace;floorMap.wrapS=floorMap.wrapT=T.RepeatWrapping;floorMap.repeat.set(2,2.5);floorMap.anisotropy=8;
- const floor=new T.Mesh(new T.PlaneGeometry(6,5),new T.MeshStandardMaterial({map:floorMap,roughness:.84,metalness:0,emissive:'#ffffff',emissiveMap:floorMap,emissiveIntensity:.04}));floor.rotation.x=-Math.PI/2;floor.position.y=.001;floor.receiveShadow=true;scene.add(floor);
+ const floor=new T.Mesh(new T.PlaneGeometry(6,5),new T.MeshStandardMaterial({map:floorMap,roughness:.56,metalness:0,envMapIntensity:.55}));floor.rotation.x=-Math.PI/2;floor.position.y=.001;floor.receiveShadow=true;scene.add(floor);
 
  box(legacyWindow,[1.1,1.05,.04],[.05,1.55,-2.43],'#bdd8d5');for(const x of [-.52,.62,.05])box(legacyWindow,[.04,1.12,.05],[x,1.55,-2.39],'#fff6e6');box(legacyWindow,[1.18,.04,.05],[.05,1.55,-2.39],'#fff6e6');
  async function update(objects,assets={},room={}){
   roomSpec=room;
   const dimensions=roomDimensions(room),key=JSON.stringify(dimensions);
   if(key!==sizeKey){sizeKey=key;await enclosure.setSize(room);plinth.scale.set(dimensions.width/6,1,dimensions.depth/5);floor.geometry.dispose();floor.geometry=new T.PlaneGeometry(dimensions.width,dimensions.depth);floorMap.repeat.set(dimensions.width/3,dimensions.depth/2);legacyWindow.position.z=-(dimensions.depth-5)/2;}
-  const loaded=new Map();
+  const loaded=new Map(),art=new Map();
+  const visiblePrints=new Set(objects.map(o=>o.artwork?.url).filter(Boolean));
+  for(const url of printImages.keys())if(url.startsWith('/api/drawings/')&&!visiblePrints.has(url))printImages.delete(url);
   await Promise.all(objects.filter(o=>o.asset_id).map(async o=>{
    const asset=assets[o.asset_id];if(!asset||asset.kind!==o.kind)throw Error('家具目录不完整，请刷新重试');
    loaded.set(o.id,await assetModel(asset));
+   if(/^\/api\/drawings\/\d+\.png$/.test(o.artwork?.url))art.set(o.id,await loadPrint(o.artwork.url));
   }));
-  enclosure.setOpenings(objects,assets);const window=objects.find(o=>assets[o.asset_id]?.wall_opening);windowFill.visible=bounce.visible=!!window;if(window){const a=assets[window.asset_id],hole=a.wall_opening;windowFill.position.set(window.x+Math.sin(window.yaw)*.12,(a.elevation||0)+(hole.bottom||0)+hole.height/2,window.z+Math.cos(window.yaw)*.12);windowFill.width=hole.width;windowFill.height=hole.height;bounce.position.set(0,1.7,window.z+.8);bounce.lookAt(window.x,1.3,window.z);windowFill.lookAt(windowFill.position.x+Math.sin(window.yaw),windowFill.position.y,windowFill.position.z+Math.cos(window.yaw));}
+  enclosure.setOpenings(objects,assets);const window=objects.find(o=>assets[o.asset_id]?.wall_opening);windowFill.visible=bounce.visible=!!window;if(window){const a=assets[window.asset_id],hole=a.wall_opening;windowFill.position.set(window.x+Math.sin(window.yaw)*.12,(a.elevation||0)+(hole.bottom||0)+hole.height/2,window.z+Math.cos(window.yaw)*.12);windowFill.width=hole.width;windowFill.height=hole.height;bounce.position.set(window.x+Math.sin(window.yaw)*3,dimensions.height-.22,window.z+Math.cos(window.yaw)*3);bounce.width=Math.min(3,dimensions.width*.6);bounce.height=Math.min(3,dimensions.depth*.6);bounce.lookAt(bounce.position.x,.1,bounce.position.z);windowFill.lookAt(windowFill.position.x+Math.sin(window.yaw),windowFill.position.y,windowFill.position.z+Math.cos(window.yaw));}
   if(balconyRoot){disposeBalcony(balconyRoot);scene.remove(balconyRoot);balconyRoot=null}
   const door=objects.find(o=>o.id===room.balcony?.door_id),view=door&&loaded.get(door.id)?.getObjectByName('WindowView-city');
   balconyRoot=createBalcony(room,view,door);if(balconyRoot)scene.add(balconyRoot);
-  const next=new T.Group(),nextFixtures=new T.Group();let stencilRef=1;objects.forEach(o=>{const asset=assets[o.asset_id];buildItem(o,asset?.placement==='wall'?nextFixtures:next,loaded.get(o.id),asset,baseHeight(o,objects,assets),asset?.wall_opening?stencilRef++:0)});
+  const next=new T.Group(),nextFixtures=new T.Group();let stencilRef=1;objects.forEach(o=>{const asset=assets[o.asset_id];buildItem(o,asset?.placement==='wall'?nextFixtures:next,loaded.get(o.id),asset,o.kind==='toy_set'?groundHeightAt(o.x,o.z,objects.filter(p=>p.kind==='rug'),assets):baseHeight(o,objects,assets),asset?.wall_opening?stencilRef++:0,art.get(o.id))});
   for(const old of fixtures.children)old.traverse(o=>{if(o.userData.runtimeDetail)disposeWindowDetail(o)});fixtures.clear();while(nextFixtures.children.length)fixtures.add(nextFixtures.children[0]);
   legacyWindow.userData.enabled=!objects.some(o=>o.kind==='window'&&assets[o.asset_id]?.placement==='wall');
   for(const old of [...furniture.children]){
+   old.userData.disposeArtwork?.();
    old.traverse(o=>{if(old.userData.procedural)o.geometry?.dispose();if(old.userData.procedural||o.isSprite)for(const m of [].concat(o.material||[]))m.dispose()});
    furniture.remove(old);
   }
   while(next.children.length)furniture.add(next.children[0]);
+  contacts?.update(furniture,room);contacts?.setLighting(lightPreset);
   const keep=new Set(objects.filter(o=>o.asset_id).map(o=>{const a=assets[o.asset_id];return a.model+'|'+(a.painted!==false)}));
   for(const [key,promise] of cache)if(!keep.has(key)){cache.delete(key);promise.then(disposeModel,()=>{})}
 
  }
- return {furniture,walls,update,setLighting(preset){windowFill.intensity={day:1.2,evening:1.3,night:.08}[preset]??1.2;bounce.intensity={day:.65,evening:.35,night:.03}[preset]??.65},setFinish:enclosure.setFinish,updateView(position,options){balconyRoot?.userData.updateView?.(position);const hidden=enclosure.updateView(position,options);for(const fixture of fixtures.children)fixture.visible=!hidden.has(fixture.userData.wall);legacyWindow.visible=legacyWindow.userData.enabled&&!hidden.has('back')},dispose(){disposeBalcony(balconyRoot);if(balconyRoot)scene.remove(balconyRoot);fixtures.traverse(o=>{if(o.userData.runtimeDetail)disposeWindowDetail(o)});scene.remove(windowFill,bounce);enclosure.dispose();for(const promise of cache.values())promise.then(disposeModel,()=>{});cache.clear();floorMap.dispose();glowTexture.dispose()}};
+ return {furniture,walls,update,setLighting(preset){lightPreset=preset;const p=LIGHTING[preset]||LIGHTING.day;windowFill.intensity=p.window;bounce.intensity=p.bounce;windowFill.color.set(preset==='evening'?'#ffe1bd':'#e1edff');contacts?.setLighting(preset)},setFinish:enclosure.setFinish,updateView(position,options){balconyRoot?.userData.updateView?.(position);const hidden=enclosure.updateView(position,options);for(const fixture of fixtures.children)fixture.visible=!hidden.has(fixture.userData.wall);legacyWindow.visible=legacyWindow.userData.enabled&&!hidden.has('back')},dispose(){for(const old of furniture.children)old.userData.disposeArtwork?.();contacts?.dispose();disposeBalcony(balconyRoot);if(balconyRoot)scene.remove(balconyRoot);fixtures.traverse(o=>{if(o.userData.runtimeDetail)disposeWindowDetail(o)});scene.remove(windowFill,bounce);enclosure.dispose();for(const promise of cache.values())promise.then(disposeModel,()=>{});cache.clear();floorMap.dispose();glowTexture.dispose()}};
 }

@@ -138,6 +138,16 @@
     }
   },
   "definitions": {
+    "draw_crayon": [
+      "Draw one finished static crayon PNG now. Choose the strokes yourself in back-to-front order. Coordinates 0–100, origin top left. Optionally display on an open workbook or picture book; otherwise the first such book is used if present. Returns artwork.url; no viewer or animation required.",
+      {
+        "title": {"type":"string","minLength":1,"maxLength":32},
+        "target_id": {"type":"string","description":"Optional object id of an open workbook or picture book (e.g. workbook)."},
+        "base_url": {"type":"string","description":"Optional artwork.url of the current page. Add marks to it and return a NEW static PNG; omit for a fresh page."},
+        "marks": {"type":"array","minItems":1,"maxItems":32,"description":"Each mark is [op,color,...numbers]. line: 2–10 xy pairs; oval: cx,cy,rx,ry inside page; wash: left,top,right,bottom. Simple motifs sun, flower, house: centerX,centerY,halfWidth,halfHeight (inside page). Colors: ink,mint,green,blue,ochre,coral. Example: [[\"oval\",\"ochre\",75,20,8,8],[\"line\",\"green\",0,80,50,65,100,80]].","items":{"type":"array","minItems":6,"maxItems":22,"items":{"anyOf":[{"type":"string"},{"type":"number","minimum":0,"maximum":100}]}}}
+      },
+      ["title","marks"]
+    ],
     "update_layout": [
       "Batch add/update/remove selected catalog assets. dry_run defaults true: read-only report of all bounds/overlap errors and approximate interaction reachability warnings. false applies the whole batch once, only if can_apply; preserves room/character. Re-preview after revision or body changes.",
       {
@@ -545,7 +555,11 @@
             "turn_on",
             "turn_off",
             "cover",
-            "uncover"
+            "uncover",
+            "play",
+            "draw",
+            "tidy",
+            "unpack"
           ]
         }
       },

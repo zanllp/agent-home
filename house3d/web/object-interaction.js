@@ -24,9 +24,9 @@ export function createObjectInteraction({context,onStart,onExit,onStatus,report}
    if(!ctx.walker.go(target)){phase='none';onStatus('那里走不过去，换一块空地吧');send('failed','No collision-free route to the destination');return}
    phase='approaching';send('approaching');return;
   }
-  const obj=ctx.objects.find(o=>o.id===next.target_id),config=ctx.assets[obj?.asset_id]?.interactions?.[kind==='read'?'sit':kind];
+  const obj=ctx.objects.find(o=>o.id===next.target_id),config=ctx.assets[obj?.asset_id]?.interactions?.[['draw','read'].includes(kind)?'sit':kind];
   if(!config){phase='none';return}
-  onStart();target=worldPoint(obj,config.root);target.yaw+=config.yaw||0;
+  onStart();target=worldPoint(obj,config.root);target.yaw+=config.yaw||0;if(kind==='play')target.y+=ctx.groundHeight(obj.x,obj.z);
   if(next.action==='leave'){
    index=next.approach_index??index;start={...worldPoint(obj,config.approaches[index]),y:ctx.groundHeight(...['x','z'].map(k=>worldPoint(obj,config.approaches[index])[k]))};
    if(old?.target_id===next.target_id&&oldPhase==='approaching'||!next.from_active){ctx.walker.stop();phase='none';onExit({...ctx.walker.state});send('completed');return}
@@ -63,7 +63,9 @@ export function createObjectInteraction({context,onStart,onExit,onStatus,report}
   if(phase==='entering'){time+=dt;progress=Math.min(1,time/duration);onStatus(kind==='sleep'?'坐稳，再慢慢躺下':'慢慢坐好');if(progress===1){phase='active';send('active')}}
   if(phase==='leaving'){time+=dt;progress=leaveFrom*(1-ease(time/duration));onStatus(kind==='sleep'?'醒一醒，慢慢下床':'起身，站稳');if(time>=duration){phase='none';lastFrame=null;onExit(start);send('completed');return null}}
   lastFrame=contactFrame(kind,start,target,progress);lastFrame.read=kind==='read'?ease((progress-.65)/.35):0;
-  if(phase==='active'){onStatus(kind==='sleep'?'呼……睡得香香的':kind==='read'?'翻开书，安静读一会儿':'坐一会儿，歇歇小脚');lastFrame.y+=.0015*Math.sin(time*1.6);time+=dt}
+  lastFrame.draw=kind==='draw'?ease((progress-.55)/.45):0;
+  lastFrame.play=kind==='play'?ease((progress-.22)/.78):0;
+  if(phase==='active'){onStatus(kind==='sleep'?'呼……睡得香香的':kind==='play'?(ctx.objects.find(o=>o.id===job.target_id)?.properties?.packed?'玩具收好啦，在软垫上歇一会儿':'坐在软垫上，摆弄小机器人'):kind==='draw'?'扶着绘本，用蜡笔慢慢画':kind==='read'?'翻开书，安静读一会儿':'坐一会儿，歇歇小脚');lastFrame.y+=.0015*Math.sin(time*1.6);time+=dt}
   return lastFrame;
  }
  return {consume,tick,get busy(){return ['approaching','entering','active','leaving'].includes(phase)},get phase(){return phase},get pose(){return kind},get frame(){return lastFrame},get targetId(){return job?.target_id},get jobId(){return job?.id},get relatedId(){return job?.related_id},flush(){return queue}};

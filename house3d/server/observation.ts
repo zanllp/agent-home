@@ -94,7 +94,7 @@ export function observe(
       ...body,
       y:
         body.y +
-        (eyesClosed ? 0.22 : ["sit", "read"].includes(pose) ? 0.78 : 0.9),
+        (eyesClosed ? 0.22 : pose === "play" ? 0.57 : ["sit", "read","draw"].includes(pose) ? 0.78 : 0.9),
     },
     visible: Data[] = [];
   for (const obj of objectList(state, ctx).objects) {
@@ -158,7 +158,7 @@ export function observe(
           {
             object_id: support.id,
             kind: pose === "sleep" ? "lying_support" : "seated_support",
-            description: pose === "sleep" ? "身体躺在床面上" : "坐在座面上",
+            description: pose === "sleep" ? "身体躺在床面上" : pose === "play" ? "坐在玩具组的软垫上" : "坐在座面上",
             basis: "confirmed active contact pose",
           },
         ]
@@ -174,7 +174,7 @@ export function observe(
     .sort((a, b) => a.distance_m - b.distance_m);
   let status = eyesClosed
     ? "闭着眼睛，躺在床上。"
-    : pose === "read"
+    : pose === "draw" ? "坐在椅子上，低头用蜡笔画画。" : pose === "play" ? (support?.properties?.packed ? "玩具收在盒里，坐在地垫上。" : "坐在地垫上，摆弄拼装机器人。") : pose === "read"
       ? "坐好，正在看书。"
       : pose === "sit"
         ? "坐在座位上。"
@@ -206,8 +206,8 @@ export function observe(
       .sort((a, b) => a.distance_m - b.distance_m),
     touch,
     hands: {
-      holding: pose === "read" && active ? "storybook" : null,
-      basis: pose === "read" && active ? "active reading prop" : "no held prop",
+      holding: pose==="draw" && active ? "crayon" : pose === "read" && active ? "storybook" : pose === "play" && active && !support?.properties?.packed ? "toy_robot" : null,
+      basis: pose==="draw" && active ? "active drawing prop" : pose === "read" && active ? "active reading prop" : pose === "play" && active && !support?.properties?.packed ? "active toy prop" : "no held prop",
     },
     walls,
     light: state.light,

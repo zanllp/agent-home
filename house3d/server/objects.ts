@@ -1,3 +1,4 @@
+import {drawable} from './crayon.mjs';
 import {regionAt} from '../shared/space.mjs';
 import { type State, type Item, type Context, type Data } from "./types.js";
 import { heightOf } from "./geometry.js";
@@ -9,6 +10,7 @@ export const CATEGORIES: Record<string, string> = {
   books: "study",
   air_conditioner: "appliances",
   appliance: "appliances",
+  toy_set: "play",
   chair: "seating",
   sofa: "seating",
   armchair: "seating",
@@ -33,6 +35,7 @@ export const CATEGORIES: Record<string, string> = {
   drying_rack: "storage",
 };
 export const CATEGORY_LABELS: Record<string, string> = {
+  play: "玩具",
   seating: "坐具",
   sleeping: "寝具",
   study: "学习创作",
@@ -43,6 +46,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
   decoration: "装饰植物",
   environment: "环境",
 };
+export function categoriesFor(ctx: Context) {
+  if (Object.values(ctx.assets).some(a => a.kind === "toy_set")) return CATEGORY_LABELS;
+  const {play, ...categories} = CATEGORY_LABELS;return categories;
+}
 export const BUSY_PHASES = new Set([
   "requested",
   "approaching",
@@ -81,6 +88,10 @@ export function readingDesk(obj: Item, state: State) {
         Math.hypot(b.x - obj.x, b.z - obj.z),
     )[0];
 }
+export function drawingBook(chair: Item,state: State) {
+  const desk=readingDesk(chair,state);
+  return desk && state.objects.find(o=>drawable(o) && o.on?.id===desk.id && o.on.surface==="top");
+}
 export function actionsFor(obj: Item, ctx: Context, state: State) {
   const def = ctx.assets[obj.asset_id || ""] || {},
     result: Data[] = [],
@@ -88,11 +99,20 @@ export function actionsFor(obj: Item, ctx: Context, state: State) {
   for (const name of Object.keys(def.interactions || {}))
     result.push({
       id: name,
-      label: ({ sit: "坐一会儿", sleep: "躺下睡觉" } as Data)[name],
+      label: ({ play: "坐下玩机器人", sit: "坐一会儿", sleep: "躺下睡觉" } as Data)[name],
       available: !busy(state),
       reason: busy(state) ? "先结束当前互动" : null,
       reachability: "not_checked",
     });
+  if (obj.kind === "toy_set" && def.interactions?.play) {
+    const packed = obj.properties?.packed === true;
+    const available = !busy(state) || (job.target_id===obj.id && job.pose==="play" && job.phase==="active");
+    result.push({id:packed?"unpack":"tidy",label:packed?"拿出玩具":"收好玩具",available,reason:available?null:"先结束当前互动"});
+    if(packed){
+      const play=result.find(a=>a.id==="play");
+      if(play){play.available=false;play.reason="先拿出玩具"}
+    }
+  }
   if (def.interactions?.sit && readingDesk(obj, state))
     result.push({
       id: "read",
@@ -101,6 +121,8 @@ export function actionsFor(obj: Item, ctx: Context, state: State) {
       reason: busy(state) ? "先结束当前互动" : null,
       reachability: "not_checked",
     });
+  if (def.interactions?.sit && drawingBook(obj,state))
+    result.push({id:"draw",label:"拿蜡笔画画",available:!busy(state),reason:busy(state)?"先结束当前互动":null,reachability:"not_checked"});
   if (busy(state) && job.target_id === obj.id)
     result.push({
       id: "leave",
@@ -164,7 +186,7 @@ export function objectList(
       actions,
       properties:
         obj.properties ??
-        (obj.id===state.room?.balcony?.door_id?{open:true}:obj.kind === "lamp"
+        (obj.kind==="toy_set"?{packed:false}:obj.id===state.room?.balcony?.door_id?{open:true}:obj.kind === "lamp"
           ? { on: true, brightness: 0.7 }
           : obj.kind === "bed"
             ? { covered: true }
@@ -175,7 +197,7 @@ export function objectList(
   }
   return {
     revision: state.revision,
-    categories: CATEGORY_LABELS,
+    categories: categoriesFor(ctx),
     objects,
     interaction: state.interaction ?? null,
   };

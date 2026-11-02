@@ -2,7 +2,7 @@ export function windowSunPose(objects,assets){
  const window=objects.find(o=>assets[o.asset_id]?.wall_opening);
  if(!window)return {position:[-5,5.8,-3],target:[.5,0,.5]};
  const inward={x:Math.sin(window.yaw),z:Math.cos(window.yaw)},along={x:Math.cos(window.yaw),z:-Math.sin(window.yaw)};
- return {position:[window.x-inward.x*4-along.x*1.6,5.4,window.z-inward.z*4-along.z*1.6],target:[window.x+inward.x*3,0,window.z+inward.z*3]};
+ return {position:[window.x-inward.x*5-along.x*2.2,4.6,window.z-inward.z*5-along.z*2.2],target:[window.x+inward.x*3,.15,window.z+inward.z*3]};
 }
 export function wallCells(width,height,holes=[]){
  const clean=holes.map(h=>({x0:Math.max(-width/2,h.x-h.width/2),x1:Math.min(width/2,h.x+h.width/2),y0:Math.max(0,h.bottom),y1:Math.min(height,h.bottom+h.height)})).filter(h=>h.x1>h.x0&&h.y1>h.y0);

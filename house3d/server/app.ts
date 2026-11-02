@@ -1,3 +1,4 @@
+import {crayonPng} from './crayon.mjs';
 import {balconyGeometry,balconyDoor,spaceBounds} from '../shared/space.mjs';
 import { readFileSync, statSync, realpathSync, existsSync } from "node:fs";
 import { resolve, sep, extname } from "node:path";
@@ -15,7 +16,7 @@ import {
 import { dimensions, boundaries, LIMITS, wallsFor } from "./geometry.js";
 import {
   CATEGORIES,
-  CATEGORY_LABELS,
+  categoriesFor,
   objectList,
   BUSY_PHASES,
   worldPoint,
@@ -78,6 +79,11 @@ export class HouseApp {
       now = this.now(),
       get = method === "GET" || method === "HEAD",
       body = input.body;
+    const drawing = /^\/api\/drawings\/(\d+)\.png$/.exec(path);
+    if (get && drawing) {
+      const row = store.db.prepare("SELECT png FROM drawings WHERE revision=?").get(drawing[1]) as Data | undefined;
+      return row ? {status:200,type:"image/png",bytes:Buffer.from(row.png)} : json({error:"Drawing not found"},404);
+    }
     if (get && path === "/api/state") return json(store.state());
     if (get && path === "/api/catalog") {
       const current=store.state();
@@ -87,7 +93,7 @@ export class HouseApp {
         furniture: ctx.catalog,
         assets: ctx.assets,
         categories: Object.fromEntries(
-          Object.entries(CATEGORY_LABELS).map(([key, label]) => [
+          Object.entries(categoriesFor(ctx)).map(([key, label]) => [
             key,
             {
               label,
@@ -118,7 +124,7 @@ export class HouseApp {
           path: "/wander.html",
           activities: ["idle", "walk"],
           sit: true,
-          object_actions: ["sit", "sleep", "read", "leave"],
+          object_actions: ["sit", "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw"]:[]), "leave"],
           interaction_requires_target: true,
           adapter: "Local HTTP only; no DSH connection",
         },
@@ -193,6 +199,7 @@ export class HouseApp {
       return json({
         tools: {
           observe_home: { method: "GET", path: "/api/observe" },
+          ...(ctx.definitions.draw_crayon ? {draw_crayon:["title","marks","target_id?","base_url?"]} : {}),
           walk_to: ["x", "z"],
           cancel_action: ["job_id"],
           update_room: [
@@ -476,6 +483,13 @@ export class HouseApp {
         status: next.interaction?.id === body.id ? "requested" : "applied",
       });
       const result: Data = { ok: true, state: next };
+      if (body.tool === "draw_crayon") {
+        const base = body.arguments.base_url;
+        const row = base ? store.db.prepare("SELECT png FROM drawings WHERE revision=?").get(/^\/api\/drawings\/(\d+)\.png$/.exec(base)?.[1] ?? "") as Data | undefined : undefined;
+        if(base && !row) throw Error("Base drawing missing from store");
+        store.db.prepare("INSERT INTO drawings(revision,png) VALUES(?,?)").run(next.revision,crayonPng(body.arguments.marks,row && Buffer.from(row.png)));
+        result.artwork = next.last_drawing;
+      }
       if (["apply_preset", "update_room"].includes(body.tool))
         result.applied = true;
       if (report) Object.assign(result, { applied: true, layout: report });
@@ -538,7 +552,7 @@ export class HouseApp {
         obj = state.objects.find((o) => o.id === job.target_id)!;
         config =
           this.ctx.assets[obj.asset_id!].interactions![
-            job.pose === "read" ? "sit" : job.pose
+            ["read","draw"].includes(job.pose) ? "sit" : job.pose
           ];
         index = body.approach_index ?? job.approach_index;
         if (
@@ -570,11 +584,7 @@ export class HouseApp {
           z: p.z,
           yaw: p.yaw + (config!.yaw || 0),
           activity:
-            job.pose === "sleep"
-              ? "sleep"
-              : job.pose === "read"
-                ? "read"
-                : "sit",
+            job.pose,
         });
       }
       if (phase === "completed" && job.action === "leave")

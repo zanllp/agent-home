@@ -3,6 +3,105 @@ import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { resolve as resolve2 } from "node:path";
 
+// house3d/server/crayon.mjs
+import { deflateSync, inflateSync, crc32 } from "node:zlib";
+var palette = { ink: [44, 66, 88], mint: [94, 176, 166], green: [99, 155, 86], blue: [75, 131, 194], ochre: [241, 174, 58], coral: [223, 107, 110] };
+var drawingWidth = 480;
+var drawingHeight = 360;
+var drawable = (item) => ["urban-picture-book-v1", "urban-workbook-v1"].includes(item.asset_id);
+var motifs = ["sun", "house", "flower"];
+function validateDrawing(title, marks) {
+  if (typeof title !== "string" || !title.trim() || [...title].length > 32) throw Error("Use a title of 1\u201332 characters");
+  if (!Array.isArray(marks) || !marks.length || marks.length > 32) throw Error("Use 1\u201332 crayon marks");
+  marks.forEach((mark, i) => {
+    const invalid = () => {
+      throw Error("Invalid crayon mark " + (i + 1) + ": check shape, palette color and page bounds");
+    };
+    if (!Array.isArray(mark)) invalid();
+    const [op, color, ...n] = mark;
+    if (typeof color !== "string" || !Object.hasOwn(palette, color) || !["line", "oval", "wash", ...motifs].includes(op) || n.length < 4 || n.length > 20 || n.length % 2 || !n.every((x2) => Number.isFinite(x2) && x2 >= 0 && x2 <= 100)) invalid();
+    if (op !== "line" && n.length !== 4) invalid();
+    const [x, y, a, b] = n;
+    if ((op === "oval" || motifs.includes(op)) && (!a || !b || x - a < 0 || x + a > 100 || y - b < 0 || y + b > 100)) invalid();
+    if (op === "wash" && (a <= x || b <= y)) invalid();
+  });
+}
+function chunk(name, data) {
+  const out = Buffer.alloc(data.length + 12);
+  out.writeUInt32BE(data.length);
+  out.write(name, 4);
+  data.copy(out, 8);
+  out.writeUInt32BE(crc32(out.subarray(4, -4)), out.length - 4);
+  return out;
+}
+function strokes(mark) {
+  const [op, color, x, y, a, b] = mark;
+  if (!motifs.includes(op)) return [mark];
+  const oval = (u, v, rx, ry) => ["oval", color, x + u * a, y + v * b, rx * a, ry * b];
+  const line = (...points) => ["line", color, ...points.map((p, i) => i % 2 ? y + p * b : x + p * a)];
+  if (op === "sun") {
+    const rays = Array.from({ length: 8 }, (_, i) => {
+      const u = Math.cos(i * Math.PI / 4), v = Math.sin(i * Math.PI / 4);
+      return line(0.75 * u, 0.75 * v, u, v);
+    });
+    return [oval(0, 0, 0.56, 0.56), ...rays];
+  }
+  if (op === "house") return [line(-1, -0.1, 0, -1, 1, -0.1, -1, -0.1), line(-0.8, -0.1, -0.8, 1, 0.8, 1, 0.8, -0.1), line(-0.4, 1, -0.4, 0.4, 0, 0.4, 0, 1), line(0.22, 0.18, 0.54, 0.18, 0.54, 0.5, 0.22, 0.5, 0.22, 0.18)];
+  const petals = Array.from({ length: 5 }, (_, i) => oval(0.48 * Math.sin(i * 2 * Math.PI / 5), -0.42 - 0.34 * Math.cos(i * 2 * Math.PI / 5), 0.26, 0.19));
+  return [line(0, -0.14, 0.04, 0.99), line(0.02, 0.72, -0.62, 0.42, -0.34, 0.73, 0.02, 0.72), ...petals, oval(0, -0.42, 0.19, 0.14)];
+}
+function readPaper(png, byteLength) {
+  const length2 = png.readUInt32BE(33);
+  const scan = inflateSync(png.subarray(41, 41 + length2), { maxOutputLength: byteLength });
+  if (scan.length !== byteLength) throw Error("Unexpected stored drawing size");
+  return scan;
+}
+function crayonPng(marks, base = void 0) {
+  const w = drawingWidth, h = drawingHeight, stride = 1 + 3 * w, scan = base ? readPaper(base, stride * h) : Buffer.alloc(stride * h), grain = new Float32Array(w * h);
+  let seed = 31415;
+  const random = () => (seed = Math.imul(seed, 1664525) + 1013904223 >>> 0) / 4294967296;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const v = grain[y * w + x] = random(), shade = 5 * v + 3 * random(), i = y * stride + 1 + x * 3;
+    if (!base) {
+      scan[i] = 253 - shade;
+      scan[i + 1] = 249 - shade;
+      scan[i + 2] = 235 - shade;
+    }
+  }
+  for (const [op, color, ...n] of marks.flatMap(strokes)) {
+    const points = [], rgb = palette[color], r = op === "wash" ? 3.5 : 2.3;
+    const [x, y, a, b] = n;
+    if (op === "line") for (let i = 0; i < n.length; i += 2) points.push([n[i], n[i + 1]]);
+    if (op === "oval") for (let i = 0; i <= 36; i++) points.push([x + a * Math.cos(i * Math.PI / 18), y + b * Math.sin(i * Math.PI / 18)]);
+    if (op === "wash") {
+      const rows = Math.max(3, Math.ceil((b - y) / 1.3));
+      for (let j = 0; j < rows; j++) {
+        const yy = y + (b - y) * j / (rows - 1), l = [x, yy], u = [a, yy];
+        points.push(...j % 2 ? [u, l] : [l, u]);
+      }
+    }
+    const px = points.map(([u, v]) => [18 + u * (w - 36) / 100, 14 + v * (h - 28) / 100]);
+    for (let j = 1; j < px.length; j++) {
+      const [sx, sy] = px[j - 1], dx = px[j][0] - sx, dy = px[j][1] - sy, steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 1.3));
+      for (let k = 0; k <= steps; k++) {
+        const t = k / steps, cx = sx + dx * t + 0.8 * Math.sin(j + t), cy = sy + dy * t + 0.7 * Math.sin(1.5 * j + 4 * t);
+        for (let iy = Math.floor(cy - r); iy <= cy + r; iy++) for (let ix = Math.floor(cx - r); ix <= cx + r; ix++) {
+          const d = ((ix - cx) ** 2 + (iy - cy) ** 2) / (r * r);
+          if (d >= 1) continue;
+          const alpha = (op === "wash" ? 0.22 : 0.55) * (1 - d) * Math.min(1, grain[iy * w + ix] * 2.4), i = iy * stride + 1 + ix * 3;
+          for (let c = 0; c < 3; c++) scan[i + c] += Math.round((rgb[c] - scan[i + c]) * alpha);
+        }
+      }
+    }
+  }
+  const hdr = Buffer.alloc(13);
+  hdr.writeUInt32BE(w);
+  hdr.writeUInt32BE(h, 4);
+  hdr[8] = 8;
+  hdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", hdr), chunk("IDAT", deflateSync(scan)), chunk("IEND", Buffer.alloc(0))]);
+}
+
 // house3d/shared/space.mjs
 function balconyGeometry(room = {}) {
   const b = room.balcony;
@@ -330,6 +429,7 @@ var CATEGORIES = {
   books: "study",
   air_conditioner: "appliances",
   appliance: "appliances",
+  toy_set: "play",
   chair: "seating",
   sofa: "seating",
   armchair: "seating",
@@ -354,6 +454,7 @@ var CATEGORIES = {
   drying_rack: "storage"
 };
 var CATEGORY_LABELS = {
+  play: "\u73A9\u5177",
   seating: "\u5750\u5177",
   sleeping: "\u5BDD\u5177",
   study: "\u5B66\u4E60\u521B\u4F5C",
@@ -364,6 +465,11 @@ var CATEGORY_LABELS = {
   decoration: "\u88C5\u9970\u690D\u7269",
   environment: "\u73AF\u5883"
 };
+function categoriesFor(ctx) {
+  if (Object.values(ctx.assets).some((a) => a.kind === "toy_set")) return CATEGORY_LABELS;
+  const { play, ...categories } = CATEGORY_LABELS;
+  return categories;
+}
 var BUSY_PHASES = /* @__PURE__ */ new Set([
   "requested",
   "approaching",
@@ -391,16 +497,32 @@ function readingDesk(obj, state) {
     (a, b) => Math.hypot(a.x - obj.x, a.z - obj.z) - Math.hypot(b.x - obj.x, b.z - obj.z)
   )[0];
 }
+function drawingBook(chair, state) {
+  const desk = readingDesk(chair, state);
+  return desk && state.objects.find((o) => drawable(o) && o.on?.id === desk.id && o.on.surface === "top");
+}
 function actionsFor(obj, ctx, state) {
   const def = ctx.assets[obj.asset_id || ""] || {}, result = [], job = state.interaction || {};
   for (const name of Object.keys(def.interactions || {}))
     result.push({
       id: name,
-      label: { sit: "\u5750\u4E00\u4F1A\u513F", sleep: "\u8EBA\u4E0B\u7761\u89C9" }[name],
+      label: { play: "\u5750\u4E0B\u73A9\u673A\u5668\u4EBA", sit: "\u5750\u4E00\u4F1A\u513F", sleep: "\u8EBA\u4E0B\u7761\u89C9" }[name],
       available: !busy(state),
       reason: busy(state) ? "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" : null,
       reachability: "not_checked"
     });
+  if (obj.kind === "toy_set" && def.interactions?.play) {
+    const packed = obj.properties?.packed === true;
+    const available = !busy(state) || job.target_id === obj.id && job.pose === "play" && job.phase === "active";
+    result.push({ id: packed ? "unpack" : "tidy", label: packed ? "\u62FF\u51FA\u73A9\u5177" : "\u6536\u597D\u73A9\u5177", available, reason: available ? null : "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" });
+    if (packed) {
+      const play = result.find((a) => a.id === "play");
+      if (play) {
+        play.available = false;
+        play.reason = "\u5148\u62FF\u51FA\u73A9\u5177";
+      }
+    }
+  }
   if (def.interactions?.sit && readingDesk(obj, state))
     result.push({
       id: "read",
@@ -409,6 +531,8 @@ function actionsFor(obj, ctx, state) {
       reason: busy(state) ? "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" : null,
       reachability: "not_checked"
     });
+  if (def.interactions?.sit && drawingBook(obj, state))
+    result.push({ id: "draw", label: "\u62FF\u8721\u7B14\u753B\u753B", available: !busy(state), reason: busy(state) ? "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" : null, reachability: "not_checked" });
   if (busy(state) && job.target_id === obj.id)
     result.push({
       id: "leave",
@@ -449,13 +573,13 @@ function objectList(state, ctx, category, capability) {
         brightness: { type: "number", minimum: 0, maximum: 1 }
       } : def.interactions?.sleep ? { covered: { type: "boolean" } } : {},
       actions,
-      properties: obj.properties ?? (obj.id === state.room?.balcony?.door_id ? { open: true } : obj.kind === "lamp" ? { on: true, brightness: 0.7 } : obj.kind === "bed" ? { covered: true } : {}),
+      properties: obj.properties ?? (obj.kind === "toy_set" ? { packed: false } : obj.id === state.room?.balcony?.door_id ? { open: true } : obj.kind === "lamp" ? { on: true, brightness: 0.7 } : obj.kind === "bed" ? { covered: true } : {}),
       interaction: state.interaction?.target_id === obj.id ? state.interaction : null
     });
   }
   return {
     revision: state.revision,
-    categories: CATEGORY_LABELS,
+    categories: categoriesFor(ctx),
     objects,
     interaction: state.interaction ?? null
   };
@@ -487,7 +611,17 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
       "Finish the current object interaction with interact/leave before moving furniture or the character"
     );
   const mutate = (s, c, o = {}) => transition(s, c, ctx, o);
-  if (op === "set_wallpaper") {
+  if (op === "draw_crayon") {
+    validateDrawing(args.title, args.marks);
+    const sessionBook = busy(state) && state.interaction?.pose === "draw" ? state.interaction.related_id : null;
+    const target = "target_id" in args ? args.target_id : sessionBook;
+    const book = "target_id" in args || target != null ? state.objects.find((o) => o.id === target && drawable(o)) : state.objects.find(drawable);
+    requireValue(!("target_id" in args) || book, "Target must be an open workbook or picture book");
+    const previous = book ? book.artwork : state.last_drawing;
+    if ("base_url" in args) requireValue(typeof args.base_url === "string" && previous?.url === args.base_url && (previous.target_id ?? null) === (book?.id ?? null), "base_url must match the current drawing on this page");
+    state.last_drawing = { title: args.title.trim(), width: drawingWidth, height: drawingHeight, target_id: book?.id ?? null, url: `/api/drawings/${state.revision + 1}.png` };
+    if (book) book.artwork = state.last_drawing;
+  } else if (op === "set_wallpaper") {
     if (Array.isArray(args.wallpaper_id))
       throw Error("unhashable type: 'list'");
     requireValue(
@@ -597,7 +731,9 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
       actionsFor(obj, ctx, state).some((a) => a.id === action && a.available),
       "Action unavailable for this object/state"
     );
-    if (["turn_on", "turn_off"].includes(action)) {
+    if (action === "tidy" || action === "unpack") {
+      obj.properties = { ...obj.properties, packed: action === "tidy" };
+    } else if (["turn_on", "turn_off"].includes(action)) {
       obj.properties ??= { on: true, brightness: 0.7 };
       obj.properties.on = action === "turn_on";
     } else if (["cover", "uncover"].includes(action)) {
@@ -610,7 +746,7 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
         target_id: obj.id,
         action,
         pose: action === "leave" ? old.pose : action,
-        related_id: action === "read" ? readingDesk(obj, state).id : action === "leave" ? old.related_id ?? null : null,
+        related_id: action === "draw" ? drawingBook(obj, state).id : action === "read" ? readingDesk(obj, state).id : action === "leave" ? old.related_id ?? null : null,
         phase: "requested",
         approach_index: action === "leave" ? old.approach_index ?? null : null,
         from_active: action === "leave" && ["active", "entering"].includes(old.phase),
@@ -1203,7 +1339,7 @@ function observe(state, ctx, snapshot, now, events) {
     };
   const job = state.interaction || {}, pose = body.pose, support = state.objects.find((o) => o.id === job.target_id), active = job.phase === "active" && snapshot.job_id === job.id, eyesClosed = pose === "sleep", eye = {
     ...body,
-    y: body.y + (eyesClosed ? 0.22 : ["sit", "read"].includes(pose) ? 0.78 : 0.9)
+    y: body.y + (eyesClosed ? 0.22 : pose === "play" ? 0.57 : ["sit", "read", "draw"].includes(pose) ? 0.78 : 0.9)
   }, visible = [];
   for (const obj of objectList(state, ctx).objects) {
     const def = definition(obj, ctx) || {}, dx = obj.x - body.x, dz = obj.z - body.z, distance = Math.hypot(dx, dz), angle = Math.atan2(
@@ -1244,7 +1380,7 @@ function observe(state, ctx, snapshot, now, events) {
     {
       object_id: support.id,
       kind: pose === "sleep" ? "lying_support" : "seated_support",
-      description: pose === "sleep" ? "\u8EAB\u4F53\u8EBA\u5728\u5E8A\u9762\u4E0A" : "\u5750\u5728\u5EA7\u9762\u4E0A",
+      description: pose === "sleep" ? "\u8EAB\u4F53\u8EBA\u5728\u5E8A\u9762\u4E0A" : pose === "play" ? "\u5750\u5728\u73A9\u5177\u7EC4\u7684\u8F6F\u57AB\u4E0A" : "\u5750\u5728\u5EA7\u9762\u4E0A",
       basis: "confirmed active contact pose"
     }
   ] : [];
@@ -1255,7 +1391,7 @@ function observe(state, ctx, snapshot, now, events) {
     wallpaper_id: state.room?.wallpapers?.[w.id] ?? "plain",
     distance_m: round(Math.abs(body[w.axis] - w.position), 2)
   })).sort((a, b) => a.distance_m - b.distance_m);
-  let status = eyesClosed ? "\u95ED\u7740\u773C\u775B\uFF0C\u8EBA\u5728\u5E8A\u4E0A\u3002" : pose === "read" ? "\u5750\u597D\uFF0C\u6B63\u5728\u770B\u4E66\u3002" : pose === "sit" ? "\u5750\u5728\u5EA7\u4F4D\u4E0A\u3002" : body.moving ? "\u6B63\u5728\u8D70\u52A8\u3002" : pose === "transition" ? "\u6B63\u5728\u8C03\u6574\u59FF\u52BF\u3002" : state.room?.balcony && regionAt(state.room, body) === "balcony" ? "\u7AD9\u5728\u9633\u53F0\u4E0A\u3002" : "\u7AD9\u5728\u623F\u95F4\u91CC\u3002";
+  let status = eyesClosed ? "\u95ED\u7740\u773C\u775B\uFF0C\u8EBA\u5728\u5E8A\u4E0A\u3002" : pose === "draw" ? "\u5750\u5728\u6905\u5B50\u4E0A\uFF0C\u4F4E\u5934\u7528\u8721\u7B14\u753B\u753B\u3002" : pose === "play" ? support?.properties?.packed ? "\u73A9\u5177\u6536\u5728\u76D2\u91CC\uFF0C\u5750\u5728\u5730\u57AB\u4E0A\u3002" : "\u5750\u5728\u5730\u57AB\u4E0A\uFF0C\u6446\u5F04\u62FC\u88C5\u673A\u5668\u4EBA\u3002" : pose === "read" ? "\u5750\u597D\uFF0C\u6B63\u5728\u770B\u4E66\u3002" : pose === "sit" ? "\u5750\u5728\u5EA7\u4F4D\u4E0A\u3002" : body.moving ? "\u6B63\u5728\u8D70\u52A8\u3002" : pose === "transition" ? "\u6B63\u5728\u8C03\u6574\u59FF\u52BF\u3002" : state.room?.balcony && regionAt(state.room, body) === "balcony" ? "\u7AD9\u5728\u9633\u53F0\u4E0A\u3002" : "\u7AD9\u5728\u623F\u95F4\u91CC\u3002";
   if (snapshot.paused) status = "\u52A8\u4F5C\u5DF2\u6682\u505C\u3002" + status;
   if (visible.length)
     status += "\u773C\u524D\u6709" + visible.slice(0, 4).map((o) => o.label).join("\u3001") + "\u3002";
@@ -1271,8 +1407,8 @@ function observe(state, ctx, snapshot, now, events) {
     nearby: visible.filter((o) => o.distance_m < 1.2).sort((a, b) => a.distance_m - b.distance_m),
     touch,
     hands: {
-      holding: pose === "read" && active ? "storybook" : null,
-      basis: pose === "read" && active ? "active reading prop" : "no held prop"
+      holding: pose === "draw" && active ? "crayon" : pose === "read" && active ? "storybook" : pose === "play" && active && !support?.properties?.packed ? "toy_robot" : null,
+      basis: pose === "draw" && active ? "active drawing prop" : pose === "read" && active ? "active reading prop" : pose === "play" && active && !support?.properties?.packed ? "active toy prop" : "no held prop"
     },
     walls,
     light: state.light
@@ -1286,7 +1422,7 @@ var Store = class {
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec(
-      `PRAGMA busy_timeout=10000; CREATE TABLE IF NOT EXISTS home_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,at REAL,kind TEXT,body TEXT); CREATE TABLE IF NOT EXISTS home_viewer(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS state(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS commands(id TEXT PRIMARY KEY,request TEXT,body TEXT); CREATE TABLE IF NOT EXISTS shots(id TEXT PRIMARY KEY,status TEXT,png BLOB,created REAL);`
+      `PRAGMA busy_timeout=10000; CREATE TABLE IF NOT EXISTS home_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,at REAL,kind TEXT,body TEXT); CREATE TABLE IF NOT EXISTS home_viewer(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS state(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS commands(id TEXT PRIMARY KEY,request TEXT,body TEXT); CREATE TABLE IF NOT EXISTS drawings(revision INTEGER PRIMARY KEY,png BLOB NOT NULL); CREATE TABLE IF NOT EXISTS shots(id TEXT PRIMARY KEY,status TEXT,png BLOB,created REAL);`
     );
     if (!this.db.prepare("PRAGMA table_info(shots)").all().some(
       (r) => r.name === "view"
@@ -1359,7 +1495,7 @@ var Store = class {
       );
     if (state.room?.balcony) requireValue(regionAt(state.room, a) !== null, "Body is outside interior/balcony");
     requireValue(
-      ["stand", "sit", "sleep", "read", "transition"].includes(a.pose) && typeof a.moving === "boolean",
+      ["stand", "sit", "sleep", "read", "play", "draw", "transition"].includes(a.pose) && typeof a.moving === "boolean",
       "Invalid body pose"
     );
     const previous = this.snapshot();
@@ -1387,7 +1523,7 @@ var Store = class {
         const labels = {
           approaching: "\u6B63\u5728\u8D70\u8FC7\u53BB\u3002",
           entering: "\u6B63\u5728\u6162\u6162\u5750\u7A33\u3001\u8C03\u6574\u59FF\u52BF\u3002",
-          active: e.action === "sleep" ? "\u5DF2\u7ECF\u8EBA\u597D\u3002" : e.action === "read" ? "\u5750\u597D\uFF0C\u5F00\u59CB\u770B\u4E66\u3002" : "\u5DF2\u7ECF\u5750\u7A33\u3002",
+          active: e.action === "sleep" ? "\u5DF2\u7ECF\u8EBA\u597D\u3002" : e.action === "draw" ? "\u5750\u5728\u6905\u5B50\u4E0A\uFF0C\u62FF\u8721\u7B14\u753B\u753B\u3002" : e.action === "play" ? "\u5750\u5728\u5730\u57AB\u4E0A\uFF0C\u62FF\u8D77\u5C0F\u673A\u5668\u4EBA\u3002" : e.action === "read" ? "\u5750\u597D\uFF0C\u5F00\u59CB\u770B\u4E66\u3002" : "\u5DF2\u7ECF\u5750\u7A33\u3002",
           leaving: e.pose === "read" ? "\u6B63\u5728\u653E\u4E0B\u4E66\u3001\u8D77\u8EAB\u3002" : "\u6B63\u5728\u8D77\u8EAB\u3002",
           completed: e.action === "walk_to" ? "\u5DF2\u7ECF\u5230\u8FBE\u3002" : "\u5DF2\u7ECF\u7AD9\u7A33\u3002",
           failed: "\u8D70\u4E0D\u8FC7\u53BB\u6216\u52A8\u4F5C\u672A\u80FD\u5B8C\u6210\uFF1B\u8BF7\u67E5\u770B\u539F\u56E0\u3002"
@@ -1439,6 +1575,11 @@ var HouseApp = class {
     if (method === "POST" && headers.origin && headers.origin !== `http://${host}`)
       return json({ error: "Cross-origin writes are not allowed" }, 403);
     const url = new URL(input.url, "http://localhost"), path = url.pathname, ctx = this.ctx, store = this.store, now = this.now(), get = method === "GET" || method === "HEAD", body = input.body;
+    const drawing = /^\/api\/drawings\/(\d+)\.png$/.exec(path);
+    if (get && drawing) {
+      const row = store.db.prepare("SELECT png FROM drawings WHERE revision=?").get(drawing[1]);
+      return row ? { status: 200, type: "image/png", bytes: Buffer.from(row.png) } : json({ error: "Drawing not found" }, 404);
+    }
     if (get && path === "/api/state") return json(store.state());
     if (get && path === "/api/catalog") {
       const current = store.state();
@@ -1447,7 +1588,7 @@ var HouseApp = class {
         furniture: ctx.catalog,
         assets: ctx.assets,
         categories: Object.fromEntries(
-          Object.entries(CATEGORY_LABELS).map(([key, label]) => [
+          Object.entries(categoriesFor(ctx)).map(([key, label]) => [
             key,
             {
               label,
@@ -1476,7 +1617,7 @@ var HouseApp = class {
           path: "/wander.html",
           activities: ["idle", "walk"],
           sit: true,
-          object_actions: ["sit", "sleep", "read", "leave"],
+          object_actions: ["sit", "sleep", "read", ...Object.values(ctx.assets).some((a) => a.interactions?.play) ? ["play", "tidy", "unpack", "draw"] : [], "leave"],
           interaction_requires_target: true,
           adapter: "Local HTTP only; no DSH connection"
         },
@@ -1550,6 +1691,7 @@ var HouseApp = class {
       return json({
         tools: {
           observe_home: { method: "GET", path: "/api/observe" },
+          ...ctx.definitions.draw_crayon ? { draw_crayon: ["title", "marks", "target_id?", "base_url?"] } : {},
           walk_to: ["x", "z"],
           cancel_action: ["job_id"],
           update_room: [
@@ -1777,6 +1919,13 @@ var HouseApp = class {
         status: next.interaction?.id === body.id ? "requested" : "applied"
       });
       const result = { ok: true, state: next };
+      if (body.tool === "draw_crayon") {
+        const base = body.arguments.base_url;
+        const row = base ? store.db.prepare("SELECT png FROM drawings WHERE revision=?").get(/^\/api\/drawings\/(\d+)\.png$/.exec(base)?.[1] ?? "") : void 0;
+        if (base && !row) throw Error("Base drawing missing from store");
+        store.db.prepare("INSERT INTO drawings(revision,png) VALUES(?,?)").run(next.revision, crayonPng(body.arguments.marks, row && Buffer.from(row.png)));
+        result.artwork = next.last_drawing;
+      }
       if (["apply_preset", "update_room"].includes(body.tool))
         result.applied = true;
       if (report) Object.assign(result, { applied: true, layout: report });
@@ -1818,7 +1967,7 @@ var HouseApp = class {
       let config, obj, index = null;
       if (job.pose !== "walk") {
         obj = state.objects.find((o) => o.id === job.target_id);
-        config = this.ctx.assets[obj.asset_id].interactions[job.pose === "read" ? "sit" : job.pose];
+        config = this.ctx.assets[obj.asset_id].interactions[["read", "draw"].includes(job.pose) ? "sit" : job.pose];
         index = body.approach_index ?? job.approach_index;
         if (!Number.isInteger(index) || index === null || index < 0 || index >= config.approaches.length)
           return json({ error: "Invalid approach index" }, 400);
@@ -1838,7 +1987,7 @@ var HouseApp = class {
           x: p.x,
           z: p.z,
           yaw: p.yaw + (config.yaw || 0),
-          activity: job.pose === "sleep" ? "sleep" : job.pose === "read" ? "read" : "sit"
+          activity: job.pose
         });
       }
       if (phase === "completed" && job.action === "leave")
@@ -1910,14 +2059,14 @@ var server = createServer(async (req, res) => {
   try {
     const chunks = [];
     let length2 = 0;
-    for await (const chunk of req) {
-      length2 += chunk.length;
+    for await (const chunk2 of req) {
+      length2 += chunk2.length;
       if (length2 > 5 * 1024 * 1024) {
         reply({ status: 413, body: { error: "Request body exceeds 5 MiB" } });
         req.resume();
         return;
       }
-      chunks.push(Buffer.from(chunk));
+      chunks.push(Buffer.from(chunk2));
     }
     const bytes = Buffer.concat(chunks);
     let body;

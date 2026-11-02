@@ -108,3 +108,32 @@ POST `/api/commands`。revision 必须来自刚读取的状态，不硬编码示
 ## 7. 阳台
 
 家庭模板现有独立阳台；`update_room.balcony` 显式声明结构，`list_objects` 与 `observe_home` 提供 `area`。绿植、洗衣机、晾衣架沿用 `update_layout`；开门后通过 `walk_to` 真实走过去。先预演，检查 `navigation.balcony` 和 `balcony_unreachable`；不把物品可摆放当成路线必然可达。完整参数、示例和旧存档说明见 [阳台指南](BALCONY.md)。
+
+### 坐在地毯上玩机器人
+
+家庭模板的沙发旁有一套软垫、零件盒、说明卡和机器人。它是可移动的普通家具（资产 `floor-robot-kit-v1`），不是贴在地毯上的背景。已有存档不会被模板自动覆盖；没有这件玩具时可用 `update_layout` 在空地预演添加，检查碰撞及可达性，再应用。
+
+```sh
+node agent.mjs list_objects '{"category":"play","capability":"play"}'
+node agent.mjs interact '{"target_id":"floor-workshop","action":"play"}'
+node agent.mjs observe_home
+node agent.mjs interact '{"target_id":"floor-workshop","action":"leave"}'
+```
+
+使用实际返回的物品 ID。新鲜反馈里，同一任务为 `active`、身体为 `play`、手持 `toy_robot` 才表示已拿起。正面镜头会把软垫、双手和说明卡一起框入；第一人称截图看向手里的玩具。起身后机器人回到原处，结束再移动整组。当前动作是拿起、端详和摆弄成品，不是独立零件的物理拼装。
+
+### 用蜡笔画一张画
+
+Agent 自己决定画什么、用什么颜色和线条。一次调用 `draw_crayon` 就返回最终静态 PNG，不排队、不要求房间页面在线，也不会改变大肥鱼的动作。最新作品在 `get_state.last_drawing`，每张图有独立的 `artwork.url`；下一幅不会覆盖旧链接。在家庭预设里可以指定 `target_id: "workbook"`，画会出现在儿童书桌的绘本右页。不指定则选当前房间的第一本摊开的绘本或练习册；没有画本也能出图。
+
+    node agent.mjs draw_crayon '{"title":"窗外的小太阳","marks":[["oval","ochre",72,23,10,10],["line","mint",4,78,28,55,52,75,72,59,96,78]]}' --output sunshine.png
+
+坐标按纸面百分比（左上 0,0，右下 100,100）。按从背景到细节的顺序给 1–32 笔：`line` 连续折线，`oval` 椭圆轮廓，`wash` 矩形涂色。六色为 ink、mint、green、blue、ochre、coral。直播时建议模型直接给十来笔，不要先解释、逐笔调工具或输出 SVG。自定义端口时 CLI 加 `--url http://127.0.0.1:19134`。
+
+给原画添笔：把当前画的 `artwork.url` 作为 `base_url`，只传新增的笔画（和新标题），仍一次返回一张静态图。旧链接保留；画本已换页则拒绝，先重新看当前作品。可以用简笔画降低构图难度，例如 `["flower","coral",84,75,8,15]` 表示在右下画一朵花，后四个数是中心和半宽、半高。也支持 `sun` 和 `house`。
+
+### 收好地毯上的玩具
+
+用 `list_objects {"capability":"tidy"}` 找到玩具组，然后 `interact {"target_id":"floor-workshop","action":"tidy"}`。机器人和三块散件回到托盘，坐垫和说明书留在原处；`properties.packed` 为 true。用 `unpack` 把它们摆回地毯。两者都是立即生效的物品状态，不是行走任务；可以在她坐在这组玩具上玩的时候调用，不必先让她起身。
+
+想让观众看到她本人在画：先用 `list_objects {"capability":"draw"}` 找到前面有桌子和摊开绘本的椅子。在家庭预设里调用 `interact {"target_id":"child-chair","action":"draw"}`。这是身体动作，需要可见的房间页面；等同一任务进入 `active`、`observe_home` 报告 `pose: draw` 和手持 `crayon`，再调 `draw_crayon` 出图。此时不传 `target_id` 默认画在她膝前的那本；起身用这把椅子的 `leave`，本子回到桌上。只要 PNG 则不必先就座。

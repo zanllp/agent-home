@@ -279,7 +279,7 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       "family",
       0,
     );
-    assert.equal(apply.body.state.objects.length, 56);
+    assert.equal(apply.body.state.objects.length, 57);
     assert.equal(apply.body.state.room.balcony.depth,2);
     assert.ok(apply.body.state.objects.some(o=>o.id==='balcony-drying-rack'));
     assert.equal(apply.body.state.room.width, 8);

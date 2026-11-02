@@ -5,7 +5,7 @@ export function createBalcony(room,view,door){
  const b=balconyGeometry(room);if(!b)return null;
  const root=new T.Group();root.name='Walkable-balcony';root.position.set(b.origin.x,0,b.origin.z);root.rotation.y=b.wall==='left'?Math.PI/2:0;
  const stone=new T.MeshStandardMaterial({color:'#e5dece',roughness:.88}),grout=new T.MeshStandardMaterial({color:'#bfb8a9',roughness:1}),frame=new T.MeshStandardMaterial({color:'#647371',roughness:.4,metalness:.35}),glass=new T.MeshPhysicalMaterial({color:'#e5efec',transparent:true,opacity:.08,roughness:.12,depthWrite:false,side:T.DoubleSide});
- function box(name,w,h,d,x,y,v,m){const mesh=new T.Mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(.012,w/4,h/4,d/4)),m);mesh.name=name;mesh.position.set(x,y,-v);mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);return mesh}
+ function box(name,w,h,d,x,y,v,m){const mesh=new T.Mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(.012,w/4,h/4,d/4)),m);mesh.name=name;mesh.position.set(x,y,-v);mesh.castShadow=m!==glass;mesh.receiveShadow=true;root.add(mesh);return mesh}
  box('Balcony-floor',b.width,.10,b.depth,0,-.045,b.depth/2,stone);
  for(let x=-b.width/2+.45;x<b.width/2;x+=.45)box('Balcony-tile-grout',.004,.002,b.depth-.02,x,.006,b.depth/2,grout);
  for(let v=.45;v<b.depth;v+=.45)box('Balcony-tile-grout',b.width-.02,.002,.004,0,.006,v,grout);

@@ -1494,5 +1494,52 @@
     "limitations": [
       "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
     ]
+  },
+  "floor-robot-kit-v1": {
+    "label": "地垫上的拼装机器人",
+    "kind": "toy_set",
+    "style": "urban-family",
+    "model": "/models/furniture/floor-robot-kit-v1.glb",
+    "size": [
+      1.04,
+      0.87
+    ],
+    "height": 0.26,
+    "native_materials": true,
+    "source_type": "native_geometry",
+    "source": "Original Agent Home toy design, floor-toys.js",
+    "placement": "floor",
+    "interactions": {
+      "play": {
+        "root": [
+          0.03,
+          0.008,
+          -0.18
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            0.1,
+            0,
+            -1.13
+          ],
+          [
+            1.24,
+            0,
+            -0.15
+          ],
+          [
+            -1.24,
+            0,
+            -0.15
+          ],
+          [
+            0.06,
+            0,
+            1.15
+          ]
+        ]
+      }
+    }
   }
 }

@@ -19,7 +19,7 @@ export class Store {
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec(
-      `PRAGMA busy_timeout=10000; CREATE TABLE IF NOT EXISTS home_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,at REAL,kind TEXT,body TEXT); CREATE TABLE IF NOT EXISTS home_viewer(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS state(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS commands(id TEXT PRIMARY KEY,request TEXT,body TEXT); CREATE TABLE IF NOT EXISTS shots(id TEXT PRIMARY KEY,status TEXT,png BLOB,created REAL);`,
+      `PRAGMA busy_timeout=10000; CREATE TABLE IF NOT EXISTS home_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,at REAL,kind TEXT,body TEXT); CREATE TABLE IF NOT EXISTS home_viewer(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS state(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS commands(id TEXT PRIMARY KEY,request TEXT,body TEXT); CREATE TABLE IF NOT EXISTS drawings(revision INTEGER PRIMARY KEY,png BLOB NOT NULL); CREATE TABLE IF NOT EXISTS shots(id TEXT PRIMARY KEY,status TEXT,png BLOB,created REAL);`,
     );
     if (
       !(this.db.prepare("PRAGMA table_info(shots)").all() as Data[]).some(
@@ -112,7 +112,7 @@ export class Store {
       );
     if(state.room?.balcony)requireValue(regionAt(state.room,a)!==null,"Body is outside interior/balcony");
     requireValue(
-      ["stand", "sit", "sleep", "read", "transition"].includes(a.pose) &&
+      ["stand", "sit", "sleep", "read", "play", "draw", "transition"].includes(a.pose) &&
         typeof a.moving === "boolean",
       "Invalid body pose",
     );
@@ -154,7 +154,7 @@ export class Store {
           active:
             e.action === "sleep"
               ? "已经躺好。"
-              : e.action === "read"
+              : e.action === "draw" ? "坐在椅子上，拿蜡笔画画。" : e.action === "play" ? "坐在地垫上，拿起小机器人。" : e.action === "read"
                 ? "坐好，开始看书。"
                 : "已经坐稳。",
           leaving: e.pose === "read" ? "正在放下书、起身。" : "正在起身。",

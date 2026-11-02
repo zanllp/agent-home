@@ -314,6 +314,11 @@
       "bytes": 3841377,
       "sha256": "fdd4bbdeb385e6417b4343ed5d4f54bacba702e05aca574cf1882520997d57e5",
       "source": "OpenAI built-in image generation; garden picture book spread; 2026-11-02; docs/DESKS.md"
+    },
+    "house3d/assets/furniture/floor-robot-kit-v1.glb": {
+      "bytes": 596168,
+      "sha256": "db8de4b2f99475fdce3694528b66dfc55107958b8f258eb16ec1e0ec63e70dd4",
+      "source": "Original local geometry: house3d/web/floor-toys.js"
     }
   }
 }

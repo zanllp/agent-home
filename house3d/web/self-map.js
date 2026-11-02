@@ -25,7 +25,7 @@ export function createSelfMap(){
     const f=heading(body.yaw).forward;c.strokeStyle='#fffdf7';c.lineWidth=2;c.fillStyle='#407c70';c.beginPath();c.arc(p.x,p.y,5,0,Math.PI*2);c.fill();c.stroke();c.beginPath();c.moveTo(p.x+f.x*17,p.y+f.z*17);c.lineTo(p.x+f.x*6-f.z*5,p.y+f.z*6+f.x*5);c.lineTo(p.x+f.x*6+f.z*5,p.y+f.z*6-f.x*5);c.closePath();c.fill();c.stroke();
    }c.restore();
    const bottom=map.y+map.h+32;
-   if(ready&&body){const direction=heading(body.yaw);text(`X ${n(body.x)}  Y ${n(body.y)}  Z ${n(body.z)} 米`,panel.x+16,bottom);text(`面向${direction.label} · ${direction.degrees}°`,panel.x+16,bottom+22,true);const pose=body.moving?'走动':{stand:'站着',sit:'坐着',sleep:'躺着',read:'看书',transition:'调整姿势'}[body.pose];text(`${paused?'已暂停 · ':''}${pose} · ${regionAt(room,body)==='balcony'?'阳台':'室内'}`,panel.x+16,bottom+44,false,'#8a9588')}
+   if(ready&&body){const direction=heading(body.yaw);text(`X ${n(body.x)}  Y ${n(body.y)}  Z ${n(body.z)} 米`,panel.x+16,bottom);text(`面向${direction.label} · ${direction.degrees}°`,panel.x+16,bottom+22,true);const pose=body.moving?'走动':{stand:'站着',sit:'坐着',sleep:'躺着',read:'看书',draw:'画画',play:'玩机器人',transition:'调整姿势'}[body.pose];text(`${paused?'已暂停 · ':''}${pose} · ${regionAt(room,body)==='balcony'?'阳台':'室内'}`,panel.x+16,bottom+44,false,'#8a9588')}
    else text('等待角色的实时位置…',panel.x+16,bottom)
   }texture.needsUpdate=true;
  }

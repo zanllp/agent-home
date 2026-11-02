@@ -31,8 +31,8 @@ async function call(path: string, data?: unknown) {
   return result as Record<string, any>;
 }
 try {
-  if (values.output && tool !== "screenshot")
-    throw Error("--output is only available for screenshot");
+  if (values.output && !["screenshot","draw_crayon"].includes(tool))
+    throw Error("--output is only available for screenshot or draw_crayon");
   const args = JSON.parse(
     argument.startsWith("@")
       ? await readFile(argument.slice(1), "utf8")
@@ -93,6 +93,14 @@ try {
       tool,
       arguments: args,
     });
+  }
+  if(tool==="draw_crayon" && values.output){
+    const r=await fetch(values.url+result.artwork.url,{signal:AbortSignal.timeout(10000)});
+    if(!r.ok || r.headers.get("content-type")!=="image/png")throw Error("Drawing download failed");
+    const path=resolve(values.output);
+    await mkdir(dirname(path),{recursive:true});
+    await writeFile(path,Buffer.from(await r.arrayBuffer()));
+    result.output=path;
   }
   console.log(JSON.stringify(result, null, 2));
 } catch (error) {

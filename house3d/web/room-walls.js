@@ -14,6 +14,9 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
  const socket=new T.MeshStandardMaterial({color:'#e8e7de',roughness:.55}),socketInset=new T.MeshStandardMaterial({color:'#777f79',roughness:.8});
  const shadowMaterial=new T.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:T.DoubleSide});let disposed=false,openings=[],style='classic',geometryKey='';
  function box(group,size,pos,material){const geometry=new RoundedBoxGeometry(...size,2,Math.min(.01,Math.min(...size)/4));geometries.push(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(...pos);mesh.receiveShadow=true;group.add(mesh);return mesh}
+ // The owner looks through the ceiling; sunlight must not.
+ const lid=new T.Mesh(new T.PlaneGeometry(roomDimensions(room).width,roomDimensions(room).depth),shadowMaterial);
+ lid.name='ceiling-shadow';lid.rotation.x=-Math.PI/2;lid.position.y=ceiling;lid.castShadow=true;lid.visible=false;parent.add(lid);
  for(const side of sides){
   const g=new T.Group();g.name='wall-'+side.id;g.position.set(side.x,0,side.z);g.rotation.y=side.yaw;parent.add(g);groups.set(side.id,g);
   wallMeshes.set(side.id,box(g,[side.width,ceiling,.08],[0,ceiling/2,-.015],paint));
@@ -49,7 +52,7 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
   openings=objects.flatMap(o=>{
    const asset=assets[o.asset_id],hole=asset?.wall_opening;if(!hole)return [];
    const side=Math.abs(o.yaw)<.001?'back':'left';return [{side,x:side==='back'?o.x:-o.z,width:hole.width,height:o.id===room.balcony?.door_id?2.22:hole.height,bottom:o.id===room.balcony?.door_id?0:(asset.elevation||0)+(hole.bottom||0)}];
-  });rebuild();updateAccents();
+  });lid.visible=openings.length>0;rebuild();updateAccents();
  }
  async function setPaper(side,id){
   const height=style==='urban'?ceiling-.16:ceiling-.84,key=id+':'+style;if(applied.get(side.id)===key)return;
@@ -64,7 +67,7 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
   finish=value;style=value.style==='urban'?'urban':'classic';for(const detail of classicDetails)detail.visible=style!=='urban';updateAccents();
   paint.color.set(value.wall_color||'#f3eee5');trim.color.set(value.trim_color||'#d9c4a3');rebuild();await Promise.all(sides.map(side=>setPaper(side,value.wallpapers?.[side.id]||'plain')));
  },updateView(position,{cutaway=true}={}){const hidden=new Set();for(const side of sides){const outside=cutaway&&exteriorWall(side,position);groups.get(side.id).visible=!outside;if(outside)hidden.add(side.id)}return hidden},dispose(){
-  disposed=true;plaster.dispose();geometries.forEach(g=>g.dispose());wallMeshes.forEach(m=>m.geometry.dispose());paperLayers.forEach(m=>{m.geometry.dispose();m.material.dispose()});[paint,trim,panel,accent,socket,socketInset,shadowMaterial].forEach(m=>m.dispose());tiles.forEach(t=>t.dispose());baseTextures.forEach(p=>p.then(t=>t.dispose(),()=>{}));
+  disposed=true;lid.geometry.dispose();plaster.dispose();geometries.forEach(g=>g.dispose());wallMeshes.forEach(m=>m.geometry.dispose());paperLayers.forEach(m=>{m.geometry.dispose();m.material.dispose()});[paint,trim,panel,accent,socket,socketInset,shadowMaterial].forEach(m=>m.dispose());tiles.forEach(t=>t.dispose());baseTextures.forEach(p=>p.then(t=>t.dispose(),()=>{}));
  }};
 }
 
