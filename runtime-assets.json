@@ -224,6 +224,96 @@
     "house3d/assets/wallpapers/whale-breeze.svg": {
       "bytes": 1301,
       "sha256": "59dd41beee811fd0674ceff4df1071eb17b021998ec6e344cc3b10fd1344f974"
+    },
+    "house3d/assets/materials/courtyard-film-still-v1.png": {
+      "bytes": 2138200,
+      "sha256": "e2c1c56b253c28f9fcc3204f56729c13dbf97a5051b284278f8397e4fce5782f",
+      "source": "Existing built-in image_gen courtyard illustration from the complete local project; reused as decorative TV artwork, not window geometry."
+    },
+    "house3d/assets/furniture/balcony-drying-rack-v1.glb": {
+      "bytes": 191720,
+      "sha256": "e62a9ac1f68043d3ca73cb15505ac98b2b162c424264854b65479c2a1c0f6dc9",
+      "source": "New native geometry export; house3d/web/drying-rack.js"
+    },
+    "house3d/assets/furniture/urban-workdesk-detailed-v1.glb": {
+      "bytes": 1155528,
+      "sha256": "849420290c21a7d8d401fd6425a1fea1d1074a13c763e4c003de58193aa4cf8a",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-child-desk-detailed-v1.glb": {
+      "bytes": 1260452,
+      "sha256": "8639be78ae2b727dd2a62a518f6f0345522596c5428f0c19562b241680259fe4",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-ceramic-mug-v1.glb": {
+      "bytes": 48748,
+      "sha256": "9d3ed165a0b6c8817661b778042a6b58c4ea850847c42ff95e6466263058740d",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-work-notebook-v1.glb": {
+      "bytes": 516340,
+      "sha256": "3eab17b85fd143b3be8ca326c9583c93dddd4667acc3938ae4b357d09370d381",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-desk-plant-v1.glb": {
+      "bytes": 163756,
+      "sha256": "5291d2887b75fe9579ef85a54ef0b491a43d16b41d7b45ac1fced131d9f79b6b",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-study-organizer-v1.glb": {
+      "bytes": 1273020,
+      "sha256": "e96876d66740e8292c0583982fea1b9e8ea18a87904c60a7e216d702a7120a8b",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-study-pinboard-v1.glb": {
+      "bytes": 298944,
+      "sha256": "90d05172bc96902ff7ec5f839e70a9430f2b59f1cbad727c9d68367fab50e84e",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-dual-monitor-detailed-v1.glb": {
+      "bytes": 2470604,
+      "sha256": "a23cbada92a47d24c0b7d2635e7563a376997319b2662f9b8ecd42f5afd980c1",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-picture-book-v1.glb": {
+      "bytes": 823504,
+      "sha256": "98a1c8ba8b3224551abcae409cf52df68cb0f129f216fd0bcee1e928ed5414f5",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-storybooks-v1.glb": {
+      "bytes": 1778316,
+      "sha256": "6eb51cb8106df098e7c70d3606e1c441214748098fda21c1f22e30a76bcbc01c",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-school-bottle-v1.glb": {
+      "bytes": 64084,
+      "sha256": "51236c64145f2bdb36d6f1b1774ddb39f6309fc7adeb40f1b050b8e2bb2c2c44",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-marker-cup-v1.glb": {
+      "bytes": 468364,
+      "sha256": "a3bd8436e0172c531f77d2d0cebfc4337223253c553edf4b052e526d06edc7df",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-pencil-jar-v1.glb": {
+      "bytes": 91912,
+      "sha256": "7536d417e228be830ef20ada772b37e4535477871ecb4d36133e504a243a704d",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-schoolbag-v1.glb": {
+      "bytes": 550268,
+      "sha256": "45e9eb08cb619cdbfd3d32ccd975502495a5d6bc23dcea3c963990a336f34c6a",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/furniture/urban-pocket-notebook-v1.glb": {
+      "bytes": 516392,
+      "sha256": "dc1a91b675561dfd1b6f724ffce4f5feed987197e8697c3e8f3a2d00f1688c7c",
+      "source": "New local native geometry; house3d/web/desk-models.js"
+    },
+    "house3d/assets/materials/garden-picture-book-v1.png": {
+      "bytes": 3841377,
+      "sha256": "fdd4bbdeb385e6417b4343ed5d4f54bacba702e05aca574cf1882520997d57e5",
+      "source": "OpenAI built-in image generation; garden picture book spread; 2026-11-02; docs/DESKS.md"
     }
   }
 }

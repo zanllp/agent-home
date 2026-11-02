@@ -9,10 +9,10 @@ test('catalog GLBs contain geometry and original base-colour texture, no externa
  for(const [id,asset] of Object.entries(assets)){
   const doc=document(new URL('./assets/'+asset.model.replace('/models/',''),import.meta.url));
   assert.ok(asset.size.every(n=>Number.isFinite(n)&&n>0));assert.ok(asset.height>0);
-  assert.ok(doc.meshes.length>0,id);assert.ok(doc.materials.some(m=>m.pbrMetallicRoughness?.baseColorTexture),id);
-  assert.ok(doc.images.length>0,id);assert.ok(doc.images.every(i=>i.bufferView!==undefined));
-  assert.ok(![...(doc.buffers||[]),...doc.images].some(x=>x.uri),id);
-  let triangles=0;for(const mesh of doc.meshes)for(const p of mesh.primitives)triangles+=doc.accessors[p.indices].count/3;
+  assert.ok(doc.meshes.length>0,id);if(asset.source_type!=='native_geometry')assert.ok(doc.materials.some(m=>m.pbrMetallicRoughness?.baseColorTexture),id);
+  if(asset.source_type!=='native_geometry')assert.ok(doc.images.length>0,id);assert.ok((doc.images||[]).every(i=>i.bufferView!==undefined));
+  assert.ok(![...(doc.buffers||[]),...(doc.images||[])].some(x=>x.uri),id);
+  let triangles=0;for(const mesh of doc.meshes)for(const p of mesh.primitives)triangles+=doc.accessors[p.indices??p.attributes.POSITION].count/3;
   assert.ok(triangles<60000,id+' is too heavy for this pack');assert.ok(!doc.skins?.length);
   assert.ok(doc.materials.every(m=>m.doubleSided),id+' must preserve the inspected thin surfaces in WebGL');
  }

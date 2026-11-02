@@ -96,12 +96,12 @@
             0.05
           ],
           [
-            -1.0,
+            -1,
             0,
             -0.35
           ],
           [
-            1.0,
+            1,
             0,
             -0.35
           ]
@@ -133,7 +133,7 @@
     "style": "cloud-cottage",
     "model": "/models/furniture/whale-rug-v1.glb",
     "size": [
-      2.0,
+      2,
       1.25
     ],
     "height": 0.018,
@@ -222,7 +222,7 @@
       0.3953772783279419
     ],
     "height": 1.2999999523162842,
-    "elevation": 1.0,
+    "elevation": 1,
     "placement": "wall",
     "painted": true,
     "recolorable": false,
@@ -347,7 +347,7 @@
     "style": "cozy-family-painted",
     "model": "/models/furniture/family-sofa-stylized-v2.glb",
     "size": [
-      2.0,
+      2,
       0.8493152260780334
     ],
     "height": 0.7788649797439575,
@@ -589,7 +589,8 @@
     "limitations": [
       "静态模型；没有未验收的拿取、坐卧或家电运行功能"
     ],
-    "placement": "surface"
+    "placement": "surface",
+    "runtime_refinement": "Native rounded geometry and local print details in desk-models.js / desk-finishes.js; original GLB preserved"
   },
   "urban-study-kit-v1": {
     "label": "台灯课本与彩笔",
@@ -715,7 +716,7 @@
     "style": "urban-family-soft",
     "model": "/models/furniture/urban-blue-rug-v1.glb",
     "size": [
-      2.0,
+      2,
       1.3200000524520874
     ],
     "height": 0.01600000075995922,
@@ -883,7 +884,8 @@
     "source": "Local native Blender object subset; urban-v4/split_study_props.py",
     "limitations": [
       "静态摆件，可以独立布置；未开放拿取动作"
-    ]
+    ],
+    "runtime_refinement": "Native rounded geometry and local print details in desk-models.js / desk-finishes.js; original GLB preserved"
   },
   "urban-pencil-cup-v1": {
     "label": "彩笔笔筒",
@@ -901,7 +903,8 @@
     "source": "Local native Blender object subset; urban-v4/split_study_props.py",
     "limitations": [
       "静态摆件，可以独立布置；未开放拿取动作"
-    ]
+    ],
+    "runtime_refinement": "Native rounded geometry and local print details in desk-models.js / desk-finishes.js; original GLB preserved"
   },
   "urban-school-books-v1": {
     "label": "叠放的课本",
@@ -937,7 +940,8 @@
     "source": "Local native Blender object subset; urban-v4/split_study_props.py",
     "limitations": [
       "静态摆件，可以独立布置；未开放拿取动作"
-    ]
+    ],
+    "runtime_refinement": "Native rounded geometry and local print details in desk-models.js / desk-finishes.js; original GLB preserved"
   },
   "urban-floor-window-v2": {
     "label": "通顶落地窗与亚麻窗帘",
@@ -1140,5 +1144,355 @@
         "height": 0.1725
       }
     }
+  },
+  "balcony-drying-rack-v1": {
+    "label": "独立晾衣架",
+    "kind": "drying_rack",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/balcony-drying-rack-v1.glb",
+    "size": [
+      0.95,
+      0.43
+    ],
+    "height": 1.52,
+    "painted": false,
+    "recolorable": false,
+    "placement": "floor",
+    "source_type": "native_geometry",
+    "source": "Local Three.js geometry: house3d/web/drying-rack.js; exported GLB",
+    "limitations": [
+      "可独立摆放；毛巾为装饰，不含实际洗衣或晾衣动作"
+    ]
+  },
+  "urban-workdesk-detailed-v1": {
+    "label": "浅木双屏工作桌",
+    "kind": "desk",
+    "style": "scandinavian-oak",
+    "model": "/models/furniture/urban-workdesk-detailed-v1.glb",
+    "size": [
+      1.2999999523162842,
+      0.6589042544364929
+    ],
+    "height": 0.617,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js; same measured top and footprint as oak-workdesk-v1",
+    "limitations": [
+      "抽屉、调节扣及线槽为静态结构；桌面摆件独立布置"
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          1.22,
+          0.58
+        ],
+        "height": 0.6131115555763245
+      }
+    },
+    "source_type": "native_geometry",
+    "native_materials": true
+  },
+  "urban-child-desk-detailed-v1": {
+    "label": "浅木雾蓝学习桌",
+    "kind": "desk",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-child-desk-detailed-v1.glb",
+    "size": [
+      1.095618724822998,
+      0.6925340294837952
+    ],
+    "height": 0.6324999928474426,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js; same measured top and footprint as urban-child-desk-tripo-v1",
+    "surfaces": {
+      "top": {
+        "size": [
+          1.01,
+          0.52
+        ],
+        "height": 0.6324999928474426
+      },
+      "bag-hook": {
+        "size": [
+          0.19,
+          0.17
+        ],
+        "center": [
+          0.42,
+          0.3
+        ],
+        "height": 0.589
+      }
+    },
+    "limitations": [
+      "抽屉、调节扣及线槽为静态结构；桌面摆件独立布置"
+    ],
+    "source_type": "native_geometry",
+    "native_materials": true
+  },
+  "urban-ceramic-mug-v1": {
+    "label": "陶瓷咖啡杯",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-ceramic-mug-v1.glb",
+    "size": [
+      0.11,
+      0.085
+    ],
+    "height": 0.09,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态物件，可独立布置；不代表饮用、拿取或书写能力"
+    ],
+    "native_materials": true
+  },
+  "urban-work-notebook-v1": {
+    "label": "布面工作手记",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-work-notebook-v1.glb",
+    "size": [
+      0.24,
+      0.16
+    ],
+    "height": 0.018,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态物件，可独立布置；不代表饮用、拿取或书写能力"
+    ],
+    "native_materials": true
+  },
+  "urban-desk-plant-v1": {
+    "label": "陶盆桌面绿植",
+    "kind": "plant",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-desk-plant-v1.glb",
+    "size": [
+      0.14,
+      0.14
+    ],
+    "height": 0.2,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态物件，可独立布置；不代表饮用、拿取或书写能力"
+    ],
+    "native_materials": true
+  },
+  "urban-study-organizer-v1": {
+    "label": "分格文具收纳盒",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-study-organizer-v1.glb",
+    "size": [
+      0.18,
+      0.095
+    ],
+    "height": 0.18,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态物件，可独立布置；不代表饮用、拿取或书写能力"
+    ],
+    "native_materials": true
+  },
+  "urban-study-pinboard-v1": {
+    "label": "学习便签软木板",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-study-pinboard-v1.glb",
+    "size": [
+      0.48,
+      0.04
+    ],
+    "height": 0.42,
+    "painted": false,
+    "recolorable": false,
+    "placement": "wall",
+    "source_type": "native_geometry",
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态物件，可独立布置；不代表饮用、拿取或书写能力"
+    ],
+    "elevation": 1.02,
+    "native_materials": true
+  },
+  "urban-dual-monitor-detailed-v1": {
+    "label": "双屏机械键盘工作套件",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-dual-monitor-detailed-v1.glb",
+    "size": [
+      0.9050000309944153,
+      0.38
+    ],
+    "height": 0.6330000162124634,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local native Three.js geometry; desk-models.js; real measured centered footprint",
+    "limitations": [
+      "显示屏为静态画面；键鼠、走线及支架不能单独操作，不连接真实电脑状态"
+    ]
+  },
+  "urban-picture-book-v1": {
+    "label": "花园观察绘本",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-picture-book-v1.glb",
+    "size": [
+      0.42,
+      0.24
+    ],
+    "height": 0.018,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ],
+    "print_texture": "/models/materials/garden-picture-book-v1.png"
+  },
+  "urban-storybooks-v1": {
+    "label": "叠放与立放故事书",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-storybooks-v1.glb",
+    "size": [
+      0.22,
+      0.16
+    ],
+    "height": 0.23,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ],
+    "print_texture": "/models/materials/garden-picture-book-v1.png"
+  },
+  "urban-school-bottle-v1": {
+    "label": "提环儿童水杯",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-school-bottle-v1.glb",
+    "size": [
+      0.065,
+      0.065
+    ],
+    "height": 0.212,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ]
+  },
+  "urban-marker-cup-v1": {
+    "label": "短盒彩色水笔",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-marker-cup-v1.glb",
+    "size": [
+      0.056,
+      0.056
+    ],
+    "height": 0.12,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ]
+  },
+  "urban-pencil-jar-v1": {
+    "label": "磨砂文具小罐",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-pencil-jar-v1.glb",
+    "size": [
+      0.054,
+      0.054
+    ],
+    "height": 0.08,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ]
+  },
+  "urban-schoolbag-v1": {
+    "label": "蓝粉小狗挂件书包",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-schoolbag-v1.glb",
+    "size": [
+      0.18,
+      0.16
+    ],
+    "height": 0.3,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ],
+    "support_offset": -0.3
+  },
+  "urban-pocket-notebook-v1": {
+    "label": "蓝色随身小本",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-pocket-notebook-v1.glb",
+    "size": [
+      0.16,
+      0.106
+    ],
+    "height": 0.012,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Local Three.js geometry; house3d/web/desk-models.js",
+    "limitations": [
+      "静态独立摆件，可使用 update_layout 摆放；未开放拿取或使用动作"
+    ]
   }
 }

@@ -15,4 +15,4 @@ export const LIGHTING={
 };
 
 // Property / label changes must not throw away an in-flight walking route.
-export function navigationKey(objects,room={}){return JSON.stringify([roomDimensions(room),objects.map(({id,kind,asset_id,x,z,yaw})=>({id,kind,asset_id,x,z,yaw}))])}
+export function navigationKey(objects,room={}){return JSON.stringify([roomDimensions(room),objects.map(({id,kind,asset_id,x,z,yaw,properties})=>({id,kind,asset_id,x,z,yaw,...(id===room.balcony?.door_id?{open:properties?.open!==false}:{})}))])}

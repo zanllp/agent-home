@@ -1,0 +1,25 @@
+{
+  "name": "agent-home",
+  "version": "0.2.0-preview",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node start.mjs",
+    "build": "node tools/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-sqlite --test tests/*.test.mjs house3d/test_*.mjs",
+    "check:release": "node tools/check-release.mjs",
+    "package": "node tools/package.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "fflate": "^0.8.2",
+    "three": "^0.180.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  }
+}

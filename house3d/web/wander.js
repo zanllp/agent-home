@@ -1,3 +1,4 @@
+import {spaceBounds} from '../shared/space.mjs';
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -37,7 +38,7 @@ const mount=document.getElementById('app');
  function trackingPose(mode){
   let p=avatar?.position||{x:0,z:.5};const yaw=avatar?.rotation.y||0;
   if((interaction?.frame?.sleep||0)>.5&&!['home','top'].includes(mode)){const distance=mode==='face'?1.0:.65,x=p.x-distance*Math.sin(yaw),z=p.z-distance*Math.cos(yaw);return {position:mode==='side'?[x+2.8,1.5,z]:mode==='face'?[x+.12,1.7,z+.34]:[x+1.8,2.5,z+2.1],target:[x,mode==='face'?.82:.67,z]}}
-  if(mode==='home'){const f=Math.max(roomSpec.width/6,roomSpec.depth/5,roomSpec.height/2.4);return {position:[7.2*f,6.5*f,8.5*f],target:[0,.5,0]}};
+  if(mode==='home'){const b=spaceBounds(roomSpec),x=(b.minX+b.maxX)/2,z=(b.minZ+b.maxZ)/2,f=Math.max((b.maxX-b.minX)/6,(b.maxZ-b.minZ)/5,roomSpec.height/2.4);return {position:[x+7.2*f,6.5*f,z+8.5*f],target:[x,.5,z]}};
   if(mode==='follow')return {position:[p.x+2.5,2.2,p.z+3.2],target:[p.x,.72,p.z]};
   if(mode==='front')return {position:[p.x+Math.sin(yaw)*2.8,1.25,p.z+Math.cos(yaw)*2.8],target:[p.x,.72,p.z]};
   return cameraPose(mode,{x:p.x,z:p.z,yaw});
@@ -101,7 +102,7 @@ const mount=document.getElementById('app');
  }
 async function init(){try{
   scene=new T.Scene();scene.background=new T.Color('#f3efe6');camera=new T.PerspectiveCamera(36,1,.05,40);
-  renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;mount.appendChild(renderer.domElement);renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('role','application');hud=createCanvasHud();selfMap=createSelfMap();objectPanel=createObjectPanel();napQuilt=createNapQuilt(scene);
+  renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,stencil:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;mount.appendChild(renderer.domElement);renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('role','application');hud=createCanvasHud();selfMap=createSelfMap();objectPanel=createObjectPanel();napQuilt=createNapQuilt(scene);
   controls=new OrbitControls(camera,renderer.domElement);controls.minDistance=1;controls.maxDistance=15;controls.maxPolarAngle=Math.PI*.48;view('home');
   ambient=new T.HemisphereLight('#fff6ec','#ad9b83',1.05);scene.add(ambient);sun=new T.DirectionalLight('#fff2dd',2.4);sun.position.set(-2,6,4);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8});sun.shadow.bias=-.00015;sun.shadow.normalBias=.015;sun.shadow.radius=4;sun.shadow.intensity=.78;scene.add(sun,sun.target);
   resize=new ResizeObserver(()=>{const w=mount.clientWidth,h=mount.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.zoom=cameraZoom(ui.cameraMode,w/h);camera.updateProjectionMatrix();hud.size(w,h);selfMap.size(w,h);objectPanel.size(w,h)});resize.observe(mount);last=performance.now();raf=requestAnimationFrame(frame);

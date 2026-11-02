@@ -1,0 +1,6 @@
+{
+  "source_commit": "473f52564aa54ed1854a663ac1889394a50a8cdb",
+  "source_python_tests": 103,
+  "http_cases": 300,
+  "method": "Recorded original Flask test requests with catalog overrides, fixed clocks, complete before/after SQLite rows and response expectations. Replayed by Node, no Python required at runtime or for these contract tests."
+}

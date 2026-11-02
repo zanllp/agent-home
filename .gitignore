@@ -13,3 +13,6 @@ __pycache__/
 .env.*
 !.env.example
 .DS_Store
+
+# Local runtime packages and preview data
+/artifacts/

@@ -14,7 +14,7 @@ Agent Home 是一个独立的可观察、可操作环境。不要把模型生成
 CLI 语法：
 
 ```sh
-.venv/bin/python house3d/agent.py TOOL '{"argument":"value"}'
+node agent.mjs TOOL '{"argument":"value"}'
 ```
 
 可用 `--url http://127.0.0.1:19130` 指定实例，`--id` 指定幂等 ID，`--revision` 指定期望版本。CLI 不调用模型、不持有模型密钥。
@@ -45,7 +45,7 @@ CLI 语法：
 ## 3. 房间与模板
 
 ```sh
-.venv/bin/python house3d/agent.py update_room '{"width":8.4,"depth":6.8,"height":2.7,"dry_run":true}'
+node agent.mjs update_room '{"width":8.4,"depth":6.8,"height":2.7,"dry_run":true}'
 ```
 
 宽 4..12、深 4..10、高 2.4..4 米。挂墙物品跟随原墙；地面家具保留位置，不自动缩放。缩小时越界/干涉/阻挡身体会拒绝；先结束走动或坐卧。`update_room` 默认实际应用，预演需明确传 true。
@@ -57,10 +57,10 @@ CLI 语法：
 ## 4. 动作受理不等于完成
 
 ```sh
-.venv/bin/python house3d/agent.py walk_to '{"x":1.2,"z":0.3}'
-.venv/bin/python house3d/agent.py observe_home
+node agent.mjs walk_to '{"x":1.2,"z":0.3}'
+node agent.mjs observe_home
 # 确认 child-chair 支持 read 且当前可用之后
-.venv/bin/python house3d/agent.py interact '{"target_id":"child-chair","action":"read"}'
+node agent.mjs interact '{"target_id":"child-chair","action":"read"}'
 ```
 
 上述目标是家庭模板示例，不保证所有布置中都可走到。以反馈为准。
@@ -79,8 +79,8 @@ CLI 语法：
 页面右上「位置」展示自己的位置和朝向，镜头有全景、正面、脸部、侧面等预设。旁观相机与角色眼睛是两个独立视角。
 
 ```sh
-.venv/bin/python house3d/agent.py screenshot '{"view":"character"}' --output /tmp/agent-home-eyes.png
-.venv/bin/python house3d/agent.py screenshot '{"view":"spectator"}' --output /tmp/agent-home-room.png
+node agent.mjs screenshot '{"view":"character"}' --output /tmp/agent-home-eyes.png
+node agent.mjs screenshot '{"view":"spectator"}' --output /tmp/agent-home-room.png
 ```
 
 截图请求返回任务 ID/URL；CLI 的 `--output` 等待 PNG 再写文件。**需要一个打开且可见的当前生活页面**；超时/expired 不能当成截图成功。睡觉时角色视角会变暗。接口只拍小家画布，不读取桌面、摄像头或其他应用。
@@ -104,3 +104,7 @@ POST `/api/commands`。revision 必须来自刚读取的状态，不硬编码示
 - 多个可见页面只有一个身体执行者；不要删租约或改数据库来抢控制。状态工具不依赖模型提供商，但身体动作和截图依赖浏览器执行者。
 
 当前不含已安装的 MCP server 或 DSH 插件。接入适配器应只暴露这些声明工具，不把任意自然语言/家具元数据当作 shell 授权。
+
+## 7. 阳台
+
+家庭模板现有独立阳台；`update_room.balcony` 显式声明结构，`list_objects` 与 `observe_home` 提供 `area`。绿植、洗衣机、晾衣架沿用 `update_layout`；开门后通过 `walk_to` 真实走过去。先预演，检查 `navigation.balcony` 和 `balcony_unreachable`；不把物品可摆放当成路线必然可达。完整参数、示例和旧存档说明见 [阳台指南](BALCONY.md)。

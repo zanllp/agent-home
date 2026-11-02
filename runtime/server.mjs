@@ -1,0 +1,1973 @@
+// house3d/server/index.ts
+import { createServer } from "node:http";
+import { fileURLToPath } from "node:url";
+import { resolve as resolve2 } from "node:path";
+
+// house3d/shared/space.mjs
+function balconyGeometry(room = {}) {
+  const b = room.balcony;
+  if (!b) return null;
+  const left = b.wall === "left", wall = left ? -(room.width ?? 6) / 2 : -(room.depth ?? 5) / 2;
+  const origin = left ? { x: wall, z: -b.center } : { x: b.center, z: wall };
+  const along = left ? { x: 0, z: -1 } : { x: 1, z: 0 }, outward = left ? { x: -1, z: 0 } : { x: 0, z: -1 };
+  const point = (u, v) => ({ x: origin.x + along.x * u + outward.x * v, z: origin.z + along.z * u + outward.z * v });
+  const a = point(-b.width / 2, 0), c = point(b.width / 2, b.depth);
+  return { ...b, origin, along, outward, point, minX: Math.min(a.x, c.x), maxX: Math.max(a.x, c.x), minZ: Math.min(a.z, c.z), maxZ: Math.max(a.z, c.z) };
+}
+function balconyLocal(room, p) {
+  const b = balconyGeometry(room);
+  if (!b) return null;
+  const x = p.x - b.origin.x, z = p.z - b.origin.z;
+  return { u: x * b.along.x + z * b.along.z, v: x * b.outward.x + z * b.outward.z };
+}
+function regionAt(room, p) {
+  const b = balconyGeometry(room), q = b && balconyLocal(room, p);
+  return q && Math.abs(q.u) <= b.width / 2 + 1e-8 && q.v > 0 && q.v <= b.depth + 1e-8 ? "balcony" : Math.abs(p.x) <= (room.width ?? 6) / 2 + 1e-8 && Math.abs(p.z) <= (room.depth ?? 5) / 2 + 1e-8 ? "interior" : null;
+}
+function spaceBounds(room = {}) {
+  const b = balconyGeometry(room), x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2;
+  return { minX: Math.min(-x, b?.minX ?? -x), maxX: Math.max(x, b?.maxX ?? x), minZ: Math.min(-z, b?.minZ ?? -z), maxZ: Math.max(z, b?.maxZ ?? z) };
+}
+function fitsFootprint(room = {}, p, w, d, margin = 0.05) {
+  const x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2, b = balconyGeometry(room);
+  const within = (a, c, e, f) => p.x - w / 2 >= a + margin - 1e-8 && p.x + w / 2 <= c - margin + 1e-8 && p.z - d / 2 >= e + margin - 1e-8 && p.z + d / 2 <= f - margin + 1e-8;
+  return within(-x, x, -z, z) || !!(b && within(b.minX, b.maxX, b.minZ, b.maxZ));
+}
+function balconyDoor(room, objects) {
+  const b = balconyGeometry(room);
+  if (!b) return null;
+  const door = objects.find((o) => o.id === b.door_id);
+  if (!door) return null;
+  const q = balconyLocal(room, door);
+  return { id: door.id, u: q.u + 0.4, width: 1.55, open: door.properties?.open !== false };
+}
+function distanceToSegment(p, a, b) {
+  const dx = b.x - a.x, dz = b.z - a.z, t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+  return Math.hypot(p.x - a.x - t * dx, p.z - a.z - t * dz);
+}
+function spaceSegments(room = {}, objects = []) {
+  const x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2, b = balconyGeometry(room), door = balconyDoor(room, objects), segments = [];
+  const add = (a, c) => segments.push([a, c]);
+  const walls = [["back", { x: -x, z: -z }, { x, z: -z }], ["right", { x, z: -z }, { x, z }], ["front", { x, z }, { x: -x, z }], ["left", { x: -x, z }, { x: -x, z: -z }]];
+  for (const [id, a, c] of walls) {
+    if (b && id === b.wall && door?.open) {
+      add(a, b.point(door.u - door.width / 2, 0));
+      add(b.point(door.u + door.width / 2, 0), c);
+    } else add(a, c);
+  }
+  if (b) {
+    add(b.point(-b.width / 2, 0), b.point(-b.width / 2, b.depth));
+    add(b.point(-b.width / 2, b.depth), b.point(b.width / 2, b.depth));
+    add(b.point(b.width / 2, b.depth), b.point(b.width / 2, 0));
+  }
+  return segments;
+}
+function createSpace(room = {}, objects = []) {
+  const segments = spaceSegments(room, objects);
+  return { segments, clearance: (p) => regionAt(room, p) ? Math.min(...segments.map(([a, b]) => distanceToSegment(p, a, b))) - (room.balcony ? 0.1 : 0.15) : -Infinity, free(p, radius = 0.57) {
+    return Number.isFinite(p.x) && Number.isFinite(p.z) && this.clearance(p) >= radius - 1e-8;
+  } };
+}
+function wallBlocksSight(room, objects, a, b) {
+  const d = balconyGeometry(room), door = d && objects.find((o) => o.id === d.door_id), q = door && balconyLocal(room, door), w = (room.width ?? 6) / 2, h = (room.depth ?? 5) / 2;
+  for (const [id, axis, value, other, span] of [["left", "x", -w, "z", h], ["right", "x", w, "z", h], ["back", "z", -h, "x", w], ["front", "z", h, "x", w]]) {
+    const delta = b[axis] - a[axis];
+    if (Math.abs(delta) < 1e-9) continue;
+    const t = (value - a[axis]) / delta;
+    if (t <= 1e-3 || t >= 0.999) continue;
+    const p = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }, y = a.y + (b.y - a.y) * t;
+    if (Math.abs(p[other]) > span || y < 0 || y > (room.height ?? 2.4)) continue;
+    if (d && id === d.wall && q && Math.abs(balconyLocal(room, p).u - q.u) <= 1.21 && y >= 0.03 && y <= 2.2) continue;
+    return true;
+  }
+  return false;
+}
+
+// house3d/server/app.ts
+import { readFileSync, statSync, realpathSync, existsSync } from "node:fs";
+import { resolve, sep, extname } from "node:path";
+import { randomUUID } from "node:crypto";
+
+// house3d/server/types.ts
+var record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var clone = (value) => structuredClone(value);
+var length = (s) => [...s].length;
+function requireValue(condition, message) {
+  if (!condition) throw new Error(message);
+}
+function number(v, low, high, floatBounds = false) {
+  requireValue(
+    typeof v === "number" && Number.isFinite(v) && v >= low && v <= high,
+    `Expected finite number in [${floatBounds && Number.isInteger(low) ? low.toFixed(1) : low}, ${floatBounds && Number.isInteger(high) ? high.toFixed(1) : high}]`
+  );
+  return v;
+}
+function round(v, digits) {
+  const f = 10 ** digits;
+  return Math.round((v + Number.EPSILON) * f) / f;
+}
+function same(a, b) {
+  return stable(a) === stable(b);
+}
+function stable(value) {
+  return JSON.stringify(
+    value,
+    (_key, v) => record(v) ? Object.fromEntries(
+      Object.keys(v).sort().map((k) => [k, v[k]])
+    ) : v
+  );
+}
+function extra(value, allowed) {
+  const keys = new Set(allowed);
+  return Object.keys(value).some((k) => !keys.has(k));
+}
+
+// house3d/server/geometry.ts
+var DEFAULT_SIZE = { width: 6, depth: 5, height: 2.4 };
+var LIMITS = {
+  width: [4, 12],
+  depth: [4, 10],
+  height: [2.4, 4]
+};
+var ROOM_DEFAULT = {
+  ...DEFAULT_SIZE,
+  wall_color: "#f3eee5",
+  trim_color: "#d9c4a3",
+  wallpapers: Object.fromEntries(
+    ["back", "front", "left", "right"].map((w) => [w, "plain"])
+  )
+};
+function dimensions(room = {}) {
+  return Object.fromEntries(
+    Object.entries(DEFAULT_SIZE).map(([k, v]) => [k, room[k] ?? v])
+  );
+}
+function boundaries(room = {}) {
+  const d = dimensions(room);
+  return {
+    furniture_x: d.width / 2 - 0.05,
+    furniture_z: d.depth / 2 - 0.05,
+    body_x: d.width / 2 - 0.72,
+    body_z: d.depth / 2 - 0.72,
+    height: d.height
+  };
+}
+function wallsFor(room = {}) {
+  const b = boundaries(room);
+  return [
+    ["back", "z", -b.furniture_z, 0, "\u540E\u5899", 1],
+    ["front", "z", b.furniture_z, Math.PI, "\u524D\u5899", -1],
+    ["left", "x", -b.furniture_x, Math.PI / 2, "\u5DE6\u5899", 1],
+    ["right", "x", b.furniture_x, -Math.PI / 2, "\u53F3\u5899", -1]
+  ].map(([id, axis, position, yaw, label, inward]) => ({
+    id,
+    name: id,
+    [axis]: position,
+    yaw,
+    label,
+    axis,
+    position,
+    inward
+  }));
+}
+function definition(obj, ctx) {
+  return obj.asset_id ? ctx.assets[obj.asset_id] : ctx.catalog[obj.kind];
+}
+function heightOf(obj, objects, ctx, seen = /* @__PURE__ */ new Set()) {
+  if (seen.has(obj.id)) return 0;
+  seen.add(obj.id);
+  if (!obj.on) return definition(obj, ctx)?.elevation || 0;
+  const parent = objects.find((p) => p.id === obj.on.id);
+  if (!parent) return 0;
+  const surface = definition(parent, ctx)?.surfaces?.[obj.on.surface];
+  return surface ? heightOf(parent, objects, ctx, seen) + surface.height + (definition(obj, ctx)?.support_offset || 0) : 0;
+}
+function parseSupport(value) {
+  requireValue(
+    record(value) && Object.keys(value).sort().join(",") === "id,surface,x,yaw,z",
+    "on requires id, surface, x, z and yaw; offsets are relative to the supporting surface"
+  );
+  requireValue(
+    typeof value.id === "string" && length(value.id) >= 1 && length(value.id) <= 64,
+    "Invalid support id"
+  );
+  requireValue(
+    typeof value.surface === "string" && length(value.surface) >= 1 && length(value.surface) <= 64,
+    "Choose a surface id from the supporting asset catalog"
+  );
+  for (const k of ["x", "z", "yaw"])
+    requireValue(
+      typeof value[k] === "number" && Number.isFinite(value[k]) && Math.abs(value[k]) <= (k === "yaw" ? Math.PI * 2 : 3),
+      "Support offsets and yaw must be bounded finite numbers"
+    );
+  return { ...value };
+}
+function resolveSupports(objects, ctx) {
+  const byId = new Map(objects.map((o) => [o.id, o])), resolved = /* @__PURE__ */ new Set(), visiting = /* @__PURE__ */ new Set(), invalid = /* @__PURE__ */ new Set(), errors = [];
+  function error(code, obj, message) {
+    invalid.add(obj.id);
+    errors.push({
+      code,
+      ids: [obj.id],
+      message,
+      suggestion: "\u68C0\u67E5 get_catalog \u4E2D\u7684\u627F\u8F7D\u9762\u548C\u7269\u54C1\u5C3A\u5BF8\uFF1B\u5148\u8C03\u6574\u6446\u653E\uFF0C\u518D\u9884\u6F14\u3002"
+    });
+  }
+  function visit(obj) {
+    if (resolved.has(obj.id)) return !invalid.has(obj.id);
+    if (visiting.has(obj.id)) {
+      error("support_cycle", obj, "\u7269\u54C1\u4E4B\u95F4\u4E0D\u80FD\u5FAA\u73AF\u627F\u8F7D\u3002");
+      return false;
+    }
+    visiting.add(obj.id);
+    const own = definition(obj, ctx), on = obj.on;
+    if (own.placement === "surface" && !on)
+      error("surface_required", obj, "\u8FD9\u4E2A\u7269\u54C1\u9700\u8981\u653E\u5728\u76EE\u5F55\u58F0\u660E\u7684\u627F\u8F7D\u9762\u4E0A\u3002");
+    if (on) {
+      if (own.placement !== "surface")
+        error("support_not_allowed", obj, "\u6B64\u5BB6\u5177\u4E0D\u662F\u684C\u9762\u6216\u5C42\u677F\u6446\u4EF6\u3002");
+      const parent = byId.get(on.id);
+      if (!parent)
+        error(
+          "support_missing",
+          obj,
+          "\u627F\u8F7D\u5BB6\u5177\u4E0D\u5B58\u5728\uFF1B\u79FB\u9664\u5BB6\u5177\u65F6\u4E5F\u9700\u5904\u7406\u4E0A\u9762\u7684\u7269\u54C1\u3002"
+        );
+      else if (visit(parent)) {
+        const surface = definition(parent, ctx).surfaces?.[on.surface];
+        if (!surface) error("surface_unknown", obj, "\u627F\u8F7D\u5BB6\u5177\u6CA1\u6709\u8FD9\u4E2A\u627F\u8F7D\u9762\u3002");
+        else {
+          const [cx, cz] = surface.center || [0, 0], x = cx + on.x, z = cz + on.z, c = Math.cos(parent.yaw), s = Math.sin(parent.yaw);
+          Object.assign(obj, {
+            x: parent.x + x * c + z * s,
+            z: parent.z - x * s + z * c,
+            yaw: parent.yaw + on.yaw
+          });
+          const [w, d] = own.size, co = Math.abs(Math.cos(on.yaw)), si = Math.abs(Math.sin(on.yaw));
+          if (Math.abs(on.x) + (w * co + d * si) / 2 > surface.size[0] / 2 + 2e-3 || Math.abs(on.z) + (w * si + d * co) / 2 > surface.size[1] / 2 + 2e-3)
+            error("support_overhang", obj, "\u7269\u54C1\u8D85\u51FA\u627F\u8F7D\u9762\u7684\u5B89\u5168\u8FB9\u7F18\u3002");
+        }
+      } else error("support_invalid", obj, "\u627F\u8F7D\u5173\u7CFB\u672A\u901A\u8FC7\u68C0\u67E5\u3002");
+    }
+    visiting.delete(obj.id);
+    resolved.add(obj.id);
+    return !invalid.has(obj.id);
+  }
+  for (const obj of objects) visit(obj);
+  return errors;
+}
+function supportsPair(a, b, objects) {
+  const byId = new Map(objects.map((o) => [o.id, o]));
+  function ancestor(child, parent) {
+    const seen = /* @__PURE__ */ new Set();
+    while (child?.on && !seen.has(child.id)) {
+      seen.add(child.id);
+      if (child.on.id === parent.id) return true;
+      child = byId.get(child.on.id);
+    }
+    return false;
+  }
+  return ancestor(a, b) || ancestor(b, a);
+}
+function footprint(obj, ctx) {
+  const [w, d] = definition(obj, ctx).size, c = Math.abs(Math.cos(obj.yaw)), s = Math.abs(Math.sin(obj.yaw));
+  return [c * w + s * d, s * w + c * d];
+}
+function validateLayout(state, ctx) {
+  validateBalcony(state, ctx);
+  const limits = boundaries(state.room), errors = resolveSupports(state.objects, ctx);
+  requireValue(!errors.length, errors[0]?.message);
+  const solids = [], seen = /* @__PURE__ */ new Set();
+  for (const obj of state.objects) {
+    requireValue(!seen.has(obj.id), "Duplicate furniture id");
+    seen.add(obj.id);
+    requireValue(
+      !obj.asset_id || ctx.assets[obj.asset_id]?.kind === obj.kind,
+      "Asset does not match furniture kind"
+    );
+    const def = definition(obj, ctx), y = heightOf(obj, state.objects, ctx), h = def.height, [w, d] = footprint(obj, ctx);
+    requireValue(
+      !(!fitsFootprint(state.room, obj, w, d) || y < -1e-3 || y + h > limits.height),
+      "Furniture extends outside room: " + obj.id
+    );
+    if (def.placement === "wall") {
+      const angle = Math.atan2(Math.sin(obj.yaw), Math.cos(obj.yaw));
+      requireValue(
+        Math.abs(angle) < 1e-3 && Math.abs(obj.z - (-limits.furniture_z + d / 2)) < 0.025 || Math.abs(angle - Math.PI / 2) < 1e-3 && Math.abs(obj.x - (-limits.furniture_x + w / 2)) < 0.025,
+        "Wall fixture must face into the room on the back or left wall"
+      );
+    }
+    if (obj.kind === "rug") continue;
+    for (const [other, ow, od, oy, oh] of solids) {
+      if (supportsPair(obj, other, state.objects) || y + h <= oy + 0.01 || oy + oh <= y + 0.01)
+        continue;
+      requireValue(
+        !(Math.abs(obj.x - other.x) < (w + ow) / 2 - 0.015 && Math.abs(obj.z - other.z) < (d + od) / 2 - 0.015),
+        "Furniture overlaps another item: " + other.id + " / " + obj.id
+      );
+    }
+    solids.push([obj, w, d, y, h]);
+  }
+}
+function validateBalcony(state, ctx) {
+  const b = balconyGeometry(state.room);
+  if (!b) return;
+  const span = b.wall === "left" ? state.room?.depth ?? 5 : state.room?.width ?? 6;
+  requireValue(Math.abs(b.center) + b.width / 2 <= span / 2 - 0.08, "Balcony must fit along its supporting wall");
+  const door = state.objects.find((o) => o.id === b.door_id), def = door && definition(door, ctx);
+  requireValue(door && def?.wall_opening && def.placement === "wall", "Balcony requires its declared floor window/door");
+  requireValue(Math.abs(door.yaw - (b.wall === "left" ? Math.PI / 2 : 0)) < 1e-3, "Balcony door must face its supporting wall");
+  const q = balconyLocal(state.room, door);
+  requireValue(Math.abs(q.v) < 0.25 && Math.abs(q.u) + 1.24 <= b.width / 2 - 0.02, "Door opening must lie inside the balcony wall span");
+}
+
+// house3d/server/objects.ts
+var CATEGORIES = {
+  wall_shelf: "storage",
+  wall_art: "decoration",
+  storage_box: "storage",
+  desktop: "study",
+  books: "study",
+  air_conditioner: "appliances",
+  appliance: "appliances",
+  chair: "seating",
+  sofa: "seating",
+  armchair: "seating",
+  bed: "sleeping",
+  desk: "study",
+  shelf: "storage",
+  sideboard: "storage",
+  nightstand: "storage",
+  fridge: "appliances",
+  office_chair: "seating",
+  dining_chair: "seating",
+  coffee_table: "tables",
+  dining_table: "tables",
+  media_console: "storage",
+  tv: "appliances",
+  washer: "appliances",
+  computer: "study",
+  lamp: "lighting",
+  plant: "decoration",
+  rug: "decoration",
+  window: "environment",
+  drying_rack: "storage"
+};
+var CATEGORY_LABELS = {
+  seating: "\u5750\u5177",
+  sleeping: "\u5BDD\u5177",
+  study: "\u5B66\u4E60\u521B\u4F5C",
+  tables: "\u684C\u51E0",
+  storage: "\u6536\u7EB3",
+  appliances: "\u5BB6\u7535",
+  lighting: "\u706F\u5149",
+  decoration: "\u88C5\u9970\u690D\u7269",
+  environment: "\u73AF\u5883"
+};
+var BUSY_PHASES = /* @__PURE__ */ new Set([
+  "requested",
+  "approaching",
+  "entering",
+  "active",
+  "leaving"
+]);
+var busy = (state) => BUSY_PHASES.has(state.interaction?.phase);
+function worldPoint(obj, point) {
+  const [x, y, z] = point, c = Math.cos(obj.yaw), s = Math.sin(obj.yaw);
+  return {
+    x: obj.x + x * c + z * s,
+    y,
+    z: obj.z - x * s + z * c,
+    yaw: obj.yaw
+  };
+}
+function readingDesk(obj, state) {
+  if (obj.kind !== "chair") return void 0;
+  return state.objects.filter((d) => {
+    if (d.kind !== "desk") return false;
+    const dx = d.x - obj.x, dz = d.z - obj.z, c = Math.cos(obj.yaw), s = Math.sin(obj.yaw), forward = dx * s + dz * c, side = dx * c - dz * s;
+    return forward > 0.4 && forward < 1.35 && Math.abs(side) < 0.45;
+  }).sort(
+    (a, b) => Math.hypot(a.x - obj.x, a.z - obj.z) - Math.hypot(b.x - obj.x, b.z - obj.z)
+  )[0];
+}
+function actionsFor(obj, ctx, state) {
+  const def = ctx.assets[obj.asset_id || ""] || {}, result = [], job = state.interaction || {};
+  for (const name of Object.keys(def.interactions || {}))
+    result.push({
+      id: name,
+      label: { sit: "\u5750\u4E00\u4F1A\u513F", sleep: "\u8EBA\u4E0B\u7761\u89C9" }[name],
+      available: !busy(state),
+      reason: busy(state) ? "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" : null,
+      reachability: "not_checked"
+    });
+  if (def.interactions?.sit && readingDesk(obj, state))
+    result.push({
+      id: "read",
+      label: "\u5750\u4E0B\u770B\u4E66",
+      available: !busy(state),
+      reason: busy(state) ? "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" : null,
+      reachability: "not_checked"
+    });
+  if (busy(state) && job.target_id === obj.id)
+    result.push({
+      id: "leave",
+      label: job.pose === "sleep" ? "\u8D77\u5E8A" : "\u8D77\u8EAB",
+      available: job.action !== "leave",
+      reason: null
+    });
+  if (def.interactions?.sleep && job.target_id === obj.id && job.phase === "active") {
+    const covered = obj.properties?.covered ?? true;
+    result.push({
+      id: covered ? "uncover" : "cover",
+      label: covered ? "\u6380\u5F00\u88AB\u5B50" : "\u76D6\u597D\u88AB\u5B50",
+      available: true
+    });
+  }
+  if (obj.kind === "lamp")
+    result.push(
+      { id: "turn_on", label: "\u5F00\u706F", available: true },
+      { id: "turn_off", label: "\u5173\u706F", available: true }
+    );
+  return result;
+}
+function objectList(state, ctx, category, capability) {
+  const objects = [];
+  for (const obj of state.objects) {
+    const def = ctx.assets[obj.asset_id || ""] || {}, cat = CATEGORIES[obj.kind] || "decoration", actions = actionsFor(obj, ctx, state);
+    if (category && category !== cat || capability && !actions.some((a) => a.id === capability))
+      continue;
+    objects.push({
+      ...obj,
+      ...state.room?.balcony ? { area: regionAt(state.room, obj) } : {},
+      label: obj.label ?? def.label ?? obj.kind,
+      category: cat,
+      category_label: CATEGORY_LABELS[cat],
+      support: obj.on ? { ...obj.on, base_height: heightOf(obj, state.objects, ctx) } : null,
+      writable_properties: obj.id === state.room?.balcony?.door_id ? { open: { type: "boolean" } } : obj.kind === "lamp" ? {
+        on: { type: "boolean" },
+        brightness: { type: "number", minimum: 0, maximum: 1 }
+      } : def.interactions?.sleep ? { covered: { type: "boolean" } } : {},
+      actions,
+      properties: obj.properties ?? (obj.id === state.room?.balcony?.door_id ? { open: true } : obj.kind === "lamp" ? { on: true, brightness: 0.7 } : obj.kind === "bed" ? { covered: true } : {}),
+      interaction: state.interaction?.target_id === obj.id ? state.interaction : null
+    });
+  }
+  return {
+    revision: state.revision,
+    categories: CATEGORY_LABELS,
+    objects,
+    interaction: state.interaction ?? null
+  };
+}
+
+// house3d/server/transition.ts
+function transition(input, command, ctx, { check_geometry = true, check_busy = true } = {}) {
+  let state = clone(input);
+  const op = command.tool, args = command.arguments === void 0 ? {} : command.arguments;
+  requireValue(record(args), "arguments must be an object");
+  const def = typeof op === "string" && Object.hasOwn(ctx.definitions, op) ? ctx.definitions[op] : void 0;
+  requireValue(!!def, "Unknown or unavailable tool");
+  const [, props, required] = def;
+  requireValue(!extra(args, Object.keys(props)), "Unknown argument");
+  requireValue(
+    required.every((k) => k in args),
+    "Required argument missing"
+  );
+  if (check_busy && busy(state) && [
+    "apply_layout",
+    "place_furniture",
+    "update_furniture",
+    "remove_furniture",
+    "move_character",
+    "set_activity",
+    "apply_preset"
+  ].includes(op))
+    throw Error(
+      "Finish the current object interaction with interact/leave before moving furniture or the character"
+    );
+  const mutate = (s, c, o = {}) => transition(s, c, ctx, o);
+  if (op === "set_wallpaper") {
+    if (Array.isArray(args.wallpaper_id))
+      throw Error("unhashable type: 'list'");
+    requireValue(
+      ["all", "back", "front", "left", "right"].includes(args.wall_id) && typeof args.wallpaper_id === "string" && Object.hasOwn(ctx.wallpapers, args.wallpaper_id),
+      "Unknown wall or wallpaper; choose from get_catalog"
+    );
+    const room = { ...ROOM_DEFAULT, ...state.room }, papers = { ...ROOM_DEFAULT.wallpapers, ...room.wallpapers };
+    for (const wall of args.wall_id === "all" ? Object.keys(papers) : [args.wall_id])
+      papers[wall] = args.wallpaper_id;
+    state.room = { ...room, wallpapers: papers };
+  } else if (op === "update_room") {
+    const resizing = Object.keys(args).some((k) => k in LIMITS || k === "balcony");
+    if (resizing && check_busy && busy(state))
+      throw Error("Finish the interaction before resizing the room");
+    requireValue(
+      typeof (args.dry_run === void 0 ? false : args.dry_run) === "boolean",
+      "dry_run must be boolean"
+    );
+    for (const [k, v] of Object.entries(args)) {
+      if (k === "dry_run") continue;
+      if (k === "balcony") {
+        requireValue(v === null || record(v) && !extra(v, ["wall", "center", "width", "depth", "door_id"]) && ["wall", "center", "width", "depth", "door_id"].every((k2) => k2 in v), "Invalid balcony configuration");
+        if (v) {
+          requireValue(["left", "back"].includes(v.wall), "Balcony wall must be left or back");
+          number(v.center, -6, 6);
+          number(v.width, 3, 6);
+          number(v.depth, 1.8, 3);
+          requireValue(typeof v.door_id === "string" && length(v.door_id) > 0 && length(v.door_id) <= 64, "Invalid balcony door id");
+        }
+        continue;
+      }
+      if (k in LIMITS) {
+        number(v, ...LIMITS[k], true);
+        continue;
+      }
+      if (k === "style") {
+        requireValue(
+          ["classic", "urban"].includes(v),
+          "Unknown room style"
+        );
+        continue;
+      }
+      requireValue(
+        typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v),
+        "Expected #RRGGBB room paint"
+      );
+    }
+    const { dry_run, ...finish } = args;
+    state.room = { ...ROOM_DEFAULT, ...state.room, ...finish };
+    if (state.room.balcony === null) delete state.room.balcony;
+    if (resizing) {
+      const bounds = boundaries(state.room);
+      for (const obj of state.objects) {
+        if (ctx.assets[obj.asset_id || ""]?.placement !== "wall") continue;
+        const [w, d] = footprint(obj, ctx);
+        if (Math.abs(obj.yaw) < 1e-3) obj.z = -bounds.furniture_z + d / 2;
+        else obj.x = -bounds.furniture_x + w / 2;
+      }
+      if (check_geometry) {
+        validateLayout(state, ctx);
+        mutate(
+          state,
+          {
+            tool: "move_character",
+            arguments: { x: state.character.x, z: state.character.z }
+          },
+          { check_busy: false }
+        );
+      }
+    }
+  } else if (op === "walk_to") {
+    requireValue(!busy(state), "Finish the current action first");
+    const b = boundaries(state.room), extent = spaceBounds(state.room), point = {
+      x: number(args.x, state.room?.balcony ? extent.minX : -b.body_x, state.room?.balcony ? extent.maxX : b.body_x),
+      z: number(args.z, state.room?.balcony ? extent.minZ : -b.body_z, state.room?.balcony ? extent.maxZ : b.body_z)
+    };
+    mutate(state, { tool: "move_character", arguments: point });
+    state.interaction = {
+      id: command.id || "walk-" + (state.revision + 1),
+      target_id: null,
+      target: point,
+      action: "walk_to",
+      pose: "walk",
+      phase: "requested",
+      error: null,
+      approach_index: null
+    };
+  } else if (op === "cancel_action") {
+    const old = state.interaction || {};
+    requireValue(
+      busy(state) && old.id === args.job_id,
+      "No matching active job"
+    );
+    state.interaction = {
+      ...old,
+      id: command.id || "cancel-" + (state.revision + 1),
+      action: "leave",
+      phase: "requested",
+      from_active: ["active", "entering"].includes(old.phase),
+      error: null
+    };
+  } else if (op === "interact") {
+    const obj = state.objects.find((o) => o.id === args.target_id);
+    requireValue(obj, "Target object not found");
+    const action = args.action;
+    requireValue(
+      actionsFor(obj, ctx, state).some((a) => a.id === action && a.available),
+      "Action unavailable for this object/state"
+    );
+    if (["turn_on", "turn_off"].includes(action)) {
+      obj.properties ??= { on: true, brightness: 0.7 };
+      obj.properties.on = action === "turn_on";
+    } else if (["cover", "uncover"].includes(action)) {
+      obj.properties ??= { covered: true };
+      obj.properties.covered = action === "cover";
+    } else {
+      const old = state.interaction || {};
+      state.interaction = {
+        id: command.id || "interaction-" + (state.revision + 1),
+        target_id: obj.id,
+        action,
+        pose: action === "leave" ? old.pose : action,
+        related_id: action === "read" ? readingDesk(obj, state).id : action === "leave" ? old.related_id ?? null : null,
+        phase: "requested",
+        approach_index: action === "leave" ? old.approach_index ?? null : null,
+        from_active: action === "leave" && ["active", "entering"].includes(old.phase),
+        error: null
+      };
+    }
+  } else if (op === "update_object") {
+    const obj = state.objects.find((o) => o.id === args.id);
+    requireValue(obj, "Target object not found");
+    if ("label" in args) {
+      requireValue(
+        typeof args.label === "string" && length(args.label) >= 1 && length(args.label) <= 40,
+        "Label must be 1..40 characters"
+      );
+      obj.label = args.label;
+    }
+    if ("properties" in args) {
+      const p = args.properties, allowed = obj.id === state.room?.balcony?.door_id ? ["open"] : obj.kind === "lamp" ? ["on", "brightness"] : ctx.assets[obj.asset_id || ""]?.interactions?.sleep ? ["covered"] : [];
+      requireValue(
+        record(p) && allowed.length && !extra(p, allowed),
+        "Unsupported object properties"
+      );
+      if ("open" in p) {
+        requireValue(typeof p.open === "boolean", "open must be boolean");
+        requireValue(!check_busy || !busy(state), "Finish the current action before changing the balcony door");
+      }
+      if ("covered" in p)
+        requireValue(typeof p.covered === "boolean", "covered must be boolean");
+      if ("on" in p)
+        requireValue(typeof p.on === "boolean", "on must be boolean");
+      if ("brightness" in p) number(p.brightness, 0, 1);
+      obj.properties = {
+        ...obj.id === state.room?.balcony?.door_id ? { open: obj.properties?.open ?? true } : obj.properties ?? (obj.kind === "lamp" ? { on: true, brightness: 0.7 } : { covered: true }),
+        ...p
+      };
+    }
+    if (obj.id === state.room?.balcony?.door_id && check_geometry) validateLayout(state, ctx);
+  } else if (op === "apply_layout") {
+    requireValue(
+      Array.isArray(args.objects) && args.objects.length <= 80,
+      "Expected at most 80 furniture items"
+    );
+    let trial = { ...clone(state), objects: [] };
+    for (const item of args.objects) {
+      requireValue(record(item), "Invalid furniture item");
+      trial = mutate(
+        trial,
+        { tool: "place_furniture", arguments: item },
+        { check_geometry: false, check_busy: false }
+      );
+    }
+    validateLayout(trial, ctx);
+    state.objects = trial.objects;
+  } else if (op === "set_camera") {
+    requireValue(
+      ["home", "portrait", "front", "face", "side", "back", "top"].includes(
+        args.preset
+      ),
+      "Unknown camera preset"
+    );
+    state.camera = args.preset;
+  } else if (op === "set_light") {
+    requireValue(
+      ["day", "evening", "night"].includes(args.preset),
+      "Unknown light preset"
+    );
+    state.light = args.preset;
+  } else if (op === "set_note") {
+    requireValue(
+      typeof args.text === "string" && length(args.text) <= 240,
+      "Note must be at most 240 characters"
+    );
+    state.note = args.text;
+  } else if (["place_furniture", "update_furniture", "remove_furniture"].includes(op)) {
+    const id = args.id;
+    requireValue(
+      typeof id === "string" && length(id) >= 1 && length(id) <= 64,
+      "Invalid furniture id"
+    );
+    let obj = state.objects.find((o) => o.id === id);
+    if (op === "place_furniture") {
+      requireValue(!obj, "Furniture id already exists");
+      requireValue(state.objects.length < 80, "Room item limit reached");
+      requireValue(
+        typeof args.kind === "string" && (Object.hasOwn(ctx.catalog, args.kind) || typeof args.asset_id === "string" && ctx.assets[args.asset_id]?.kind === args.kind),
+        "Unknown furniture kind"
+      );
+      requireValue(
+        "on" in args || "x" in args && "z" in args,
+        "Floor placement requires x and z"
+      );
+      obj = { id, kind: args.kind, x: 0, z: 0, yaw: 0, color: "#c39a78" };
+      state.objects.push(obj);
+    } else requireValue(obj, "Furniture not found");
+    if (op === "remove_furniture")
+      state.objects = state.objects.filter((o) => o !== obj);
+    else {
+      if ("asset_id" in args) {
+        requireValue(
+          typeof args.asset_id === "string" && ctx.assets[args.asset_id]?.kind === obj.kind,
+          "Unknown or mismatched asset"
+        );
+        obj.asset_id = args.asset_id;
+        delete obj.color;
+      }
+      if ("color" in args && obj.asset_id && !ctx.assets[obj.asset_id].recolorable)
+        throw Error(
+          "Painted asset is not recolorable; choose another asset variant"
+        );
+      if ("on" in args) obj.on = parseSupport(args.on);
+      else if (obj.on && ["x", "z", "yaw"].some((k) => k in args))
+        throw Error("Move supported props with on local offsets");
+      for (const k of ["x", "z", "yaw"])
+        if (k in args)
+          obj[k] = number(
+            args[k],
+            k === "yaw" ? -Math.PI * 2 : state.room?.balcony ? Math.min(-6, spaceBounds(state.room)[k === "x" ? "minX" : "minZ"]) : -6,
+            k === "yaw" ? Math.PI * 2 : state.room?.balcony ? Math.max(6, spaceBounds(state.room)[k === "x" ? "maxX" : "maxZ"]) : 6
+          );
+      if ("color" in args) {
+        requireValue(
+          typeof args.color === "string" && /^#[0-9a-fA-F]{6}$/.test(args.color),
+          "Expected #RRGGBB"
+        );
+        obj.color = args.color;
+      }
+    }
+    if (op !== "remove_furniture" && ("label" in args || "properties" in args)) {
+      const changes = Object.fromEntries(
+        Object.entries(args).filter(
+          ([k]) => ["id", "label", "properties"].includes(k)
+        )
+      );
+      state.objects = mutate(state, {
+        tool: "update_object",
+        arguments: changes
+      }, { check_geometry, check_busy }).objects;
+    }
+    if (check_geometry) validateLayout(state, ctx);
+  } else if (op === "apply_preset") {
+    requireValue(
+      typeof (args.dry_run === void 0 ? true : args.dry_run) === "boolean",
+      "dry_run must be boolean"
+    );
+    requireValue(
+      typeof args.preset_id === "string" && Object.hasOwn(ctx.presets, args.preset_id),
+      "Choose a preset_id from get_presets"
+    );
+    const preset = ctx.presets[args.preset_id], rev = state.revision;
+    let trial = { ...clone(state), objects: [] };
+    trial = mutate(
+      trial,
+      {
+        tool: "update_room",
+        arguments: Object.fromEntries(
+          Object.entries({ ...preset.room, ...state.room?.balcony && !preset.room.balcony ? { balcony: null } : {} }).filter(([k]) => k !== "wallpapers")
+        )
+      },
+      { check_busy: false, check_geometry: false }
+    );
+    for (const [wall_id, wallpaper_id] of Object.entries(
+      preset.room.wallpapers || {}
+    ))
+      trial = mutate(
+        trial,
+        { tool: "set_wallpaper", arguments: { wall_id, wallpaper_id } },
+        { check_busy: false }
+      );
+    trial = mutate(
+      trial,
+      { tool: "apply_layout", arguments: { objects: preset.objects } },
+      { check_busy: false }
+    );
+    trial = mutate(
+      trial,
+      { tool: "move_character", arguments: preset.spawn },
+      { check_busy: false }
+    );
+    delete trial.interaction;
+    Object.assign(trial, {
+      revision: rev,
+      camera: "home",
+      light: "day",
+      preset_id: args.preset_id
+    });
+    trial.control_revisions = {
+      ...trial.control_revisions,
+      ...Object.fromEntries(
+        ["position", "activity", "camera", "light"].map((k) => [k, rev + 1])
+      )
+    };
+    state = trial;
+  } else if (op === "set_activity") {
+    requireValue(
+      ["idle", "walk", "sit"].includes(args.activity),
+      "Only idle, walk and sit are currently available"
+    );
+    state.character.activity = args.activity;
+  } else if (op === "move_character") {
+    const b = boundaries(state.room), extent = spaceBounds(state.room), x = number(args.x, state.room?.balcony ? extent.minX : -b.body_x, state.room?.balcony ? extent.maxX : b.body_x), z = number(args.z, state.room?.balcony ? extent.minZ : -b.body_z, state.room?.balcony ? extent.maxZ : b.body_z);
+    if (state.room?.balcony) requireValue(createSpace(state.room, state.objects).free({ x, z }), "Target is outside walkable space or blocked by wall/railing/closed door");
+    for (const obj of state.objects) {
+      if (obj.kind === "rug" || obj.on || obj.id === state.room?.balcony?.door_id) continue;
+      const [w, d] = definition(obj, ctx).size, c = Math.cos(obj.yaw), s = Math.sin(obj.yaw), dx = x - obj.x, dz = z - obj.z, u = Math.abs(dx * c - dz * s), v = Math.abs(dx * s + dz * c);
+      requireValue(
+        Math.hypot(Math.max(0, u - w / 2), Math.max(0, v - d / 2)) >= 0.57,
+        "Target is occupied"
+      );
+    }
+    Object.assign(state.character, { x, z, activity: "idle" });
+    if ("yaw" in args)
+      state.character.yaw = number(args.yaw, -Math.PI * 2, Math.PI * 2);
+  } else throw Error("Unknown or unavailable tool");
+  const control = {
+    set_camera: "camera",
+    set_light: "light",
+    set_note: "note",
+    set_activity: "activity",
+    move_character: "position"
+  }[op];
+  if (control) {
+    state.control_revisions ??= {};
+    state.control_revisions[control] = state.revision + 1;
+  }
+  state.revision++;
+  return state;
+}
+
+// house3d/server/layout.ts
+function geometryIssues(objects, ctx, room) {
+  const boundsRoom = boundaries(room), issues = [], boxes = [];
+  for (const obj of objects) {
+    const def = definition(obj, ctx), [w, d] = footprint(obj, ctx), y = heightOf(obj, objects, ctx), h = def.height, bounds = {
+      x: [obj.x - w / 2, obj.x + w / 2],
+      z: [obj.z - d / 2, obj.z + d / 2],
+      y: [y, y + h]
+    }, overflow = Object.fromEntries(
+      ["x", "z"].map((axis) => [
+        axis,
+        round(
+          Math.max(
+            0,
+            -boundsRoom[axis === "x" ? "furniture_x" : "furniture_z"] - bounds[axis][0],
+            bounds[axis][1] - boundsRoom[axis === "x" ? "furniture_x" : "furniture_z"]
+          ),
+          4
+        )
+      ])
+    );
+    if (!fitsFootprint(room, obj, w, d) || y < -1e-3 || y + h > boundsRoom.height)
+      issues.push({
+        code: "outside_room",
+        ids: [obj.id],
+        bounds,
+        overflow_m: overflow,
+        message: "\u5BB6\u5177\u8D85\u51FA\u5899\u9762\u6216\u5929\u82B1\u677F\u3002",
+        suggestion: "\u5411\u5BA4\u5185\u79FB\u52A8\uFF0C\u6216\u4ECE\u76EE\u5F55\u9009\u62E9\u66F4\u5C0F\u7684\u6B3E\u5F0F\u3002"
+      });
+    if (def.placement === "wall") {
+      const a = Math.atan2(Math.sin(obj.yaw), Math.cos(obj.yaw));
+      if (!(Math.abs(a) < 1e-3 && Math.abs(obj.z - (-boundsRoom.furniture_z + d / 2)) < 0.025 || Math.abs(a - Math.PI / 2) < 1e-3 && Math.abs(obj.x - (-boundsRoom.furniture_x + w / 2)) < 0.025))
+        issues.push({
+          code: "wall_mount",
+          ids: [obj.id],
+          message: "\u6B64\u6302\u4EF6\u9700\u671D\u5185\u8D34\u5728\u540E\u5899\u6216\u5DE6\u5899\u3002",
+          suggestion: "\u6309 get_catalog.room \u5F53\u524D\u5185\u8FB9\u754C\u8D34\u5899\uFF1B\u540E\u5899 yaw=0\uFF0C\u5DE6\u5899 yaw=\u03C0/2\u3002"
+        });
+    }
+    if (obj.kind === "rug") continue;
+    for (const [other, ow, od, oy, oh] of boxes) {
+      if (supportsPair(obj, other, objects) || y + h <= oy + 0.01 || oy + oh <= y + 0.01)
+        continue;
+      const dx = (w + ow) / 2 - Math.abs(obj.x - other.x), dz = (d + od) / 2 - Math.abs(obj.z - other.z);
+      if (dx > 0.015 && dz > 0.015)
+        issues.push({
+          code: "overlap",
+          ids: [other.id, obj.id],
+          overlap_m: { x: round(dx, 4), z: round(dz, 4) },
+          message: "\u4E24\u4EF6\u5BB6\u5177\u7684\u4FDD\u5B88\u5305\u56F4\u76D2\u91CD\u53E0\u3002",
+          suggestion: "\u62C9\u5F00\u95F4\u8DDD\u6216\u65CB\u8F6C\u540E\u91CD\u65B0 dry-run\uFF1B\u8FD9\u4E0D\u662F\u9010\u4E09\u89D2\u5F62\u78B0\u649E\u68C0\u6D4B\u3002"
+        });
+    }
+    boxes.push([obj, w, d, y, h]);
+  }
+  return issues;
+}
+function navigationReport(objects, ctx, body, room) {
+  const b = boundaries(room), solids = objects.filter((o) => o.kind !== "rug" && !o.on).map((obj) => ({
+    obj,
+    size: definition(obj, ctx).size,
+    c: Math.cos(obj.yaw),
+    s: Math.sin(obj.yaw)
+  }));
+  const space = room?.balcony ? createSpace(room, objects) : null, extent = spaceBounds(room);
+  function free(p, radius = 0.57, ignore) {
+    if (space ? !space.free(p, radius) : Math.abs(p.x) > b.furniture_x - 0.1 - radius || Math.abs(p.z) > b.furniture_z - 0.1 - radius)
+      return false;
+    return !solids.some(({ obj, size: [w, d], c, s }) => {
+      if (obj.id === ignore || obj.id === room?.balcony?.door_id) return false;
+      const dx = p.x - obj.x, dz = p.z - obj.z;
+      return Math.hypot(
+        Math.max(0, Math.abs(dx * c - dz * s) - w / 2),
+        Math.max(0, Math.abs(dx * s + dz * c) - d / 2)
+      ) < radius;
+    });
+  }
+  function line(a, z, radius = 0.57, ignore) {
+    const steps = Math.max(
+      1,
+      Math.ceil(Math.hypot(a.x - z.x, a.z - z.z) / 0.025)
+    );
+    for (let i = 0; i <= steps; i++)
+      if (!free(
+        {
+          x: a.x + (z.x - a.x) * i / steps,
+          z: a.z + (z.z - a.z) * i / steps
+        },
+        radius,
+        ignore
+      ))
+        return false;
+    return true;
+  }
+  const points = /* @__PURE__ */ new Map(), indices = /* @__PURE__ */ new Map();
+  const x0 = space ? extent.minX : -b.body_x, z0 = space ? extent.minZ : -b.body_z, x1 = space ? extent.maxX : b.body_x, z1 = space ? extent.maxZ : b.body_z;
+  for (let i = 0; i <= Math.floor((x1 - x0) * 10); i++)
+    for (let j = 0; j <= Math.floor((z1 - z0) * 10); j++) {
+      const p = { x: x0 + i * 0.1, z: z0 + j * 0.1 };
+      if (free(p)) {
+        points.set(`${i},${j}`, p);
+        indices.set(`${i},${j}`, [i, j]);
+      }
+    }
+  const reached = /* @__PURE__ */ new Set();
+  if (free(body) && points.size) {
+    for (const [key, p] of points)
+      if (Math.hypot(p.x - body.x, p.z - body.z) < 0.2 && line(body, p))
+        reached.add(key);
+    const queue = [...reached];
+    for (let n = 0; n < queue.length; n++) {
+      const key = queue[n], [i, j] = indices.get(key);
+      for (const [dx, dz] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1]
+      ]) {
+        const next = `${i + dx},${j + dz}`;
+        if (points.has(next) && !reached.has(next) && line(points.get(key), points.get(next))) {
+          reached.add(next);
+          queue.push(next);
+        }
+      }
+    }
+  }
+  const interactions = [];
+  for (const obj of objects)
+    for (const [action, config] of Object.entries(
+      ctx.assets[obj.asset_id || ""]?.interactions || {}
+    )) {
+      const root2 = worldPoint(obj, config.root);
+      const approaches = config.approaches.map(
+        (local, index) => {
+          const p = worldPoint(obj, local), standing = free(p), entry = standing && line(p, root2, 0.32, obj.id), reachable = entry && [...reached].some(
+            (k) => Math.hypot(points.get(k).x - p.x, points.get(k).z - p.z) < 0.2 && line(points.get(k), p)
+          );
+          return {
+            index,
+            position: p,
+            clear: standing,
+            entry_clear: entry,
+            reachable
+          };
+        }
+      );
+      interactions.push({
+        id: obj.id,
+        action,
+        reachable: approaches.some((a) => a.reachable),
+        approaches
+      });
+    }
+  return {
+    ...room?.balcony ? { balcony: { door: balconyDoor(room, objects), free_cells: [...points.values()].filter((p) => {
+      const g = balconyGeometry(room);
+      return p.x >= g.minX && p.x <= g.maxX && p.z >= g.minZ && p.z <= g.maxZ;
+    }).length, reachable_cells: [...reached].filter((k) => {
+      const p = points.get(k), g = balconyGeometry(room);
+      return p.x >= g.minX && p.x <= g.maxX && p.z >= g.minZ && p.z <= g.maxZ;
+    }).length } } : {},
+    body_clear: free(body),
+    free_cells: points.size,
+    reachable_cells: reached.size,
+    interactions,
+    grid_step_m: 0.1,
+    radius_m: 0.57,
+    basis: "Approximate 2D catalog rectangles, same radii as viewer; not mesh/cloth collision or a guarantee of pose quality."
+  };
+}
+function planLayout(state, args, ctx, mutate, snapshot = null, now = 0) {
+  requireValue(
+    record(args) && !extra(args, ["operations", "dry_run"]),
+    "Unknown layout argument"
+  );
+  requireValue(
+    typeof (args.dry_run === void 0 ? true : args.dry_run) === "boolean",
+    "dry_run must be boolean"
+  );
+  requireValue(
+    Array.isArray(args.operations) && args.operations.length >= 1 && args.operations.length <= 80,
+    "Expected 1..80 layout operations"
+  );
+  let trial = clone(state);
+  const errors = [], warnings = [];
+  for (const [index, operation] of args.operations.entries())
+    try {
+      requireValue(
+        record(operation) && ["add", "update", "remove"].includes(operation.op),
+        "op must be add, update or remove"
+      );
+      const { op, ...item } = operation;
+      if (op === "add") {
+        requireValue(
+          typeof item.asset_id === "string" && !!ctx.assets[item.asset_id],
+          "Choose asset_id from get_catalog.assets"
+        );
+        requireValue(
+          !("kind" in item),
+          "kind is derived from the selected asset"
+        );
+        item.kind = ctx.assets[item.asset_id].kind;
+      }
+      trial = mutate(
+        trial,
+        {
+          tool: {
+            add: "place_furniture",
+            update: "update_furniture",
+            remove: "remove_furniture"
+          }[op],
+          arguments: item
+        },
+        { check_geometry: false, check_busy: false }
+      );
+    } catch (e) {
+      errors.push({
+        code: "invalid_operation",
+        operation_index: index,
+        message: e.message,
+        suggestion: "\u6309\u5DE5\u5177\u5B9A\u4E49\u548C\u76EE\u5F55\u4FEE\u6B63\u8FD9\u6761\u64CD\u4F5C\uFF0C\u518D\u91CD\u8BD5\u6574\u6279\u3002"
+      });
+    }
+  try {
+    validateBalcony(trial, ctx);
+  } catch (e) {
+    errors.push({ code: "balcony_invalid", message: e.message });
+  }
+  errors.push(
+    ...resolveSupports(trial.objects, ctx),
+    ...geometryIssues(trial.objects, ctx, trial.room)
+  );
+  if (busy(state))
+    errors.push({
+      code: "interaction_busy",
+      ids: [state.interaction?.target_id ?? null],
+      message: "\u6B63\u5728\u4E0E\u7269\u54C1\u4E92\u52A8\uFF1B\u53EF\u4EE5\u9884\u6F14\uFF0C\u4F46\u73B0\u5728\u4E0D\u80FD\u632A\u52A8\u5BB6\u5177\u3002",
+      suggestion: "\u7ED3\u675F\u5F53\u524D\u4E92\u52A8\u540E\u91CD\u65B0\u9884\u6F14\u5E76\u5E94\u7528\u3002"
+    });
+  const fresh = !!(snapshot?.visible && now - snapshot.received_at >= 0 && now - snapshot.received_at < 6), body = fresh ? snapshot.body : state.character;
+  if (!fresh)
+    warnings.push({
+      code: "body_not_fresh",
+      message: "\u6CA1\u6709\u65B0\u9C9C\u7684\u89D2\u8272\u4F4D\u7F6E\uFF0C\u6682\u6309\u6700\u540E\u4FDD\u5B58\u7684\u4F4D\u7F6E\u68C0\u67E5\u3002",
+      suggestion: "\u6253\u5F00\u5C0F\u5BB6\u9875\u9762\uFF0C\u7B49\u5F85\u8EAB\u4F53\u53CD\u9988\u540E\u91CD\u65B0 dry-run\u3002"
+    });
+  else if (body.moving)
+    errors.push({
+      code: "body_moving",
+      message: "\u89D2\u8272\u6B63\u5728\u8D70\u52A8\uFF1B\u9884\u6F14\u53EF\u7EE7\u7EED\uFF0C\u6B63\u5F0F\u5E94\u7528\u9700\u5148\u505C\u7A33\u3002",
+      suggestion: "\u5148\u4F11\u606F\u4E00\u4E0B\uFF0C\u518D\u91CD\u65B0 dry-run\u3002"
+    });
+  const navigation = navigationReport(trial.objects, ctx, body, trial.room);
+  if (!navigation.body_clear)
+    errors.push({
+      code: "body_blocked",
+      message: "\u65B0\u5E03\u7F6E\u5360\u636E\u89D2\u8272\u811A\u4E0B\u4F4D\u7F6E\u6216\u6240\u9700\u7AD9\u7ACB\u7A7A\u95F4\u3002",
+      suggestion: "\u5148\u8BA9\u5979\u8D70\u5230\u7A7A\u5730\uFF0C\u6216\u8C03\u6574\u5BB6\u5177\u4F4D\u7F6E\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u77AC\u79FB\u89D2\u8272\u3002"
+    });
+  for (const interaction of navigation.interactions)
+    if (!interaction.reachable)
+      warnings.push({
+        code: "interaction_unreachable",
+        ids: [interaction.id],
+        action: interaction.action,
+        message: "\u5F53\u524D\u8D77\u70B9\u672A\u627E\u5230\u53EF\u8D70\u5230\u4E14\u53EF\u8FDB\u5165\u7684\u4E92\u52A8\u63A5\u8FD1\u70B9\u3002",
+        suggestion: "\u7ED9\u5EA7\u4F4D\u6216\u5E8A\u8FB9\u7559\u51FA\u901A\u9053\uFF0C\u8C03\u6574\u671D\u5411\uFF1B\u5728\u5B9E\u9645\u9875\u9762\u518D\u6B21\u68C0\u67E5\u3002"
+      });
+  if (navigation.balcony && navigation.balcony.door?.open && !navigation.balcony.reachable_cells) warnings.push({ code: "balcony_unreachable", message: "\u5F53\u524D\u5E03\u7F6E\u672A\u627E\u5230\u901A\u5F80\u9633\u53F0\u7684\u901A\u8DEF\u3002", suggestion: "\u79FB\u5F00\u95E8\u53E3\u548C\u9633\u53F0\u901A\u9053\u4E0A\u7684\u7269\u54C1\u540E\u91CD\u65B0\u9884\u6F14\u3002" });
+  const old = new Map(state.objects.map((o) => [o.id, o])), next = new Map(trial.objects.map((o) => [o.id, o])), changes = {
+    added: [...next.keys()].filter((k) => !old.has(k)),
+    removed: [...old.keys()].filter((k) => !next.has(k)),
+    updated: [...next.keys()].filter(
+      (k) => old.has(k) && !same(next.get(k), old.get(k))
+    )
+  };
+  trial.revision = state.revision + 1;
+  return {
+    state: trial,
+    report: {
+      dry_run: args.dry_run ?? true,
+      base_revision: state.revision,
+      can_apply: !errors.length,
+      changes,
+      errors,
+      warnings,
+      objects: trial.objects,
+      navigation,
+      body_source: fresh ? "fresh_viewer" : "persisted_state",
+      collision_basis: "Conservative rotated AABB with height ranges; rugs excluded."
+    }
+  };
+}
+
+// house3d/server/store.ts
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+
+// house3d/server/observation.ts
+function occludes(a, b, obj, def, baseY = def.elevation || 0) {
+  if (obj.kind === "rug") return false;
+  const c = Math.cos(obj.yaw), s = Math.sin(obj.yaw), [w, d] = def.size;
+  let lo = 0, hi = 1;
+  const points = [a, b].map((p) => {
+    const dx = p.x - obj.x, dz = p.z - obj.z;
+    return [dx * c - dz * s, dx * s + dz * c];
+  });
+  for (const [i, extent] of [
+    [0, w / 2],
+    [1, d / 2]
+  ]) {
+    const origin = points[0][i], delta = points[1][i] - origin;
+    if (Math.abs(delta) < 1e-9) {
+      if (Math.abs(origin) > extent) return false;
+    } else {
+      const t = [(-extent - origin) / delta, (extent - origin) / delta].sort(
+        (a2, b2) => a2 - b2
+      );
+      lo = Math.max(lo, t[0]);
+      hi = Math.min(hi, t[1]);
+      if (lo > hi) return false;
+    }
+  }
+  if (hi <= 0 || lo >= 0.99) return false;
+  const height = a.y + (b.y - a.y) * Math.max(0, lo);
+  return baseY <= height && height <= def.height + baseY;
+}
+function observe(state, ctx, snapshot, now, events) {
+  const age = snapshot ? Math.max(0, now - snapshot.received_at) : null, fresh = age !== null && age < 6 && !!snapshot?.visible, body = snapshot?.body ?? null;
+  const result = {
+    revision: state.revision,
+    source: "character perspective, not spectator camera",
+    fresh,
+    age_seconds: age === null ? null : round(age, 2),
+    execution: {
+      paused: snapshot ? snapshot.paused ?? false : null,
+      requires_visible_viewer: true
+    },
+    job: state.interaction ?? null,
+    events,
+    cursor: events.length ? events.at(-1).seq : null,
+    room: { ...ROOM_DEFAULT, ...state.room },
+    ...state.room?.balcony ? { area: body ? regionAt(state.room, body) : null } : {},
+    limitations: [
+      "Visibility uses approximate furniture bounds, not a pixel-perfect image or physical sensation sensor.",
+      "No hunger, tiredness or emotions are inferred."
+    ]
+  };
+  if (!fresh)
+    return {
+      ...result,
+      summary: "\u8FD8\u6CA1\u6709\u65B0\u9C9C\u7684\u8EAB\u4F53\u89C6\u89D2\u53CD\u9988\uFF1B\u9875\u9762\u672A\u6253\u5F00\u6216\u6682\u65F6\u65AD\u5F00\u3002\u52A8\u4F5C\u662F\u5426\u5B8C\u6210\u8BF7\u770B job\uFF0C\u4E0D\u80FD\u628A\u5DF2\u53D7\u7406\u5F53\u5B8C\u6210\u3002",
+      body,
+      sight: { status: "unavailable", objects: [] },
+      touch: []
+    };
+  const job = state.interaction || {}, pose = body.pose, support = state.objects.find((o) => o.id === job.target_id), active = job.phase === "active" && snapshot.job_id === job.id, eyesClosed = pose === "sleep", eye = {
+    ...body,
+    y: body.y + (eyesClosed ? 0.22 : ["sit", "read"].includes(pose) ? 0.78 : 0.9)
+  }, visible = [];
+  for (const obj of objectList(state, ctx).objects) {
+    const def = definition(obj, ctx) || {}, dx = obj.x - body.x, dz = obj.z - body.z, distance = Math.hypot(dx, dz), angle = Math.atan2(
+      Math.sin(Math.atan2(dx, dz) - body.yaw),
+      Math.cos(Math.atan2(dx, dz) - body.yaw)
+    );
+    const direction = Math.abs(angle) < Math.PI / 6 ? "\u524D\u9762" : Math.abs(angle) > Math.PI * 5 / 6 ? "\u540E\u9762" : angle < 0 ? "\u5DE6\u8FB9" : "\u53F3\u8FB9";
+    const item = {
+      id: obj.id,
+      label: obj.label,
+      category: obj.category,
+      ...state.room?.balcony ? { area: obj.area } : {},
+      distance_m: round(distance, 2),
+      direction,
+      actions: obj.actions,
+      support: obj.support
+    };
+    const point = {
+      x: obj.x,
+      z: obj.z,
+      y: Math.min(
+        1.25,
+        (def.height ?? 0.5) * 0.7 + heightOf(obj, state.objects, ctx)
+      )
+    };
+    if (!eyesClosed && distance < 5.5 && !(state.room?.balcony && wallBlocksSight(state.room, state.objects, eye, point)) && Math.abs(angle) < 70 * Math.PI / 180 && !state.objects.some(
+      (o) => o.id !== obj.id && o.id !== state.room?.balcony?.door_id && occludes(
+        eye,
+        point,
+        o,
+        definition(o, ctx),
+        heightOf(o, state.objects, ctx)
+      )
+    ))
+      visible.push(item);
+  }
+  const touch = active && support ? [
+    {
+      object_id: support.id,
+      kind: pose === "sleep" ? "lying_support" : "seated_support",
+      description: pose === "sleep" ? "\u8EAB\u4F53\u8EBA\u5728\u5E8A\u9762\u4E0A" : "\u5750\u5728\u5EA7\u9762\u4E0A",
+      basis: "confirmed active contact pose"
+    }
+  ] : [];
+  const balcony = balconyGeometry(state.room);
+  const walls = (balcony && regionAt(state.room, body) === "balcony" ? [{ id: "balcony-railing", label: "\u9633\u53F0\u62A4\u680F", axis: balcony.wall === "left" ? "x" : "z", position: balcony.wall === "left" ? balcony.minX : balcony.minZ }] : wallsFor(state.room)).map((w) => ({
+    id: w.id,
+    label: w.label,
+    wallpaper_id: state.room?.wallpapers?.[w.id] ?? "plain",
+    distance_m: round(Math.abs(body[w.axis] - w.position), 2)
+  })).sort((a, b) => a.distance_m - b.distance_m);
+  let status = eyesClosed ? "\u95ED\u7740\u773C\u775B\uFF0C\u8EBA\u5728\u5E8A\u4E0A\u3002" : pose === "read" ? "\u5750\u597D\uFF0C\u6B63\u5728\u770B\u4E66\u3002" : pose === "sit" ? "\u5750\u5728\u5EA7\u4F4D\u4E0A\u3002" : body.moving ? "\u6B63\u5728\u8D70\u52A8\u3002" : pose === "transition" ? "\u6B63\u5728\u8C03\u6574\u59FF\u52BF\u3002" : state.room?.balcony && regionAt(state.room, body) === "balcony" ? "\u7AD9\u5728\u9633\u53F0\u4E0A\u3002" : "\u7AD9\u5728\u623F\u95F4\u91CC\u3002";
+  if (snapshot.paused) status = "\u52A8\u4F5C\u5DF2\u6682\u505C\u3002" + status;
+  if (visible.length)
+    status += "\u773C\u524D\u6709" + visible.slice(0, 4).map((o) => o.label).join("\u3001") + "\u3002";
+  return {
+    ...result,
+    summary: status,
+    body,
+    sight: {
+      status: eyesClosed ? "eyes_closed" : "open",
+      fov_degrees: 140,
+      objects: visible
+    },
+    nearby: visible.filter((o) => o.distance_m < 1.2).sort((a, b) => a.distance_m - b.distance_m),
+    touch,
+    hands: {
+      holding: pose === "read" && active ? "storybook" : null,
+      basis: pose === "read" && active ? "active reading prop" : "no held prop"
+    },
+    walls,
+    light: state.light
+  };
+}
+
+// house3d/server/store.ts
+var Store = class {
+  db;
+  constructor(path, initial) {
+    if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+    this.db = new DatabaseSync(path);
+    this.db.exec(
+      `PRAGMA busy_timeout=10000; CREATE TABLE IF NOT EXISTS home_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,at REAL,kind TEXT,body TEXT); CREATE TABLE IF NOT EXISTS home_viewer(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS state(id INTEGER PRIMARY KEY,body TEXT); CREATE TABLE IF NOT EXISTS commands(id TEXT PRIMARY KEY,request TEXT,body TEXT); CREATE TABLE IF NOT EXISTS shots(id TEXT PRIMARY KEY,status TEXT,png BLOB,created REAL);`
+    );
+    if (!this.db.prepare("PRAGMA table_info(shots)").all().some(
+      (r) => r.name === "view"
+    ))
+      this.db.exec(
+        "ALTER TABLE shots ADD COLUMN view TEXT NOT NULL DEFAULT 'spectator'"
+      );
+    this.db.prepare("INSERT OR IGNORE INTO state VALUES(1,?)").run(JSON.stringify(initial));
+  }
+  state() {
+    return JSON.parse(
+      this.db.prepare("SELECT body FROM state WHERE id=1").get().body
+    );
+  }
+  save(state) {
+    this.db.prepare("UPDATE state SET body=? WHERE id=1").run(JSON.stringify(state));
+  }
+  snapshot() {
+    const r = this.db.prepare("SELECT body FROM home_viewer WHERE id=1").get();
+    return r ? JSON.parse(r.body) : null;
+  }
+  transaction(fn) {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const value = fn();
+      this.db.exec("COMMIT");
+      return value;
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
+  }
+  event(now, kind, body) {
+    this.db.prepare("INSERT INTO home_events(at,kind,body) VALUES(?,?,?)").run(now, kind, JSON.stringify(body));
+    this.db.exec(
+      "DELETE FROM home_events WHERE seq < (SELECT COALESCE(MAX(seq),0)-1000 FROM home_events)"
+    );
+  }
+  viewerAllowed(session, now) {
+    const s = this.snapshot();
+    return !s || s.session_id === session && s.visible && now - s.received_at < 6;
+  }
+  heartbeat(body, state, now) {
+    requireValue(
+      record(body) && !extra(body, ["session_id", "visible", "body", "job_id", "paused"]),
+      "Invalid viewer feedback"
+    );
+    requireValue(
+      typeof body.session_id === "string" && length(body.session_id) >= 1 && length(body.session_id) <= 100,
+      "Invalid viewer session"
+    );
+    if ("paused" in body)
+      requireValue(typeof body.paused === "boolean", "paused must be boolean");
+    requireValue(typeof body.visible === "boolean", "visible must be boolean");
+    const a = body.body;
+    requireValue(
+      record(a) && !extra(a, ["x", "y", "z", "yaw", "pose", "moving"]) && Object.keys(a).length === 6,
+      "Invalid body feedback"
+    );
+    const size = dimensions(state.room), extent = spaceBounds(state.room), limits = {
+      x: state.room?.balcony ? Math.max(Math.abs(extent.minX), Math.abs(extent.maxX)) + 0.2 : size.width / 2 + 0.2,
+      z: state.room?.balcony ? Math.max(Math.abs(extent.minZ), Math.abs(extent.maxZ)) + 0.2 : size.depth / 2 + 0.2,
+      y: size.height + 0.2,
+      yaw: 10
+    };
+    for (const k of ["x", "y", "z", "yaw"])
+      requireValue(
+        typeof a[k] === "number" && Number.isFinite(a[k]) && Math.abs(a[k]) <= limits[k],
+        "Invalid body coordinate"
+      );
+    if (state.room?.balcony) requireValue(regionAt(state.room, a) !== null, "Body is outside interior/balcony");
+    requireValue(
+      ["stand", "sit", "sleep", "read", "transition"].includes(a.pose) && typeof a.moving === "boolean",
+      "Invalid body pose"
+    );
+    const previous = this.snapshot();
+    if (previous && previous.session_id !== body.session_id && previous.visible && now - previous.received_at < 6)
+      return {
+        controller: false,
+        owner_age_seconds: now - previous.received_at
+      };
+    requireValue(
+      body.job_id == null || body.job_id === state.interaction?.id,
+      "Stale job feedback"
+    );
+    this.db.prepare("INSERT OR REPLACE INTO home_viewer VALUES(1,?)").run(JSON.stringify({ ...body, received_at: now }));
+    return { controller: true, received_at: now };
+  }
+  feedback(ctx, now, since) {
+    const rows = this.db.prepare("SELECT * FROM home_events WHERE seq>? ORDER BY seq LIMIT 100").all(since), events = rows.map((r) => ({
+      seq: r.seq,
+      at: r.at,
+      kind: r.kind,
+      ...JSON.parse(r.body)
+    }));
+    for (const e of events) {
+      if (e.kind === "action_progress") {
+        const labels = {
+          approaching: "\u6B63\u5728\u8D70\u8FC7\u53BB\u3002",
+          entering: "\u6B63\u5728\u6162\u6162\u5750\u7A33\u3001\u8C03\u6574\u59FF\u52BF\u3002",
+          active: e.action === "sleep" ? "\u5DF2\u7ECF\u8EBA\u597D\u3002" : e.action === "read" ? "\u5750\u597D\uFF0C\u5F00\u59CB\u770B\u4E66\u3002" : "\u5DF2\u7ECF\u5750\u7A33\u3002",
+          leaving: e.pose === "read" ? "\u6B63\u5728\u653E\u4E0B\u4E66\u3001\u8D77\u8EAB\u3002" : "\u6B63\u5728\u8D77\u8EAB\u3002",
+          completed: e.action === "walk_to" ? "\u5DF2\u7ECF\u5230\u8FBE\u3002" : "\u5DF2\u7ECF\u7AD9\u7A33\u3002",
+          failed: "\u8D70\u4E0D\u8FC7\u53BB\u6216\u52A8\u4F5C\u672A\u80FD\u5B8C\u6210\uFF1B\u8BF7\u67E5\u770B\u539F\u56E0\u3002"
+        };
+        e.message = labels[e.phase] || "\u52A8\u4F5C\u72B6\u6001\u5DF2\u66F4\u65B0\u3002";
+      } else if (e.kind === "command_accepted")
+        e.message = e.status === "requested" ? "\u6536\u5230\u8BF7\u6C42\uFF0C\u7B49\u5F85\u8EAB\u4F53\u6267\u884C\u3002" : "\u5BB6\u91CC\u7684\u8BBE\u7F6E\u5DF2\u66F4\u65B0\u3002";
+      else e.message = "\u8FD9\u6B21\u64CD\u4F5C\u6CA1\u80FD\u6267\u884C\uFF1B\u8BF7\u67E5\u770B\u539F\u56E0\u3002";
+    }
+    const first = this.db.prepare("SELECT MIN(seq) AS seq FROM home_events").get().seq;
+    return {
+      ...observe(this.state(), ctx, this.snapshot(), now, events),
+      cursor: events.length ? events.at(-1).seq : since,
+      more: rows.length === 100,
+      history_truncated: !!(first && since < first - 1)
+    };
+  }
+  close() {
+    this.db.close();
+  }
+};
+
+// house3d/server/app.ts
+var json = (body, status = 200) => ({ body, status });
+function loadContext(root2) {
+  const read = (name) => JSON.parse(readFileSync(resolve(root2, name), "utf8"));
+  const data = read("server-data.json");
+  return {
+    ...data,
+    assets: read("furniture-assets.json"),
+    wallpapers: read("wallpapers.json"),
+    presets: read("room-presets.json")
+  };
+}
+var HouseApp = class {
+  constructor(ctx, dbPath, root2, webRoot, now = () => Date.now() / 1e3, uuid = () => randomUUID().replaceAll("-", "")) {
+    this.ctx = ctx;
+    this.root = root2;
+    this.webRoot = webRoot;
+    this.now = now;
+    this.uuid = uuid;
+    this.store = new Store(dbPath, ctx.defaultState);
+  }
+  store;
+  handle(input) {
+    const { method, headers } = input, host = headers.host || "localhost";
+    if (!["127.0.0.1", "localhost"].includes(host.split(":")[0]))
+      return json({ error: "Local host only" }, 403);
+    if (method === "POST" && headers.origin && headers.origin !== `http://${host}`)
+      return json({ error: "Cross-origin writes are not allowed" }, 403);
+    const url = new URL(input.url, "http://localhost"), path = url.pathname, ctx = this.ctx, store = this.store, now = this.now(), get = method === "GET" || method === "HEAD", body = input.body;
+    if (get && path === "/api/state") return json(store.state());
+    if (get && path === "/api/catalog") {
+      const current = store.state();
+      const size = dimensions(current.room), limits = boundaries(size);
+      return json({
+        furniture: ctx.catalog,
+        assets: ctx.assets,
+        categories: Object.fromEntries(
+          Object.entries(CATEGORY_LABELS).map(([key, label]) => [
+            key,
+            {
+              label,
+              asset_ids: Object.entries(ctx.assets).filter(
+                ([, a]) => (CATEGORIES[a.kind || ""] || "decoration") === key
+              ).map(([id]) => id)
+            }
+          ])
+        ),
+        wallpapers: ctx.wallpapers,
+        room: {
+          ...current.room?.balcony ? { balcony: { ...current.room.balcony, bounds: { min_x: balconyGeometry(current.room).minX, max_x: balconyGeometry(current.room).maxX, min_z: balconyGeometry(current.room).minZ, max_z: balconyGeometry(current.room).maxZ }, door: balconyDoor(current.room, current.objects), coordinate_basis: "Shared world X/Z in metres; door opening connects interior and balcony" } } : {},
+          styles: ["classic", "urban"],
+          size: [size.width, size.depth],
+          height: size.height,
+          dimension_limits: LIMITS,
+          furniture_bounds: [limits.furniture_x, limits.furniture_z],
+          character_radius: 0.57,
+          character_bounds: [limits.body_x, limits.body_z],
+          walls: wallsFor(size)
+        },
+        activities: ["idle", "walk", "sit"],
+        outfits: ["reference"],
+        hairstyles: ["reference"],
+        viewer: {
+          path: "/wander.html",
+          activities: ["idle", "walk"],
+          sit: true,
+          object_actions: ["sit", "sleep", "read", "leave"],
+          interaction_requires_target: true,
+          adapter: "Local HTTP only; no DSH connection"
+        },
+        limitations: [
+          "No independent wardrobe yet",
+          "move_character relocates rather than animating a route",
+          "Screenshot requires an open visible house page"
+        ]
+      });
+    }
+    if (get && path === "/api/presets")
+      return json({
+        presets: Object.fromEntries(
+          Object.entries(ctx.presets).map(([k, v]) => [
+            k,
+            {
+              label: v.label,
+              room: v.room,
+              objects: v.objects.length,
+              spawn: v.spawn
+            }
+          ])
+        ),
+        applying: "Explicit template reset: dry-run first; places the character at the declared spawn, preserves appearance"
+      });
+    if (get && path === "/api/objects")
+      return json(
+        objectList(
+          store.state(),
+          ctx,
+          url.searchParams.get("category"),
+          url.searchParams.get("capability")
+        )
+      );
+    if (get && path === "/api/observe") {
+      const raw = url.searchParams.get("since") ?? "0";
+      if (!/^\s*\+?\d+\s*$/.test(raw) || !Number.isSafeInteger(Number(raw)))
+        return json({ error: "Invalid event cursor" }, 400);
+      return json(store.feedback(ctx, now, Number(raw)));
+    }
+    if (method === "POST" && path === "/api/viewer")
+      return store.transaction(() => {
+        try {
+          return json(store.heartbeat(body, store.state(), now));
+        } catch (e) {
+          return json({ error: e.message }, 400);
+        }
+      });
+    const progress = /^\/api\/interactions\/([^/]+)\/progress$/.exec(path);
+    if (method === "POST" && progress)
+      return this.progress(decodeURIComponent(progress[1]), body, now);
+    if (get && path === "/api/tool-schemas")
+      return json(
+        Object.entries(ctx.definitions).map(
+          ([name, [description, properties, required]]) => ({
+            type: "function",
+            function: {
+              name,
+              description,
+              parameters: {
+                type: "object",
+                properties,
+                required,
+                additionalProperties: false
+              }
+            }
+          })
+        )
+      );
+    if (get && path === "/api/tools")
+      return json({
+        tools: {
+          observe_home: { method: "GET", path: "/api/observe" },
+          walk_to: ["x", "z"],
+          cancel_action: ["job_id"],
+          update_room: [
+            "wall_color",
+            "trim_color",
+            "style",
+            "width",
+            "depth",
+            "height",
+            "dry_run",
+            "balcony"
+          ],
+          get_presets: { method: "GET", path: "/api/presets" },
+          apply_preset: ["preset_id", "dry_run"],
+          set_wallpaper: ["wall_id", "wallpaper_id"],
+          list_objects: { method: "GET", path: "/api/objects" },
+          interact: ["target_id", "action"],
+          update_object: ["id", "label", "properties"],
+          get_state: { method: "GET", path: "/api/state" },
+          get_catalog: { method: "GET", path: "/api/catalog" },
+          update_layout: ["operations", "dry_run"],
+          place_furniture: [
+            "id",
+            "kind",
+            "asset_id",
+            "x",
+            "z",
+            "yaw",
+            "color",
+            "on"
+          ],
+          update_furniture: ["id", "asset_id", "x", "z", "yaw", "color", "on"],
+          apply_layout: ["objects"],
+          remove_furniture: ["id"],
+          move_character: ["x", "z", "yaw"],
+          set_activity: ["activity"],
+          set_camera: ["preset"],
+          set_light: ["preset"],
+          set_note: ["text"],
+          screenshot: { method: "POST", path: "/api/screenshots" }
+        },
+        command_endpoint: "/api/commands",
+        command_shape: {
+          id: "unique idempotency key",
+          expected_revision: 0,
+          tool: "set_light",
+          arguments: { preset: "day" }
+        }
+      });
+    if (method === "POST" && path === "/api/commands")
+      return this.command(body, now);
+    if (method === "POST" && path === "/api/screenshots") {
+      const args = body ?? {};
+      if (!record(args) || extra(args, ["view"]) || !["spectator", "character"].includes(args.view ?? "spectator"))
+        return json({ error: "Unknown screenshot view" }, 400);
+      const id = this.uuid();
+      store.db.prepare(
+        "INSERT INTO shots(id,status,png,created,view) VALUES(?,?,NULL,?,?)"
+      ).run(id, "pending", now, args.view ?? "spectator");
+      return json(
+        { id, status: "pending", url: `/api/screenshots/${id}` },
+        202
+      );
+    }
+    if (get && path === "/api/screenshots/pending") {
+      if (url.searchParams.get("viewer") !== "life-v2")
+        return json({ id: null, viewer_required: "life-v2" });
+      store.db.prepare(
+        "UPDATE shots SET status='expired' WHERE status='pending' AND created<?"
+      ).run(now - 30);
+      const r = store.db.prepare(
+        "SELECT id,view FROM shots WHERE status='pending' ORDER BY created LIMIT 1"
+      ).get();
+      return json({ id: r?.id ?? null, view: r?.view ?? null });
+    }
+    const shot = /^\/api\/screenshots\/([^/]+)$/.exec(path);
+    if (shot) {
+      if (method === "POST") {
+        if (headers["x-house-viewer"] !== "life-v2")
+          return json({ error: "Reload the current Canvas viewer" }, 409);
+        const bytes = input.bytes || Buffer.alloc(0);
+        if (headers["content-type"]?.split(";")[0] !== "image/png" || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
+          return json({ error: "Expected PNG" }, 400);
+        const n = store.db.prepare(
+          "UPDATE shots SET png=?,status='ready' WHERE id=? AND status='pending'"
+        ).run(bytes, shot[1]);
+        return n.changes ? json({ ok: true }) : json({ error: "Request unavailable" }, 409);
+      }
+      if (get) {
+        const r = store.db.prepare("SELECT * FROM shots WHERE id=?").get(shot[1]);
+        if (!r) return json({ error: "Not found" }, 404);
+        if (r.status !== "ready")
+          return json({ status: r.status }, r.status === "pending" ? 202 : 410);
+        return { status: 200, bytes: Buffer.from(r.png), type: "image/png" };
+      }
+    }
+    if (path.startsWith("/api/")) return json({ error: "Not found" }, 404);
+    if (get) {
+      let name;
+      try {
+        name = decodeURIComponent(
+          path.startsWith("/models/") ? path.slice(8) : path === "/" ? "wander.html" : path.slice(1)
+        );
+      } catch {
+        return json({ error: "Invalid path" }, 400);
+      }
+      const base = path.startsWith("/models/") ? resolve(this.root, "assets") : resolve(this.webRoot), file = resolve(base, name);
+      if (file !== base && !file.startsWith(base + sep) || name.includes("\0"))
+        return json({ error: "Not found" }, 404);
+      if (!existsSync(file) || !statSync(file).isFile() || !realpathSync(file).startsWith(realpathSync(base) + sep))
+        return json({ error: "Not found" }, 404);
+      return {
+        status: 200,
+        bytes: readFileSync(file),
+        type: {
+          ".html": "text/html; charset=utf-8",
+          ".js": "text/javascript; charset=utf-8",
+          ".css": "text/css; charset=utf-8",
+          ".json": "application/json",
+          ".glb": "model/gltf-binary",
+          ".png": "image/png",
+          ".svg": "image/svg+xml",
+          ".webp": "image/webp",
+          ".jpg": "image/jpeg"
+        }[extname(file)] || "application/octet-stream"
+      };
+    }
+    return json({ error: "Method not allowed" }, 405);
+  }
+  command(value, now) {
+    if (!record(value) || typeof value.id !== "string" || [...value.id].length < 1 || [...value.id].length > 100)
+      return json({ error: "Unique command id is required" }, 400);
+    const body = value, store = this.store, ctx = this.ctx;
+    return store.transaction(() => {
+      const cached = store.db.prepare("SELECT * FROM commands WHERE id=?").get(body.id);
+      if (cached) {
+        if (!same(JSON.parse(cached.request), body))
+          return json(
+            { error: "Command id reused with different payload" },
+            409
+          );
+        return json(JSON.parse(cached.body));
+      }
+      const old = store.state();
+      if (body.expected_revision !== old.revision)
+        return json(
+          { error: "Revision conflict", revision: old.revision },
+          409
+        );
+      let next, report;
+      try {
+        if (body.tool === "update_layout") {
+          const planned = planLayout(
+            old,
+            body.arguments === void 0 ? {} : body.arguments,
+            ctx,
+            (s, c, o) => transition(s, c, ctx, o),
+            store.snapshot(),
+            now
+          );
+          next = planned.state;
+          report = planned.report;
+          if (report.dry_run)
+            return json({ ok: true, applied: false, layout: report });
+          if (!report.can_apply)
+            return json(
+              {
+                ok: false,
+                applied: false,
+                error: "Layout blocked; inspect layout.errors",
+                layout: report
+              },
+              422
+            );
+        } else {
+          next = transition(old, body, ctx);
+          if ((old.room?.balcony || next.room?.balcony) && ["place_furniture", "update_furniture", "remove_furniture", "apply_layout", "update_object"].includes(body.tool)) {
+            const snap = store.snapshot();
+            if (snap?.visible && now - snap.received_at < 6) {
+              requireValue(!snap.body.moving, "Stop walking before changing balcony layout/door");
+              transition(next, { tool: "move_character", arguments: { x: snap.body.x, z: snap.body.z } }, ctx, { check_busy: false });
+            }
+          }
+          if (["apply_preset", "update_room"].includes(body.tool)) {
+            if (body.tool === "update_room" && Object.keys(body.arguments || {}).some((k) => k in LIMITS || k === "balcony")) {
+              const snapshot = store.snapshot();
+              if (snapshot?.visible && now - snapshot.received_at < 6) {
+                requireValue(
+                  !snapshot.body.moving,
+                  "Stop walking before resizing the room"
+                );
+                transition(
+                  next,
+                  {
+                    tool: "move_character",
+                    arguments: { x: snapshot.body.x, z: snapshot.body.z }
+                  },
+                  ctx,
+                  { check_busy: false }
+                );
+              }
+            }
+            if (body.arguments?.dry_run ?? body.tool === "apply_preset")
+              return json({ ok: true, applied: false, preview: next });
+          }
+        }
+      } catch (e) {
+        const args = body.arguments, defaultPreview = ["update_layout", "apply_preset"].includes(
+          body.tool
+        ), preview = ["update_layout", "apply_preset", "update_room"].includes(
+          body.tool
+        ) && (record(args) ? (args.dry_run === void 0 ? defaultPreview : args.dry_run) !== false : defaultPreview);
+        if (!preview)
+          store.event(now, "action_rejected", {
+            command_id: body.id,
+            action: body.tool ?? null,
+            error: e.message
+          });
+        return json({ error: e.message }, 400);
+      }
+      store.event(now, "command_accepted", {
+        command_id: body.id,
+        action: body.tool,
+        arguments: body.arguments ?? {},
+        status: next.interaction?.id === body.id ? "requested" : "applied"
+      });
+      const result = { ok: true, state: next };
+      if (["apply_preset", "update_room"].includes(body.tool))
+        result.applied = true;
+      if (report) Object.assign(result, { applied: true, layout: report });
+      store.save(next);
+      store.db.prepare("INSERT INTO commands VALUES(?,?,?)").run(body.id, stable(body), JSON.stringify(result));
+      return json(result);
+    });
+  }
+  progress(id, value, now) {
+    if (!record(value) || extra(value, [
+      "phase",
+      "approach_index",
+      "error",
+      "viewer_session",
+      "position"
+    ]))
+      return json({ error: "Invalid progress" }, 400);
+    const body = value, store = this.store;
+    return store.transaction(() => {
+      const state = store.state(), job = state.interaction || {};
+      if (job.id !== id || !BUSY_PHASES.has(job.phase))
+        return json({ error: "Stale interaction" }, 409);
+      if (!store.viewerAllowed(body.viewer_session, now))
+        return json({ error: "Another viewer owns this action" }, 409);
+      const phase = body.phase, old = job.phase;
+      if (typeof phase !== "string")
+        return json({ error: "Invalid phase" }, 400);
+      const allowed = {
+        requested: job.action === "leave" ? ["leaving", "completed", "failed"] : ["approaching", "failed"],
+        approaching: job.pose === "walk" ? ["completed", "failed"] : ["entering", "failed"],
+        entering: ["active", "failed"],
+        active: [],
+        leaving: ["completed", "failed"]
+      };
+      if (phase === old && (body.approach_index ?? job.approach_index) === job.approach_index)
+        return json({ ok: true, interaction: job });
+      if (!allowed[old].includes(phase))
+        return json({ error: "Invalid phase transition" }, 400);
+      let config, obj, index = null;
+      if (job.pose !== "walk") {
+        obj = state.objects.find((o) => o.id === job.target_id);
+        config = this.ctx.assets[obj.asset_id].interactions[job.pose === "read" ? "sit" : job.pose];
+        index = body.approach_index ?? job.approach_index;
+        if (!Number.isInteger(index) || index === null || index < 0 || index >= config.approaches.length)
+          return json({ error: "Invalid approach index" }, 400);
+        if (job.approach_index != null && index !== job.approach_index)
+          return json({ error: "Approach cannot change mid-interaction" }, 400);
+      }
+      if (phase === "failed" && (typeof body.error !== "string" || [...body.error].length < 1 || [...body.error].length > 200))
+        return json({ error: "Failure reason required" }, 400);
+      Object.assign(job, {
+        phase,
+        approach_index: index,
+        error: phase === "failed" ? body.error : null
+      });
+      if (phase === "active") {
+        const p = worldPoint(obj, config.root);
+        Object.assign(state.character, {
+          x: p.x,
+          z: p.z,
+          yaw: p.yaw + (config.yaw || 0),
+          activity: job.pose === "sleep" ? "sleep" : job.pose === "read" ? "read" : "sit"
+        });
+      }
+      if (phase === "completed" && job.action === "leave")
+        state.character.activity = "idle";
+      if (phase === "completed" && job.action === "leave" && job.from_active && config) {
+        const p = worldPoint(obj, config.approaches[index]);
+        Object.assign(state.character, {
+          x: p.x,
+          z: p.z,
+          yaw: p.yaw,
+          activity: "idle"
+        });
+      }
+      if (phase === "completed" && job.action === "walk_to")
+        Object.assign(state.character, { ...job.target, activity: "idle" });
+      if ("position" in body) {
+        if (phase !== "completed" || job.action !== "leave" || !record(body.position) || Object.keys(body.position).sort().join(",") !== "x,yaw,z")
+          return json({ error: "Unexpected position feedback" }, 400);
+        try {
+          state.character = transition(
+            state,
+            { tool: "move_character", arguments: body.position },
+            this.ctx
+          ).character;
+        } catch (e) {
+          return json({ error: e.message }, 400);
+        }
+      }
+      store.event(now, "action_progress", {
+        job_id: id,
+        action: job.action,
+        pose: job.pose,
+        target_id: job.target_id ?? null,
+        phase,
+        error: job.error ?? null
+      });
+      state.revision++;
+      store.save(state);
+      return json({ ok: true, interaction: job });
+    });
+  }
+  close() {
+    this.store.close();
+  }
+};
+
+// house3d/server/index.ts
+var root = process.env.HOUSE_ROOT || fileURLToPath(new URL("../house3d/", import.meta.url));
+var web = process.env.HOUSE_WEB_ROOT || fileURLToPath(new URL("./web/", import.meta.url));
+var port = Number(process.env.HOUSE_PORT || 19130);
+if (!Number.isInteger(port) || port < 1 || port > 65535)
+  throw Error("HOUSE_PORT must be an integer between 1 and 65535");
+var app = new HouseApp(
+  loadContext(root),
+  process.env.HOUSE_DB || resolve2(root, "data/house.sqlite"),
+  root,
+  web
+);
+var server = createServer(async (req, res) => {
+  const reply = (r) => {
+    const bytes = r.bytes ?? Buffer.from(JSON.stringify(r.body));
+    res.writeHead(r.status, {
+      "Content-Type": r.type || "application/json; charset=utf-8",
+      "Content-Length": bytes.length,
+      "X-Content-Type-Options": "nosniff"
+    });
+    res.end(req.method === "HEAD" ? void 0 : bytes);
+  };
+  try {
+    const chunks = [];
+    let length2 = 0;
+    for await (const chunk of req) {
+      length2 += chunk.length;
+      if (length2 > 5 * 1024 * 1024) {
+        reply({ status: 413, body: { error: "Request body exceeds 5 MiB" } });
+        req.resume();
+        return;
+      }
+      chunks.push(Buffer.from(chunk));
+    }
+    const bytes = Buffer.concat(chunks);
+    let body;
+    if (bytes.length && (req.headers["content-type"] || "").split(";")[0] === "application/json") {
+      try {
+        body = JSON.parse(bytes.toString("utf8"));
+      } catch {
+        reply({ status: 400, body: { error: "Invalid JSON" } });
+        return;
+      }
+    }
+    const headers = Object.fromEntries(
+      Object.entries(req.headers).map(([k, v]) => [
+        k,
+        Array.isArray(v) ? v.join(",") : v
+      ])
+    );
+    reply(
+      app.handle({
+        method: req.method || "GET",
+        url: req.url || "/",
+        headers,
+        body,
+        bytes
+      })
+    );
+  } catch (e) {
+    console.error("House request failed:", e.message);
+    if (!res.headersSent)
+      reply({ status: 500, body: { error: "Internal server error" } });
+    else res.end();
+  }
+});
+server.requestTimeout = 15e3;
+server.headersTimeout = 1e4;
+server.on("error", (error) => {
+  console.error("Could not start Agent Home:", error.message);
+  app.close();
+  process.exitCode = 1;
+});
+server.listen(
+  port,
+  "127.0.0.1",
+  () => console.log(`Agent Home: http://127.0.0.1:${port}/`)
+);
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.once(
+    signal,
+    () => server.close(() => {
+      app.close();
+      process.exit(0);
+    })
+  );

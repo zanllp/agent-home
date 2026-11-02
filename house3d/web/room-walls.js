@@ -11,6 +11,7 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
  const classicDetails=[],accents=[],groups=new Map(),wallMeshes=new Map(),shadowMeshes=new Map(),paperLayers=new Map(),applied=new Map(),baseTextures=new Map(),tiles=new Map(),geometries=[];
  const paint=new T.MeshStandardMaterial({color:'#f3eee5',roughness:1}),trim=new T.MeshStandardMaterial({color:'#d9c4a3',roughness:.8}),panel=new T.MeshStandardMaterial({color:'#fff6e8',roughness:1}),accent=new T.MeshStandardMaterial({color:'#b3c0c6',roughness:1});
  const noiseData=new Uint8Array(64*64*4);let seed=31;for(let i=0;i<noiseData.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const v=120+(seed>>>28);noiseData.set([v,v,v,255],i)}const plaster=new T.DataTexture(noiseData,64,64);plaster.wrapS=plaster.wrapT=T.RepeatWrapping;plaster.repeat.set(5,3);plaster.needsUpdate=true;paint.bumpMap=panel.bumpMap=plaster;paint.bumpScale=panel.bumpScale=.003;
+ const socket=new T.MeshStandardMaterial({color:'#e8e7de',roughness:.55}),socketInset=new T.MeshStandardMaterial({color:'#777f79',roughness:.8});
  const shadowMaterial=new T.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:T.DoubleSide});let disposed=false,openings=[],style='classic',geometryKey='';
  function box(group,size,pos,material){const geometry=new RoundedBoxGeometry(...size,2,Math.min(.01,Math.min(...size)/4));geometries.push(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(...pos);mesh.receiveShadow=true;group.add(mesh);return mesh}
  for(const side of sides){
@@ -24,8 +25,12 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
   for(let i=0;i<n;i++){const x=-side.width/2+(i+.5)*step;classicDetails.push(box(g,[step-.035,.54,.035],[x,.40,.04],panel));for(const dx of [-step/2+.025,step/2-.025])classicDetails.push(box(g,[.018,.54,.025],[x+dx,.40,.065],trim))}
   if(side.id==='back'||side.id==='left'){
    const a=new T.Group();a.userData.side=side.id;g.add(a);const x=side.id==='back'?-.23:-1.55,w=side.id==='back'?1.68:1.5;
-   box(a,[w,ceiling-.23,.015],[x,(ceiling-.23)/2+.095,.035],accent);for(const dx of [-w/2,w/2])box(a,[.014,ceiling-.23,.012],[x+dx,(ceiling-.23)/2+.095,.05],panel);accents.push(a);
+   box(a,[w,ceiling-.23,.015],[x,(ceiling-.23)/2+.095,.035],accent);for(const dx of [-w/2,w/2])box(a,[.014,ceiling-.23,.012],[x+dx,(ceiling-.23)/2+.095,.05],panel);
+   if(side.id==='left'){for(let i=0;i<16;i++){const u=x-w/2+.055+i*(w-.11)/15;box(a,[.016,ceiling-.28,.018],[u,(ceiling-.28)/2+.12,.056],trim)}}
+   else{for(const y of [.12,ceiling-.15])box(a,[w-.08,.009,.012],[x,y,.052],panel)}
+   a.userData.center=x;a.userData.width=w;accents.push(a);
   }
+  if(side.id==='back'||side.id==='left'){for(const ratio of [-.22,.22]){const x=side.width*ratio;box(g,[.105,.077,.015],[x,.29,.062],socket);for(const dx of [-.023,.023]){box(g,[.009,.018,.002],[x+dx,.286,.071],socketInset);box(g,[.006,.008,.002],[x+dx,.312,.071],socketInset)}}}
  }
  function rebuild(){
   const key=JSON.stringify([style,openings,ceiling]);if(key===geometryKey)return;geometryKey=key;
@@ -38,11 +43,13 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
    paper.geometry.dispose();paper.geometry=pg;paper.position.y=bottom+height/2;
   }
  }
+ function updateAccents(){for(const a of accents){const blocked=openings.some(h=>h.side===a.userData.side&&Math.abs(h.x-a.userData.center)<(h.width+a.userData.width)/2);a.visible=style==='urban'&&!blocked&&(!finish.wallpapers?.[a.userData.side]||finish.wallpapers[a.userData.side]==='plain')}}
+ let finish={};
  function setOpenings(objects,assets){
   openings=objects.flatMap(o=>{
    const asset=assets[o.asset_id],hole=asset?.wall_opening;if(!hole)return [];
-   const side=Math.abs(o.yaw)<.001?'back':'left';return [{side,x:side==='back'?o.x:-o.z,width:hole.width,height:hole.height,bottom:(asset.elevation||0)+(hole.bottom||0)}];
-  });rebuild();
+   const side=Math.abs(o.yaw)<.001?'back':'left';return [{side,x:side==='back'?o.x:-o.z,width:hole.width,height:o.id===room.balcony?.door_id?2.22:hole.height,bottom:o.id===room.balcony?.door_id?0:(asset.elevation||0)+(hole.bottom||0)}];
+  });rebuild();updateAccents();
  }
  async function setPaper(side,id){
   const height=style==='urban'?ceiling-.16:ceiling-.84,key=id+':'+style;if(applied.get(side.id)===key)return;
@@ -54,14 +61,14 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
   layer.material.map=tiles.get(tileKey);layer.material.needsUpdate=true;layer.visible=true;applied.set(side.id,key);
  }
  return {setOpenings,async setFinish(value={}){
-  style=value.style==='urban'?'urban':'classic';for(const detail of classicDetails)detail.visible=style!=='urban';for(const a of accents)a.visible=style==='urban'&&(!value.wallpapers?.[a.userData.side]||value.wallpapers[a.userData.side]==='plain');
+  finish=value;style=value.style==='urban'?'urban':'classic';for(const detail of classicDetails)detail.visible=style!=='urban';updateAccents();
   paint.color.set(value.wall_color||'#f3eee5');trim.color.set(value.trim_color||'#d9c4a3');rebuild();await Promise.all(sides.map(side=>setPaper(side,value.wallpapers?.[side.id]||'plain')));
- },updateView(position){const hidden=new Set();for(const side of sides){const outside=exteriorWall(side,position);groups.get(side.id).visible=!outside;if(outside)hidden.add(side.id)}return hidden},dispose(){
-  disposed=true;plaster.dispose();geometries.forEach(g=>g.dispose());wallMeshes.forEach(m=>m.geometry.dispose());paperLayers.forEach(m=>{m.geometry.dispose();m.material.dispose()});[paint,trim,panel,accent,shadowMaterial].forEach(m=>m.dispose());tiles.forEach(t=>t.dispose());baseTextures.forEach(p=>p.then(t=>t.dispose(),()=>{}));
+ },updateView(position,{cutaway=true}={}){const hidden=new Set();for(const side of sides){const outside=cutaway&&exteriorWall(side,position);groups.get(side.id).visible=!outside;if(outside)hidden.add(side.id)}return hidden},dispose(){
+  disposed=true;plaster.dispose();geometries.forEach(g=>g.dispose());wallMeshes.forEach(m=>m.geometry.dispose());paperLayers.forEach(m=>{m.geometry.dispose();m.material.dispose()});[paint,trim,panel,accent,socket,socketInset,shadowMaterial].forEach(m=>m.dispose());tiles.forEach(t=>t.dispose());baseTextures.forEach(p=>p.then(t=>t.dispose(),()=>{}));
  }};
 }
 
 export function createRoomWalls(parent,options={}){
  let container=new T.Group();parent.add(container);let size=roomDimensions(options.room),shell=createRoomWallShell(container,options),finish={};
- return {async setSize(room={}){const next=roomDimensions(room);if(JSON.stringify(size)===JSON.stringify(next))return;shell.dispose();parent.remove(container);container=new T.Group();parent.add(container);size=next;shell=createRoomWallShell(container,{...options,room});await shell.setFinish(finish)},setOpenings:(objects,assets)=>shell.setOpenings(objects,assets),async setFinish(value={}){finish=value;await shell.setFinish(value)},updateView:position=>shell.updateView(position),dispose(){shell.dispose();parent.remove(container)}};
+ return {async setSize(room={}){const next=roomDimensions(room);if(JSON.stringify(size)===JSON.stringify(next))return;shell.dispose();parent.remove(container);container=new T.Group();parent.add(container);size=next;shell=createRoomWallShell(container,{...options,room});await shell.setFinish(finish)},setOpenings:(objects,assets)=>shell.setOpenings(objects,assets),async setFinish(value={}){finish=value;await shell.setFinish(value)},updateView:(position,options)=>shell.updateView(position,options),dispose(){shell.dispose();parent.remove(container)}};
 }

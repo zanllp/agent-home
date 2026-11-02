@@ -1,25 +1,29 @@
-# Agent Home · 轻量运行入口
+# Agent Home 开发入口
 
-安装与主入口见根 [README](../README.md)，工具流程见 [Agent 指南](../docs/AGENT_GUIDE.md)。`/` 与 `/wander.html` 均为当前生活 Canvas。
+运行只需要 Node 22.12+：在项目根目录执行 `node start.mjs`。CLI 为 `node agent.mjs`。运行者不用安装任何 npm/Python 依赖，不需要构建。
 
-在项目根目录构建/运行：
+## 开发
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r house3d/requirements.txt
-npm --prefix house3d ci
-npm --prefix house3d run build
-.venv/bin/python house3d/server.py
-```
-
-服务默认 http://127.0.0.1:19130 ，先检查端口，不启动副本。Vite 开发页使用 `npm --prefix house3d run dev`，19131 的 `/wander.html` 代理 API/models 到 19130。正式页面改源后需重新构建并刷新，服务端改动需正常停止后重启。
+只有修改源代码的开发者才需要：
 
 ```sh
-.venv/bin/python -m unittest discover -s house3d -p 'test_*.py'
-(cd house3d && node --test test_*.mjs)
-python3 tools/check_release.py
+npm ci --registry=https://registry.npmjs.org
+npm run typecheck
+npm run build
+npm run package
+npm test
+npm run check:release
 ```
 
-轻量版仅包含当前人物 `assets/dafeiyu-contact.glb`、全部家具目录资产及当前行为测试，不带旧人物候选、旧 2D 原型和跨版本模型对比套件。当前模型、材质、贴图、骨骼和动画未重编码或降质，SHA256 清单在根 `runtime-assets.json`。完整本机工程保留原始素材、Blender 源及历史测试。
+- `server/`：TypeScript 后端；Node 内置 HTTP/fs/crypto/SQLite，无运行时第三方 npm 包。
+- `server-data.json`：既有默认状态、原始目录/工具定义，保留工具协议。
+- `web/`：当前生活 Canvas、动作、导航与镜头。画面与资产未随后端迁移更换。
+- `assets/`：当前人物、家具、墙纸和地板；根 `runtime-assets.json` 校验原始哈希。
+- 根 `runtime/server.mjs` / `runtime/agent.mjs`：预编译后端/CLI；`runtime/web/`：预构建页面，不是临时缺失时才由使用者构建。
+- `data/house.sqlite`：运行时生成，表结构沿用旧版本，不放进发行包。
 
-数据库由启动时生成于 `data/house.sqlite`，不上传。原子命令、版本与幂等、布局预演、Agent 身体反馈及截图接口保留；截图和身体动作仍依赖可见浏览器。没有公网认证或无头服务端渲染，勿直接公开服务。
+根 `tools/build.mjs` 用 esbuild 构建 TS 后端/CLI、用 Vite 构建前端；开发工具只在构建时使用。运行 ZIP 中不含 node_modules、Python、npm、TS 编译器或数据库。
+
+300 组来自旧 Python 测试的 HTTP 契约样本包含原目录覆盖、固定时钟及 SQLite 前后状态。Node 测试直接读取压缩样本，不需要 Python；样本保留旧协议作为迁移证据，不是重新运行 Python 后端。
+
+开发前端可运行 `npx vite house3d --config house3d/vite.config.js`（由开发工具环境提供）；代理 API/models 到 19130。不要停止原本机完整工程的服务；隔离测试使用 HOUSE_PORT/HOUSE_DB 指定另一个端口和临时数据库。
