@@ -43,3 +43,32 @@ test('schoolbag hangs on the declared desk hook, away from the central knee open
  assert.ok(createDeskAsset('urban-child-desk-detailed-v1').getObjectByName('Schoolbag-hook'));assert.ok(createDeskAsset('urban-child-desk-detailed-v1').getObjectByName('Cabinet-caster'));
  const root=createDeskAsset('urban-schoolbag-v1');for(const name of ['Backpack-carry-handle','Backpack-front-pocket','Puppy-charm-head'])assert.ok(root.getObjectByName(name));
 });
+
+test('larger main display and turned portrait arm stay on the original desk footprint',async()=>{
+ const {finishWorkstation}=await import('./web/workstation-finish.js');
+ const kit=createDeskAsset('urban-dual-monitor-detailed-v1'),catalog=assets['urban-dual-monitor-detailed-v1'];
+ const roots=new T.Group();roots.add(kit);
+ const old=screenSurfacePlan(roots),left=old[0].mesh,right=old[1].mesh;
+ finishWorkstation(roots);const main=roots.getObjectByName('Landscape display cradle'),wing=roots.getObjectByName('Portrait display swivel');
+ assert.equal(left.parent,main);assert.equal(right.parent,wing);assert.ok(main.scale.x>1.1&&wing.rotation.y<-.20);
+ assert.ok(main.children.some(o=>o.name==='Monitor-power-indicator'));assert.ok(wing.children.some(o=>o.name==='Monitor-power-indicator'));
+ assert.equal(roots.getObjectByName('Monitor-stand-post').visible,false);
+ assert.ok(roots.getObjectByName('Workstation-Maple speaker shells'));
+ assert.equal(screenSurfacePlan(roots).length,2);
+ const b=new T.Box3().setFromObject(roots,true);for(const [axis,size] of [['x',catalog.size[0]],['z',catalog.size[1]]]){
+  assert.ok(Math.max(Math.abs(b.min[axis]),Math.abs(b.max[axis]))<=size/2+.0001,axis+': '+JSON.stringify(b));
+ }
+ assert.ok(b.min.y>=-.001&&b.max.y<=catalog.height+.001);
+});
+
+test('pinboard exhibits the most recent drawing still in a book, without touching its original print',async()=>{
+ const {exhibitedBook,showPinnedDrawing}=await import('./web/desk-finishes.js');
+ const book=n=>({id:'book'+n,kind:'books',artwork:{target_id:'book'+n,url:'/api/drawings/'+n+'.png'}});
+ const older=book(9),latest=book(10),foreign=book(99);foreign.artwork.url='https://example.org/other.png';
+ assert.equal(exhibitedBook([older,latest,foreign]),latest);assert.equal(exhibitedBook([older,foreign]),older);assert.equal(exhibitedBook([foreign]),undefined);
+ const board=new T.Group(),original=new T.MeshStandardMaterial(),card=new T.Mesh(new T.PlaneGeometry(),original);card.name='Weekend_sketch';board.add(card);
+ let fitted,title;const ctx={fillRect(){},drawImage(...args){fitted=args},fillText(value){title=value}};
+ const pic={width:480,height:360},clean=showPinnedDrawing(board,pic,'小铁豆',()=>({getContext:()=>ctx}));
+ assert.equal(title,'小铁豆');assert.equal(fitted[0],pic);assert.ok(Math.abs(fitted[3]/fitted[4]-4/3)<1e-9);assert.equal(original.map,null);assert.notEqual(card.material,original);
+ clean();assert.equal(card.material,original);
+});

@@ -43,8 +43,12 @@ export function createFloorToys(){
 export function packFloorToys(instance){
  const tray=instance.getObjectByName('Tray-bottom')?.parent;
  if(!tray)return;
- const robot=instance.getObjectByName('Pick-up-robot');
- if(robot){tray.add(robot);robot.position.set(0,.079,-.019);robot.rotation.set(0,0,0);robot.userData.packed=true}
+ const robot=instance.getObjectByName('Pick-up-robot'),scout=instance.getObjectByName('Standing-scout');
+ if(scout){tray.add(scout);scout.position.set(-.078,.013,.040);scout.rotation.set(0,Math.PI/2,0)}
+ if(robot){tray.add(robot);robot.position.set(scout ? .060 : 0,scout ? .013 : .079,scout ? .040 : -.019);robot.rotation.set(0,scout?-Math.PI/2:0,0);robot.userData.packed=true}
  const pieces=[];instance.traverse(o=>{if(o.name.startsWith('Loose-piece'))pieces.push(o)});
- pieces.forEach((piece,i)=>{tray.add(piece);piece.position.set((i-1)*.060,.068,.078);piece.rotation.set(0,.12*i,0)});
+ pieces.forEach((piece,i)=>{tray.add(piece);if(scout){
+   piece.position.set((i%4-1.5)*.063,.073+(i>3 ? .016 : 0),-.115);
+  }else{piece.position.set(pieces.length<=3?(i-1)*.060:(i%4-1.5)*.050,.068,.078-Math.floor(i/4)*.06)}
+  piece.rotation.set(0,.12*i,0)});
 }

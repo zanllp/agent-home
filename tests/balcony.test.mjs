@@ -75,3 +75,53 @@ test('character vision never uses the spectator cutaway through the connecting w
  assert.equal(wallBlocksSight(s.room,s.objects,{x:-5,z:-1.65,y:.9},{x:-3,z:-1.65,y:.9}),false);
  assert.equal(wallBlocksSight(s.room,s.objects,{x:-5,z:0,y:.9},{x:-3,z:1,y:.9}),true);
 });
+
+test('washer and linen rail can move separately; the rail has a clear route on both sides of the doorway',()=>{
+ const a=app();try{
+  const s=family(a),by=Object.fromEntries(s.objects.map(o=>[o.id,o]));
+  assert.equal(by['balcony-washer'].asset_id,'family-laundry-shelf-v1');assert.equal(by['balcony-drying-rack'].asset_id,'family-linen-rail-v1');
+  const snapshot=structuredClone(s),args={operations:[{op:'update',id:'balcony-drying-rack',z:by['balcony-drying-rack'].z+.05}],dry_run:true};
+  const dry=command(a,'update_layout',args).body.layout;assert.ok(dry.can_apply);
+  assert.equal(dry.navigation.balcony.reachable_cells,dry.navigation.balcony.free_cells);
+  assert.deepEqual(a.store.state(),snapshot);
+  const result=command(a,'update_layout',{...args,dry_run:false}).body.state;
+  assert.deepEqual(result.objects.find(o=>o.id==='balcony-washer'),by['balcony-washer']);const n=nav(result),entry={x:3.31,z:-2.36};
+  assert.ok(n.path(entry,target));assert.ok(n.path(target,entry));
+ }finally{a.close()}
+});
+
+test('adjusting a reading lamp while a body occupies its chair is not a balcony layout edit',()=>{
+ const a=app();try{
+  const s=family(a),chair=s.objects.find(o=>o.id==='child-chair');
+  const body={session_id:'reading-viewer',visible:true,paused:false,body:{x:chair.x,z:chair.z,y:.006,yaw:0,pose:'stand',moving:false},job_id:null};
+  assert.equal(a.handle({method:'POST',url:'/api/viewer',headers:{host:'localhost'},body}).status,200);
+  const changed=command(a,'update_object',{id:'study-lamp',properties:{brightness:.42}});
+  assert.equal(changed.status,200,JSON.stringify(changed.body));assert.equal(changed.body.state.objects.find(o=>o.id==='study-lamp').properties.brightness,.42);
+ }finally{a.close()}
+});
+
+test('laundry shelf plant follows the washer, is independently transferable, and cannot hang through the shelf',()=>{
+ const a=app();try{
+  const s=family(a),by=id=>a.store.state().objects.find(o=>o.id===id);
+  const wash=by('balcony-washer'),plant=by('plant');assert.equal(plant.on.id,wash.id);
+  assert.equal(plant.asset_id,'family-trailing-pothos-v1');assert.equal(s.objects.length,79);
+  const move=[{op:'update',id:wash.id,x:wash.x-.08,yaw:wash.yaw+.08}];
+  const preview=command(a,'update_layout',{operations:move,dry_run:true}).body.layout;
+  assert.ok(preview.can_apply,JSON.stringify(preview.errors));assert.equal(preview.navigation.balcony.reachable_cells,preview.navigation.balcony.free_cells);assert.deepEqual(by('plant'),plant);
+  assert.equal(command(a,'update_layout',{operations:move,dry_run:false}).status,200);assert.notEqual(by('plant').x,plant.x);assert.deepEqual(by('plant').on,plant.on);
+  const unsupported=command(a,'update_layout',{operations:[{op:'update',id:plant.id,on:{...plant.on,z:0}}],dry_run:true}).body.layout;assert.ok(unsupported.errors.some(e=>e.code==='foliage_clearance'));
+  const positioned=structuredClone(by(wash.id));
+  const independent=command(a,'update_layout',{operations:[{op:'update',id:plant.id,on:{...plant.on,x:.09}}],dry_run:false});assert.equal(independent.status,200);assert.deepEqual(by(wash.id),positioned);assert.equal(by('plant').on.x,.09);
+ }finally{a.close()}
+});
+
+test('wood shelf and the agent-visible mounting surface agree on height and open front edge',async()=>{
+ const {Box3}=await import('three'),{fitLaundryShelf}=await import('../house3d/web/laundry-shelf.js');
+ const asset=ctx.assets['family-laundry-shelf-v1'],top=asset.surfaces.top,root=new Group();fitLaundryShelf(root,top);
+ const wood=new Box3().setFromObject(root.getObjectByName('Wood-laundry-shelf'),true);
+ assert.ok(Math.abs(wood.max.y-top.height)<.0001);assert.ok(Math.abs(wood.max.z-top.center[1]-top.front_edge)<.0001);
+ assert.ok(wood.min.x<=top.center[0]-top.size[0]/2&&wood.max.x>=top.center[0]+top.size[0]/2);
+ const envelope=new Box3().setFromObject(root,true);assert.ok(envelope.max.x<=asset.size[0]/2&&-envelope.min.x<=asset.size[0]/2);
+ assert.ok(envelope.max.z<=asset.size[1]/2&&-envelope.min.z<=asset.size[1]/2);
+ assert.equal(ctx.assets['family-enamel-washer-v1'].surfaces,undefined);
+});

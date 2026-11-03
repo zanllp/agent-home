@@ -16,6 +16,8 @@ import {
   definition,
   heightOf,
   footprint,
+  occupiedSections,
+  sectionOverlap,
   resolveSupports,
   supportsPair,
   validateBalcony,
@@ -24,7 +26,7 @@ import { busy, worldPoint } from "./objects.js";
 export function geometryIssues(objects: Item[], ctx: Context, room?: Data) {
   const boundsRoom = boundaries(room),
     issues: Data[] = [],
-    boxes: Array<[Item, number, number, number, number]> = [];
+    boxes: Array<[Item, ReturnType<typeof occupiedSections>]> = [];
   for (const obj of objects) {
     const def = definition(obj, ctx),
       [w, d] = footprint(obj, ctx),
@@ -82,25 +84,19 @@ export function geometryIssues(objects: Item[], ctx: Context, room?: Data) {
         });
     }
     if (obj.kind === "rug") continue;
-    for (const [other, ow, od, oy, oh] of boxes) {
-      if (
-        supportsPair(obj, other, objects) ||
-        y + h <= oy + 0.01 ||
-        oy + oh <= y + 0.01
-      )
-        continue;
-      const dx = (w + ow) / 2 - Math.abs(obj.x - other.x),
-        dz = (d + od) / 2 - Math.abs(obj.z - other.z);
-      if (dx > 0.015 && dz > 0.015)
-        issues.push({
-          code: "overlap",
-          ids: [other.id, obj.id],
-          overlap_m: { x: round(dx, 4), z: round(dz, 4) },
-          message: "两件家具的保守包围盒重叠。",
-          suggestion: "拉开间距或旋转后重新 dry-run；这不是逐三角形碰撞检测。",
-        });
+    const occupied=occupiedSections(obj,ctx,y,w,d);
+    for (const [other,sections] of boxes) {
+      const overlap=sectionOverlap(occupied,sections);
+      if (!overlap || supportsPair(obj, other, objects)) continue;
+      issues.push({
+        code: "overlap",
+        ids: [other.id, obj.id],
+        overlap_m: { x: round(overlap.x, 4), z: round(overlap.z, 4) },
+        message: "两件家具的保守包围盒重叠。",
+        suggestion: "拉开间距或旋转后重新 dry-run；这不是逐三角形碰撞检测。",
+      });
     }
-    boxes.push([obj, w, d, y, h]);
+    boxes.push([obj,occupied]);
   }
   return issues;
 }

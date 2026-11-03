@@ -105,6 +105,18 @@ export function parseSupport(value: unknown) {
     );
   return { ...value } as Item["on"];
 }
+// A trailing vine has a solid pot and a hanging skirt of leaves. Check both:
+// the pot must stand on the shelf and the foliage below it must clear its front lip.
+function ledgeFit(obj: Item, ctx: Context, surface: Data) {
+  const mount = definition(obj, ctx).ledge_mount, on = obj.on!;
+  const c = Math.cos(on.yaw), s = Math.sin(on.yaw);
+  const [px, pz] = mount.pot_center, r = mount.pot_radius;
+  if (Math.abs(on.x + px*c + pz*s) + r > surface.size[0]/2 + .002 ||
+      Math.abs(on.z - px*s + pz*c) + r > surface.size[1]/2 + .002) return 'support_overhang';
+  const [left, back, right, front] = mount.tail;
+  const nearest = Math.min(...[left,right].flatMap(x=>[back,front].map(z=>on.z-x*s+z*c)));
+  if (surface.front_edge === undefined || nearest < surface.front_edge + .005) return 'foliage_clearance';
+}
 export function resolveSupports(objects: Item[], ctx: Context): Data[] {
   const byId = new Map(objects.map((o) => [o.id, o])),
     resolved = new Set<string>(),
@@ -158,12 +170,25 @@ export function resolveSupports(objects: Item[], ctx: Context): Data[] {
           const [w, d] = own.size,
             co = Math.abs(Math.cos(on.yaw)),
             si = Math.abs(Math.sin(on.yaw));
-          if (
+          if (own.ledge_mount) {
+            const issue=ledgeFit(obj, ctx, surface);
+            if(issue) error(issue,obj,issue==='support_overhang'?'花盆底部没有完整放在层板上。':'垂藤需要越过层板开放的前缘，请换位置或调整朝向。');
+          } else if (
             Math.abs(on.x) + (w * co + d * si) / 2 >
               surface.size[0] / 2 + 0.002 ||
             Math.abs(on.z) + (w * si + d * co) / 2 > surface.size[1] / 2 + 0.002
           )
             error("support_overhang", obj, "物品超出承载面的安全边缘。");
+          const top=heightOf(obj,objects,ctx)+own.height;
+          let child: Item | undefined=obj;
+          while(child?.on){
+            const holder=byId.get(child.on.id);if(!holder)break;
+            const level=definition(holder,ctx)?.surfaces?.[child.on.surface];
+            if(level?.clearance!==undefined&&top>heightOf(holder,objects,ctx)+level.height+level.clearance+.002){
+              error("support_clearance",obj,"物品高于层板净空，换到更高的格子或柜顶。");break;
+            }
+            child=holder;
+          }
         }
       } else error("support_invalid", obj, "承载关系未通过检查。");
     }
@@ -193,6 +218,28 @@ export function footprint(obj: Item, ctx: Context) {
     s = Math.abs(Math.sin(obj.yaw));
   return [c * w + s * d, s * w + c * d];
 }
+// Keep full bounds for room and ceiling checks. Below its pot a vine occupies only
+// the hanging silhouette, so a book behind that silhouette is not intersecting it.
+export function occupiedSections(obj: Item, ctx: Context, y: number, w: number, d: number) {
+  const asset=definition(obj,ctx), crown={x:obj.x,z:obj.z,w,d,bottom:y,top:y+asset.height};
+  if(!asset.ledge_mount)return [crown];
+  const [x0,z0,x1,z1]=asset.ledge_mount.tail;
+  const c=Math.cos(obj.yaw),s=Math.sin(obj.yaw),mx=(x0+x1)/2,mz=(z0+z1)/2;
+  const seat=y-asset.support_offset;
+  return [{...crown,bottom:seat},{
+    x:obj.x+mx*c+mz*s,z:obj.z-mx*s+mz*c,
+    w:(x1-x0)*Math.abs(c)+(z1-z0)*Math.abs(s),d:(x1-x0)*Math.abs(s)+(z1-z0)*Math.abs(c),
+    bottom:y,top:seat,
+  }];
+}
+type Sections=ReturnType<typeof occupiedSections>;
+export function sectionOverlap(first: Sections,second: Sections){
+  for(const a of first)for(const b of second){
+    if(a.top<=b.bottom+.01||b.top<=a.bottom+.01)continue;
+    const x=(a.w+b.w)/2-Math.abs(a.x-b.x),z=(a.d+b.d)/2-Math.abs(a.z-b.z);
+    if(x>.015&&z>.015)return {x,z};
+  }
+}
 export function validateLayout(
   state: import("./types.js").State,
   ctx: Context,
@@ -201,7 +248,7 @@ export function validateLayout(
   const limits = boundaries(state.room),
     errors = resolveSupports(state.objects, ctx);
   requireValue(!errors.length, errors[0]?.message);
-  const solids: Array<[Item, number, number, number, number]> = [],
+  const solids: Array<[Item, Sections]> = [],
     seen = new Set<string>();
   for (const obj of state.objects) {
     requireValue(!seen.has(obj.id), "Duplicate furniture id");
@@ -233,22 +280,12 @@ export function validateLayout(
       );
     }
     if (obj.kind === "rug") continue;
-    for (const [other, ow, od, oy, oh] of solids) {
-      if (
-        supportsPair(obj, other, state.objects) ||
-        y + h <= oy + 0.01 ||
-        oy + oh <= y + 0.01
-      )
-        continue;
-      requireValue(
-        !(
-          Math.abs(obj.x - other.x) < (w + ow) / 2 - 0.015 &&
-          Math.abs(obj.z - other.z) < (d + od) / 2 - 0.015
-        ),
-        "Furniture overlaps another item: " + other.id + " / " + obj.id,
-      );
+    const occupied=occupiedSections(obj,ctx,y,w,d);
+    for (const [other,sections] of solids) {
+      if (!sectionOverlap(occupied,sections) || supportsPair(obj, other, state.objects)) continue;
+      throw Error("Furniture overlaps another item: " + other.id + " / " + obj.id);
     }
-    solids.push([obj, w, d, y, h]);
+    solids.push([obj,occupied]);
   }
 }
 
@@ -260,5 +297,5 @@ export function validateBalcony(state: import("./types.js").State,ctx:Context){
  requireValue(door&&def?.wall_opening&&def.placement==='wall',"Balcony requires its declared floor window/door");
  requireValue(Math.abs(door.yaw-(b.wall==='left'?Math.PI/2:0))<.001,"Balcony door must face its supporting wall");
  const q=balconyLocal(state.room,door)!;
- requireValue(Math.abs(q.v)<.25&&Math.abs(q.u)+1.24<=b.width/2-.02,"Door opening must lie inside the balcony wall span");
+ requireValue(Math.abs(q.v)<.25&&Math.abs(q.u)+def.wall_opening.width/2+.03<=b.width/2-.02,"Door opening must lie inside the balcony wall span");
 }

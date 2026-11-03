@@ -353,7 +353,16 @@
     "height": 0.7788649797439575,
     "painted": true,
     "recolorable": false,
-    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 78f2ba59-aa97-422d-9d3d-7b1188051ea1"
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 78f2ba59-aa97-422d-9d3d-7b1188051ea1",
+    "surfaces": {
+      "seat": {
+        "size": [
+          2.2,
+          0.81
+        ],
+        "height": 0.442
+      }
+    }
   },
   "ergonomic-chair-stylized-v2": {
     "label": "软垫办公椅",
@@ -804,7 +813,8 @@
     "limitations": [
       "静态模型；没有未验收的拿取、坐卧或家电运行功能"
     ],
-    "placement": "surface"
+    "placement": "surface",
+    "spine_series": "nature"
   },
   "urban-storage-bin-v1": {
     "label": "布艺整理盒",
@@ -997,7 +1007,8 @@
           0.59,
           0.3
         ],
-        "height": 0.1725
+        "height": 0.1725,
+        "front_edge": 0.17000000178813934
       }
     }
   },
@@ -1060,7 +1071,7 @@
     "recolorable": false,
     "source": "Local geometry size variant of native urban-tabletop-tv-v1; source urban-v4/make_details.py",
     "limitations": [
-      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+      "电视播放本地原创卡通，不连接外部视频服务"
     ],
     "placement": "surface"
   },
@@ -1141,7 +1152,8 @@
           0.59,
           0.3
         ],
-        "height": 0.1725
+        "height": 0.1725,
+        "front_edge": 0.17000000178813934
       }
     }
   },
@@ -1349,7 +1361,7 @@
     "native_materials": true,
     "source": "Local native Three.js geometry; desk-models.js; real measured centered footprint",
     "limitations": [
-      "显示屏为静态画面；键鼠、走线及支架不能单独操作，不连接真实电脑状态"
+      "双屏轮换本地模拟界面；键鼠、走线及支架不能单独操作，不连接真实电脑状态"
     ]
   },
   "urban-picture-book-v1": {
@@ -1541,5 +1553,1203 @@
         ]
       }
     }
+  },
+  "home-rice-cooker-v1": {
+    "label": "青瓷绿电饭锅 · 满锅白饭",
+    "kind": "appliance",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/home-rice-cooker-v1.glb",
+    "size": [
+      0.37,
+      0.354
+    ],
+    "height": 0.451,
+    "native_materials": true,
+    "source_type": "generated_model",
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/8867057e-8e2f-4d3d-aac9-204518b108a3 ; separate serving layer: tools/export-rice-set.mjs"
+  },
+  "home-rice-bowl-v1": {
+    "label": "蓝花小饭碗",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/home-rice-bowl-v1.glb",
+    "size": [
+      0.152,
+      0.152
+    ],
+    "height": 0.083,
+    "native_materials": true,
+    "source_type": "generated_model",
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/c8d34963-f05e-45ed-b4fc-7e03041c849a ; separate serving layer: tools/export-rice-set.mjs"
+  },
+  "family-maple-table-v1": {
+    "label": "圆角枫木家庭餐桌",
+    "kind": "dining_table",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-maple-table-v1.glb",
+    "size": [
+      1.841,
+      0.981
+    ],
+    "height": 0.733,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "top": {
+        "size": [
+          1.74,
+          0.92
+        ],
+        "height": 0.734
+      }
+    }
+  },
+  "family-flax-mat-v1": {
+    "label": "流苏亚麻餐垫",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-flax-mat-v1.glb",
+    "size": [
+      0.601,
+      0.535
+    ],
+    "height": 0.011,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface",
+    "surfaces": {
+      "top": {
+        "size": [
+          0.6,
+          0.51
+        ],
+        "height": 0.012
+      }
+    }
+  },
+  "family-mandarins-v1": {
+    "label": "青瓷盘与蜜橘",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-mandarins-v1.glb",
+    "size": [
+      0.292,
+      0.292
+    ],
+    "height": 0.195,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "generated_model",
+    "native_materials": true,
+    "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/35c3a78d-bf8d-4812-9cc8-26ff6d0e6521",
+    "placement": "surface"
+  },
+  "family-entry-door-v1": {
+    "label": "橡木入户门",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-entry-door-v1.glb",
+    "size": [
+      1.01,
+      0.159
+    ],
+    "height": 2.161,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "wall",
+    "limitations": [
+      "装饰门，不通往另一个房间"
+    ]
+  },
+  "family-shoe-cabinet-v1": {
+    "label": "百叶窄鞋柜",
+    "kind": "sideboard",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-shoe-cabinet-v1.glb",
+    "size": [
+      0.851,
+      0.326
+    ],
+    "height": 0.878,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "top": {
+        "size": [
+          0.79,
+          0.27
+        ],
+        "height": 0.878
+      }
+    }
+  },
+  "family-key-dish-v1": {
+    "label": "钥匙与陶碟",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-key-dish-v1.glb",
+    "size": [
+      0.163,
+      0.163
+    ],
+    "height": 0.018,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-entry-mat-v1": {
+    "label": "燕麦色编织门垫",
+    "kind": "rug",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-entry-mat-v1.glb",
+    "size": [
+      1.02,
+      0.64
+    ],
+    "height": 0.018,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "top": {
+        "size": [
+          0.99,
+          0.61
+        ],
+        "height": 0.018
+      }
+    }
+  },
+  "family-blue-slippers-v1": {
+    "label": "雾蓝室内拖鞋",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-blue-slippers-v1.glb",
+    "size": [
+      0.232,
+      0.292
+    ],
+    "height": 0.085,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-oat-slippers-v1": {
+    "label": "燕麦色室内拖鞋",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-oat-slippers-v1.glb",
+    "size": [
+      0.232,
+      0.292
+    ],
+    "height": 0.085,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-denim-pillow-v1": {
+    "label": "雾蓝棉麻靠枕",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-denim-pillow-v1.glb",
+    "size": [
+      0.417,
+      0.175
+    ],
+    "height": 0.338,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-whale-plush-v1": {
+    "label": "手缝小鲸鱼抱偶",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-whale-plush-v1.glb",
+    "size": [
+      0.467,
+      0.287
+    ],
+    "height": 0.213,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-arm-throw-v1": {
+    "label": "扶手上的燕蓝流苏羊毛毯",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-fringed-throw-v1.glb",
+    "size": [
+      0.692,
+      0.404
+    ],
+    "height": 0.52,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: house3d/web/arm-throw.js; arm guide sampled by tools/sample-throw-arm.mjs",
+    "placement": "surface",
+    "support_offset": -0.35,
+    "arm_throw": true,
+    "limitations": [
+      "按奶油宽沙发的右扶手定形，可单独移动或换下；不是实时布料模拟。"
+    ],
+    "runtime_refinement": "Original loose throw shaped to the wide lounge arm; sampled upholstery profile with independently modeled hems and tassels."
+  },
+  "family-fringed-throw-v1": {
+    "label": "蓝灰流苏搭毯",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-fringed-throw-v1.glb",
+    "size": [
+      0.374,
+      0.423
+    ],
+    "height": 0.489,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface",
+    "support_offset": -0.331
+  },
+  "family-wide-window-v1": {
+    "label": "宽景落地窗 · 双侧固定亮窗",
+    "kind": "window",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-floor-window-v2.glb",
+    "size": [
+      3.6,
+      0.18268847465515137
+    ],
+    "height": 2.248499870300293,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; atmosphere-v5/make_window.py",
+    "limitations": [
+      "两侧为固定玻璃，中间的滑门通阳台"
+    ],
+    "placement": "wall",
+    "elevation": 0.07,
+    "wall_opening": {
+      "width": 3.04,
+      "height": 2.17,
+      "bottom": 0.025
+    },
+    "unlit_nodes": [
+      "WindowView"
+    ],
+    "no_shadow_nodes": [
+      "WindowView"
+    ]
+  },
+  "family-celadon-flowers-v1": {
+    "label": "小白花与青瓷花瓶",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-celadon-flowers-v1.glb",
+    "size": [
+      0.18,
+      0.118
+    ],
+    "height": 0.28,
+    "placement": "surface",
+    "recolorable": false,
+    "painted": true,
+    "source_type": "generated_model",
+    "native_materials": true,
+    "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/7fc45dfc-a4ed-4bc9-967d-4c744235c755"
+  },
+  "family-picnic-print-v1": {
+    "label": "大肥鱼画的周末野餐",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-picnic-print-v1.glb",
+    "size": [
+      0.83,
+      0.033
+    ],
+    "height": 0.551,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "wall",
+    "elevation": 1.75,
+    "print_texture": "/models/materials/family-picnic-v1.jpg"
+  },
+  "family-beech-clock-v1": {
+    "label": "榉木指针挂钟",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-beech-clock-v1.glb",
+    "size": [
+      0.389,
+      0.064
+    ],
+    "height": 0.389,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "wall",
+    "elevation": 1.62
+  },
+  "family-outing-hooks-v1": {
+    "label": "挂着小帽和帆布袋的木挂钩",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-outing-hooks-v1.glb",
+    "size": [
+      0.68,
+      0.239
+    ],
+    "height": 0.597,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "wall",
+    "elevation": 1.02
+  },
+  "family-game-dock-v1": {
+    "label": "掌机底座与游戏卡盒",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-game-dock-v1.glb",
+    "size": [
+      0.28,
+      0.077
+    ],
+    "height": 0.137,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-robot-vacuum-v1": {
+    "label": "奶油白扫地机",
+    "kind": "appliance",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-robot-vacuum-v1.glb",
+    "size": [
+      0.306,
+      0.306
+    ],
+    "height": 0.096,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "limitations": [
+      "静态摆件，不会启动清扫"
+    ]
+  },
+  "family-shelf-lamp-v1": {
+    "label": "木座奶油色小台灯",
+    "kind": "lamp",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-shelf-lamp-v1.glb",
+    "size": [
+      0.158,
+      0.158
+    ],
+    "height": 0.223,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-study-chair-v1": {
+    "label": "雾蓝无扶手学习椅",
+    "kind": "chair",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-study-chair-v1.glb",
+    "size": [
+      0.541,
+      0.553
+    ],
+    "height": 0.779,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "interactions": {
+      "sit": {
+        "root": [
+          0,
+          0,
+          0.09
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            0,
+            0,
+            1.05
+          ],
+          [
+            -1.1,
+            0,
+            0.05
+          ],
+          [
+            1.1,
+            0,
+            0.05
+          ],
+          [
+            -1,
+            0,
+            -0.35
+          ],
+          [
+            1,
+            0,
+            -0.35
+          ]
+        ],
+        "seat_height": 0.3515
+      }
+    },
+    "limitations": [
+      "座垫按家庭坐姿标定；椅轮与升降柱为静态部件"
+    ]
+  },
+  "family-laundry-rack-v2": {
+    "label": "晒着童装和棉巾的矮晾衣架",
+    "kind": "drying_rack",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-laundry-rack-v2.glb",
+    "size": [
+      0.95,
+      0.43
+    ],
+    "height": 1.22,
+    "painted": false,
+    "recolorable": false,
+    "placement": "floor",
+    "source_type": "native_geometry",
+    "source": "Original local geometry: house3d/web/drying-rack.js",
+    "limitations": [
+      "可独立摆放；毛巾为装饰，不含实际洗衣或晾衣动作"
+    ]
+  },
+  "family-maple-library-v1": {
+    "label": "枫木书墙与奶油色底柜",
+    "kind": "shelf",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-maple-library-v1.glb",
+    "size": [
+      1.105,
+      0.501
+    ],
+    "height": 2.246,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "shelf-1": {
+        "height": 0.49,
+        "size": [
+          0.94,
+          0.34
+        ],
+        "clearance": 0.305
+      },
+      "shelf-2": {
+        "height": 0.82,
+        "size": [
+          0.94,
+          0.34
+        ],
+        "clearance": 0.315
+      },
+      "shelf-3": {
+        "height": 1.16,
+        "size": [
+          0.94,
+          0.34
+        ],
+        "clearance": 0.305
+      },
+      "shelf-4": {
+        "height": 1.49,
+        "size": [
+          0.94,
+          0.34
+        ],
+        "clearance": 0.305
+      },
+      "shelf-5": {
+        "height": 1.82,
+        "size": [
+          0.94,
+          0.34
+        ],
+        "clearance": 0.391,
+        "front_edge": 0.2505
+      }
+    },
+    "limitations": [
+      "底柜门为装饰，不提供开关动作；五层开放层板可独立布置"
+    ]
+  },
+  "family-porcelain-whale-v1": {
+    "label": "浪花陶瓷小鲸鱼",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-porcelain-whale-v1.glb",
+    "size": [
+      0.229,
+      0.124
+    ],
+    "height": 0.107,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface"
+  },
+  "family-code-books-v1": {
+    "label": "程序员的书架",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-upright-books-v1.glb",
+    "size": [
+      0.32199999690055847,
+      0.1720000058412552
+    ],
+    "height": 0.23000000417232513,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface",
+    "spine_series": "study"
+  },
+  "family-story-books-v1": {
+    "label": "睡前故事集",
+    "kind": "books",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-upright-books-v1.glb",
+    "size": [
+      0.32199999690055847,
+      0.1720000058412552
+    ],
+    "height": 0.23000000417232513,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface",
+    "spine_series": "stories"
+  },
+  "family-paper-bin-v1": {
+    "label": "燕麦布盒 · 画纸",
+    "kind": "storage_box",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-storage-bin-v1.glb",
+    "size": [
+      0.3050000071525574,
+      0.2789999842643738
+    ],
+    "height": 0.2029999941587448,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface",
+    "bin_label": "paper"
+  },
+  "family-cables-bin-v1": {
+    "label": "灰蓝布盒 · 线材",
+    "kind": "storage_box",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-storage-bin-v1.glb",
+    "size": [
+      0.3050000071525574,
+      0.2789999842643738
+    ],
+    "height": 0.2029999941587448,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface",
+    "bin_label": "cables"
+  },
+  "family-toys-bin-v1": {
+    "label": "浅苔布盒 · 拼搭",
+    "kind": "storage_box",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-storage-bin-v1.glb",
+    "size": [
+      0.3050000071525574,
+      0.2789999842643738
+    ],
+    "height": 0.2029999941587448,
+    "painted": false,
+    "recolorable": false,
+    "source": "Local reproducible Blender geometry; urban-v4/make_details.py",
+    "limitations": [
+      "静态模型；没有未验收的拿取、坐卧或家电运行功能"
+    ],
+    "placement": "surface",
+    "bin_label": "toys"
+  },
+  "family-rug-robot-v2": {
+    "label": "地毯上的拼装机器人与装配册",
+    "kind": "toy_set",
+    "style": "urban-family",
+    "model": "/models/furniture/family-rug-robot-v2.glb",
+    "size": [
+      1.04,
+      0.87
+    ],
+    "height": 0.35,
+    "native_materials": true,
+    "source_type": "native_geometry",
+    "source": "Original toy geometry: house3d/web/workshop-kit.js",
+    "placement": "floor",
+    "interactions": {
+      "play": {
+        "root": [
+          0.03,
+          0.008,
+          -0.18
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            0.1,
+            0,
+            -1.13
+          ],
+          [
+            1.24,
+            0,
+            -0.15
+          ],
+          [
+            -1.24,
+            0,
+            -0.15
+          ],
+          [
+            0.06,
+            0,
+            1.15
+          ]
+        ]
+      }
+    },
+    "assembly_guide": "/models/materials/family-assembly-guide-v1.jpg"
+  },
+  "family-maple-media-unit-v1": {
+    "label": "白橡木电视矮柜",
+    "kind": "media_console",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-maple-media-unit-v1.glb",
+    "size": [
+      2.192,
+      0.541
+    ],
+    "height": 0.442,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "top": {
+        "size": [
+          2.12,
+          0.47
+        ],
+        "height": 0.441
+      },
+      "upper_bay": {
+        "size": [
+          0.61,
+          0.37
+        ],
+        "center": [
+          0.225,
+          0
+        ],
+        "height": 0.2485,
+        "clearance": 0.16
+      },
+      "lower_bay": {
+        "size": [
+          1.08,
+          0.37
+        ],
+        "height": 0.073,
+        "clearance": 0.155
+      }
+    },
+    "limitations": [
+      "两侧柜门为装饰；中间两层可布置低矮物品"
+    ]
+  },
+  "family-wireless-pad-v1": {
+    "label": "奶油白无线手柄",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-wireless-pad-v1.glb",
+    "size": [
+      0.145,
+      0.09
+    ],
+    "height": 0.045,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface",
+    "limitations": [
+      "独立摆件；不能操控电视节目"
+    ]
+  },
+  "family-game-corner-v1": {
+    "label": "掌机底座和配套手柄",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-game-corner-v1.glb",
+    "size": [
+      0.28,
+      0.175
+    ],
+    "height": 0.137,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface",
+    "limitations": [
+      "作为一组摆放；需要分开时选独立手柄和单独底座"
+    ]
+  },
+  "family-woven-rug-v1": {
+    "label": "雾蓝拼织客厅地毯",
+    "kind": "rug",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-woven-rug-v1.glb",
+    "size": [
+      3.741,
+      2.481
+    ],
+    "height": 0.014,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "rug_fabric": "/models/materials/lounge-rug-v1.jpg"
+  },
+  "family-low-table-v1": {
+    "label": "圆角枫木小茶几",
+    "kind": "coffee_table",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-low-table-v1.glb",
+    "size": [
+      1.18,
+      0.681
+    ],
+    "height": 0.36,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "top": {
+        "size": [
+          0.99,
+          0.51
+        ],
+        "height": 0.35974144837056377
+      }
+    }
+  },
+  "family-weekend-tea-v1": {
+    "label": "周末茶点和手作杂志",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-weekend-tea-v1.glb",
+    "size": [
+      0.741,
+      0.371
+    ],
+    "height": 0.244,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface",
+    "print_texture": "/models/materials/family-assembly-guide-v1.jpg"
+  },
+  "family-entry-landing-v1": {
+    "label": "浅石色拼砖换鞋区",
+    "kind": "rug",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-entry-landing-v1.glb",
+    "size": [
+      1.241,
+      0.96
+    ],
+    "height": 0.015,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "surfaces": {
+      "top": {
+        "size": [
+          1.23,
+          0.95
+        ],
+        "height": 0.014
+      }
+    }
+  },
+  "family-entry-memory-v1": {
+    "label": "小家画框与钥匙碟",
+    "kind": "desktop",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-entry-memory-v1.glb",
+    "size": [
+      0.313,
+      0.161
+    ],
+    "height": 0.134,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "surface",
+    "print_texture": "/models/materials/family-picnic-v1.jpg"
+  },
+  "family-studio-board-v1": {
+    "label": "书桌上的小小作品展",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-studio-board-v1.glb",
+    "size": [
+      0.7,
+      0.044
+    ],
+    "height": 0.611,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "wall",
+    "elevation": 1.14,
+    "print_texture": "/models/materials/family-assembly-guide-v1.jpg"
+  },
+  "family-entry-hooks-v1": {
+    "label": "玄关高挂帽袋架",
+    "kind": "wall_art",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-outing-hooks-v1.glb",
+    "size": [
+      0.68,
+      0.239
+    ],
+    "height": 0.597,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/export-family-interior.mjs",
+    "placement": "wall",
+    "elevation": 1.34
+  },
+  "family-trailing-pothos-v1": {
+    "label": "青釉盆垂藤绿萝",
+    "kind": "plant",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-trailing-pothos-v1.glb",
+    "size": [
+      0.398,
+      0.429
+    ],
+    "height": 0.691,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/trailing-pothos.mjs",
+    "placement": "surface",
+    "limitations": [
+      "放在有开放前缘的层板上，让藤叶朝外；整盆可独立移动。"
+    ],
+    "support_offset": -0.4243759214878082,
+    "ledge_mount": {
+      "pot_center": [
+        0.011670321226119995,
+        -0.09587391465902328
+      ],
+      "pot_radius": 0.084,
+      "tail": [
+        -0.1989438682794571,
+        0.1091190055012703,
+        0.1989438682794571,
+        0.21402666717767715
+      ]
+    }
+  },
+  "family-enamel-washer-v1": {
+    "label": "暖白珐琅滚筒洗衣机",
+    "kind": "washer",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-enamel-washer-v1.glb",
+    "size": [
+      0.621,
+      0.606
+    ],
+    "height": 0.834,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/balcony-laundry.mjs",
+    "placement": "floor",
+    "limitations": [
+      "机门、滚筒和面板为静态家具细节；不提供开机或洗衣动作。"
+    ]
+  },
+  "family-laundry-shelf-v1": {
+    "label": "暖白滚筒洗衣机 · 枫木花架",
+    "kind": "washer",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-enamel-washer-v1.glb",
+    "size": [
+      0.621,
+      0.606
+    ],
+    "height": 1.13,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/balcony-laundry.mjs",
+    "placement": "floor",
+    "limitations": [
+      "机门、滚筒和面板为静态家具细节；不提供开机或洗衣动作。"
+    ],
+    "surfaces": {
+      "top": {
+        "size": [
+          0.58,
+          0.48
+        ],
+        "height": 1.13,
+        "front_edge": 0.26,
+        "center": [
+          0,
+          -0.021
+        ]
+      }
+    },
+    "laundry_shelf": true,
+    "runtime_refinement": "Local maple shelf and coated-steel riser. Plants are independently placed on its top surface."
+  },
+  "family-linen-rail-v1": {
+    "label": "晒着棉巾与条纹童装的窄轨晾衣架",
+    "kind": "drying_rack",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-linen-rail-v1.glb",
+    "size": [
+      1.454,
+      0.273
+    ],
+    "height": 1.203,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/balcony-laundry.mjs",
+    "placement": "floor",
+    "limitations": [
+      "作为一件独立家具摆放，衣物不能单独取下。"
+    ]
+  },
+  "family-maple-dining-chair-v1": {
+    "label": "枫木弯背布垫餐椅",
+    "kind": "dining_chair",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/family-maple-dining-chair-v1.glb",
+    "size": [
+      0.475,
+      0.499
+    ],
+    "height": 0.842,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "source": "Original local geometry: tools/maple-chair.mjs",
+    "interactions": {
+      "sit": {
+        "root": [
+          0,
+          0.0975,
+          -0.015
+        ],
+        "yaw": 0,
+        "seat_height": 0.449,
+        "approaches": [
+          [
+            -1.01,
+            0,
+            0.14
+          ],
+          [
+            1.01,
+            0,
+            0.14
+          ],
+          [
+            -0.91,
+            0,
+            -0.26
+          ],
+          [
+            0.91,
+            0,
+            -0.26
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            -0.98
+          ]
+        ]
+      }
+    },
+    "limitations": [
+      "可从可达的一侧入座；不提供进食或端碗动画。"
+    ]
+  },
+  "family-wide-lounge-v1": {
+    "label": "宽座奶油三人沙发",
+    "kind": "sofa",
+    "limitations": [
+      "较宽款与原款共用原色贴图，扶手保留原形；可独立摆放抱枕和搭毯，未标定人物坐点。"
+    ],
+    "style": "cozy-family-painted",
+    "model": "/models/furniture/family-sofa-stylized-v2.glb",
+    "size": [
+      2.64,
+      0.8493152260780334
+    ],
+    "height": 0.7788649797439575,
+    "painted": true,
+    "recolorable": false,
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 78f2ba59-aa97-422d-9d3d-7b1188051ea1",
+    "surfaces": {
+      "seat": {
+        "size": [
+          2.8400000000000003,
+          0.81
+        ],
+        "height": 0.442
+      }
+    },
+    "lounge_extension": 0.64
+  },
+  "family-task-lamp-v1": {
+    "label": "暖白双臂阅读灯",
+    "kind": "lamp",
+    "style": "urban-family-soft",
+    "model": "/models/furniture/urban-study-lamp-v1.glb",
+    "size": [
+      0.2930000126361847,
+      0.1404999941587448
+    ],
+    "height": 0.461,
+    "painted": false,
+    "recolorable": false,
+    "placement": "surface",
+    "source": "Local native Blender object subset; urban-v4/split_study_props.py",
+    "limitations": [
+      "可独立调光和开关；灯臂与灯头为固定姿态。"
+    ],
+    "runtime_refinement": "Local Three.js study lamp with longer arms, independent adjustable light and original placement footprint; original GLB retained.",
+    "task_light": true
   }
 }

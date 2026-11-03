@@ -32,13 +32,13 @@ export function spaceSegments(room={},objects=[]){
 }
 export function createSpace(room={},objects=[]){const segments=spaceSegments(room,objects);return {segments,clearance:p=>regionAt(room,p)?Math.min(...segments.map(([a,b])=>distanceToSegment(p,a,b)))-(room.balcony ? .10 : .15):-Infinity,free(p,radius=.57){return Number.isFinite(p.x)&&Number.isFinite(p.z)&&this.clearance(p)>=radius-1e-8}}}
 // Glass remains visually transparent when shut; the surrounding room wall does not.
-export function wallBlocksSight(room,objects,a,b){
+export function wallBlocksSight(room,objects,a,b,assets={}){
  const d=balconyGeometry(room),door=d&&objects.find(o=>o.id===d.door_id),q=door&&balconyLocal(room,door),w=(room.width??6)/2,h=(room.depth??5)/2;
  for(const [id,axis,value,other,span] of [['left','x',-w,'z',h],['right','x',w,'z',h],['back','z',-h,'x',w],['front','z',h,'x',w]]){
   const delta=b[axis]-a[axis];if(Math.abs(delta)<1e-9)continue;const t=(value-a[axis])/delta;if(t<=.001||t>=.999)continue;
   const p={x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t},y=a.y+(b.y-a.y)*t;
   if(Math.abs(p[other])>span||y<0||y>(room.height??2.4))continue;
-  if(d&&id===d.wall&&q&&Math.abs(balconyLocal(room,p).u-q.u)<=1.21&&y>=.03&&y<=2.20)continue;
+  if(d&&id===d.wall&&q&&Math.abs(balconyLocal(room,p).u-q.u)<=(assets[door.asset_id]?.wall_opening?.width??2.42)/2&&y>=.03&&y<=2.20)continue;
   return true;
  }return false;
 }

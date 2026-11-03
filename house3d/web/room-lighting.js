@@ -1,8 +1,20 @@
 export function windowSunPose(objects,assets){
  const window=objects.find(o=>assets[o.asset_id]?.wall_opening);
  if(!window)return {position:[-5,5.8,-3],target:[.5,0,.5]};
+ const wide=assets[window.asset_id].wall_opening.width>3;
  const inward={x:Math.sin(window.yaw),z:Math.cos(window.yaw)},along={x:Math.cos(window.yaw),z:-Math.sin(window.yaw)};
- return {position:[window.x-inward.x*5-along.x*2.2,4.6,window.z-inward.z*5-along.z*2.2],target:[window.x+inward.x*3,.15,window.z+inward.z*3]};
+ // In the wide family room the afternoon shaft crosses the rug and reaches the front dining chairs.
+ const lateral=wide?3.90:-2.2;
+ return {position:[window.x-inward.x*5+along.x*lateral,wide?2.78:4.6,window.z-inward.z*5+along.z*lateral],target:[window.x+inward.x*3,.15,window.z+inward.z*3]};
+}
+// Centre the indirect emitter on the floor patch reached by the middle of the glazing.
+export function floorBouncePose(window,opening,room,centerY){
+ const sun=windowSunPose([window],{[window.asset_id]:{wall_opening:opening}});
+ const ray=sun.target.map((n,i)=>n-sun.position[i]),t=-centerY/ray[1];
+ const alongX=Math.abs(Math.cos(window.yaw))>.5;
+ const w=Math.min(opening.width,(alongX?room.width:room.depth)*.55),d=Math.min(2,(alongX?room.depth:room.width)*.5);
+ const fit=(v,span,patch)=>Math.max((-span+patch)/2,Math.min((span-patch)/2,v));
+ return {x:fit(window.x+ray[0]*t,room.width,alongX?w:d),z:fit(window.z+ray[2]*t,room.depth,alongX?d:w),width:w,depth:d};
 }
 export function wallCells(width,height,holes=[]){
  const clean=holes.map(h=>({x0:Math.max(-width/2,h.x-h.width/2),x1:Math.min(width/2,h.x+h.width/2),y0:Math.max(0,h.bottom),y1:Math.min(height,h.bottom+h.height)})).filter(h=>h.x1>h.x0&&h.y1>h.y0);

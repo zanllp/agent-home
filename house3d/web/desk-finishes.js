@@ -10,6 +10,41 @@ function garden(c,x,y,w,h){fill(c,x,y,w,h,'#e5eee1');fill(c,x,y+h*.68,w,h*.32,'#
 function workbookPage(c,w,h,right){fill(c,0,0,w,h,'#f6f0e0');text(c,right?'给小花安个家':'今天的小发现',32,60,27,'#647e72',true);fill(c,30,80,w-60,2,'#cad5ba');if(right){garden(c,35,115,w-70,h*.55);text(c,'阳光 · 小屋 · 花园',42,h-75,20,'#8b9786');for(let i=0;i<3;i++){fill(c,40+i*110,h-46,75,2,['#c4b287','#aac0bd','#c6a694'][i])}}else{for(const [i,t] of ['观察一片叶子的形状','给植物画一个新花盆','留一点时间发呆'].entries()){text(c,String(i+1)+'.',36,140+i*90,20,'#a5b29b');text(c,t,70,140+i*90,21);fill(c,70,158+i*90,w-110,1,'#e2dcc8')}garden(c,45,h*.69,w-90,h*.23)}for(let i=0;i<12;i++)fill(c,w-5,i*h/12,2,h/20,'#ded4bd')}
 function faceOverlay(parent,name,w,h,pos,texture,rotation){const face=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:texture,transparent:true,toneMapped:false,depthWrite:false}));face.name=name;face.position.set(...pos);if(rotation)face.rotation.set(...rotation);face.castShadow=false;parent.add(face);return face}
 export function applyDeskFinishes(root,{canvasFactory=()=>document.createElement('canvas'),pictureBookImage}={}){
+ const washer=root.getObjectByName('Wash_fascia_lettering');
+ if(washer){
+  root.getObjectByName('Convex_inspection_glass').castShadow=false;
+  const labels=imageTexture(canvasFactory,1024,236,(c,w,h)=>{
+   c.clearRect(0,0,w,h);text(c,'清 洗',35,52,16,'#697470',true);
+   text(c,'棉织物',355,33,12,'#687571');text(c,'快洗',520,60,12,'#687571');
+   text(c,'水温',723,173,14,'#687571');text(c,'漂洗',802,173,14,'#687571');text(c,'启动',886,173,14,'#687571');
+   fill(c,735,111,12,3,'#96b3a8');fill(c,753,111,12,3,'#96b3a8');
+  });
+  washer.material=washer.material.clone();washer.material.map=labels;washer.material.opacity=1;
+  washer.material.needsUpdate=true;washer.castShadow=false;washer.receiveShadow=false;
+ }
+ const sketch=root.getObjectByName('Weekend_sketch');
+ if(sketch&&pictureBookImage){
+  const print=(name,w,h,draw)=>{
+   const card=root.getObjectByName(name);card.material=card.material.clone();card.material.map=imageTexture(canvasFactory,w,h,draw);card.material.needsUpdate=true;
+  };
+  print('Weekend_sketch',720,426,(c,w,h)=>{
+   fill(c,0,0,w,h,'#f9f3de');text(c,'我的机器人',32,52,30,'#5b7792',true);
+   c.drawImage(pictureBookImage,pictureBookImage.width/2,0,pictureBookImage.width/2,pictureBookImage.height,164,64,388,330);
+  });
+  print('Garden_diary',424,365,(c,w,h)=>{fill(c,0,0,w,h,'#fbf6e7');garden(c,14,20,w-28,h-91);text(c,'今天窗边开花啦',25,h-20,21,'#738e72')});
+  print('Workshop_ticket',430,276,(c,w,h)=>{fill(c,0,0,w,h,'#f3dfaa');fill(c,18,18,w-36,5,'#ba8859');text(c,'周六手作',30,95,43,'#8d6243',true);text(c,'家庭工坊   10:00',30,159,26,'#8d7557');flower(c,360,210,17,'#cd987e')});
+ }
+ const magazine=root.getObjectByName('Weekend_print');
+ if(magazine&&pictureBookImage){
+  const t=imageTexture(canvasFactory,640,468,(c,w,h)=>{
+   fill(c,0,0,w,h,'#dce9e6');fill(c,0,0,21,h,'#779aaf');fill(c,35,110,w-70,2,'#a3b9b6');
+   text(c,'周末手作',48,78,52,'#486277',true);text(c,'NO. 03',455,73,23,'#758986');
+   c.drawImage(pictureBookImage,pictureBookImage.width/2,0,pictureBookImage.width/2,pictureBookImage.height,103,126,242,307);
+   text(c,'会眨眼的',380,238,30,'#637f85');text(c,'小机器人',380,287,35,'#526b80',true);
+  });magazine.material=new T.MeshStandardMaterial({map:t,roughness:.91});
+ }
+ const picnic=root.getObjectByName('Picnic_print');
+ if(picnic&&pictureBookImage){const print=new T.Texture(pictureBookImage);print.colorSpace=T.SRGBColorSpace;print.anisotropy=8;print.needsUpdate=true;picnic.material.map=print;picnic.material.needsUpdate=true}
  let wood;const replacements=new Map();root.traverse(o=>{if(!o.isMesh||!o.name.startsWith('Wood-'))return;if(!wood)wood=woodTexture();const source=o.material;if(!replacements.has(source)){const mat=source.clone();mat.map=wood;mat.color.set('#ffffff');mat.roughness=.48;mat.envMapIntensity=.72;replacements.set(source,mat)}o.material=replacements.get(source)});
  const left=root.getObjectByName('Workbook-page-left'),right=root.getObjectByName('Workbook-page-right');for(const [i,page] of [left,right].entries()){if(!page)continue;const t=imageTexture(canvasFactory,480,640,(c,w,h)=>workbookPage(c,w,h,!!i));const mat=page.material.clone();mat.map=t;mat.color.set('#ffffff');mat.roughness=.97;page.material=mat}
  if(pictureBookImage)for(const [i,name] of ['Picturebook-page-left','Picturebook-page-right'].entries()){
@@ -40,4 +75,113 @@ export function showCrayonDrawing(instance, image, title, canvasFactory=()=>docu
  });
  const mat=new T.MeshBasicMaterial({map:texture,side:T.DoubleSide,toneMapped:false});page.material=mat;
  return ()=>{texture.dispose();mat.dispose()};
+}
+
+// The board displays a copy; removing a book also removes its work from the exhibition.
+export function exhibitedBook(objects){
+ let newest=0,book;
+ for(const o of objects){
+  if(o.kind!=='books'||o.artwork?.target_id!==o.id)continue;
+  const match=/^\/api\/drawings\/(\d+)\.png$/.exec(o.artwork.url);
+  if(match&&Number(match[1])>newest){newest=Number(match[1]);book=o}
+ }
+ return book;
+}
+export function showPinnedDrawing(instance,image,title,canvasFactory=()=>document.createElement('canvas')){
+ const card=instance.getObjectByName('Weekend_sketch');if(!card)return;
+ const original=card.material,mat=original.clone();
+ const map=imageTexture(canvasFactory,720,426,(c,w,h)=>{
+  fill(c,0,0,w,h,'#fbf5e8');
+  const scale=Math.min((w-32)/image.width,(h-70)/image.height);
+  const dw=image.width*scale,dh=image.height*scale;
+  c.drawImage(image,(w-dw)/2,12+(h-70-dh)/2,dw,dh);
+  c.fillStyle='#626e70';c.font='24px sans-serif';c.fillText(title,24,h-16,w-48);
+ });
+ mat.map=map;mat.needsUpdate=true;card.material=mat;
+ return ()=>{card.material=original;mat.dispose();map.dispose()};
+}
+
+// Subtle woven stripes, not painted-on shadows; the mat remains a separate support.
+export function finishDiningLinen(root,canvasFactory=()=>document.createElement('canvas')){
+ const cloth=root.getObjectByName('Linen_placemat');
+ if(!cloth)return;
+ const map=imageTexture(canvasFactory,640,544,(c,w,h)=>{
+  fill(c,0,0,w,h,'#e2d9c6');
+  for(const y of [36,40,47,h-36,h-40,h-47])fill(c,0,y,w,2,'#a5b5b0');
+  for(let y=0;y<h;y+=3){c.fillStyle='rgba(131,109,86,.14)';c.fillRect(0,y,w,1)}
+  for(let x=0;x<w;x+=3){c.fillStyle='rgba(255,251,235,.29)';c.fillRect(x,0,1,h)}
+ });
+ map.minFilter=T.LinearMipmapLinearFilter;map.generateMipmaps=true;
+ cloth.material=cloth.material.clone();cloth.material.map=map;cloth.material.color.set(0xffffff);cloth.material.roughness=.96;
+}
+
+export function finishLinenPillow(root,canvasFactory=()=>document.createElement('canvas')){
+ const panels=[];root.traverse(o=>{if(o.isMesh&&o.name.startsWith('Filled_linen_panel'))panels.push(o)});if(!panels.length)return;
+ const map=imageTexture(canvasFactory,480,400,(c,w,h)=>{
+  fill(c,0,0,w,h,'#8ca7be');
+  for(let y=0;y<h;y+=3)for(let x=0;x<w;x+=6){const dx=x+(Math.floor(y/3)%3)*2;fill(c,dx,y,4,1,'rgba(248,245,225,.23)');fill(c,dx-2,y+1,3,1,'rgba(50,76,94,.14)')}
+  // Two lines of running stitches follow the edge rather than lying flat in the room.
+  c.lineWidth=1.7;c.strokeStyle='#cdd6d4';c.setLineDash([5,4]);c.strokeRect(18,18,w-36,h-36);
+ });
+ for(const panel of panels){
+  const g=panel.geometry,p=g.attributes.position,uv=g.attributes.uv;
+  if(!g.userData.shapedLinen)for(let i=0;i<p.count;i++){
+   const u=uv.getX(i)*2-1,v=uv.getY(i)*2-1,z=p.getZ(i);
+   // Compression radiates from the lower corners; both panels still meet the original piped seam.
+   const inside=Math.max(0,(1-u*u)*(1-v*v));
+   const pinch=.014*Math.exp(-((v+.60-.59*(1-Math.abs(u)))**2)/.012)*Math.abs(u)**1.4;
+   p.setZ(i,z-Math.sign(z)*pinch*Math.sqrt(inside));
+  }
+  g.userData.shapedLinen=true;p.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
+  panel.material.map=map;panel.material.color.set(0xffffff);panel.material.roughness=.98;
+ }
+}
+
+export function finishSofaThrow(root,canvasFactory=()=>document.createElement('canvas')){
+ const wool=root.getObjectByName('Wool_drape');if(!wool)return;
+ const map=imageTexture(canvasFactory,512,384,(c,w,h)=>{
+  fill(c,0,0,w,h,root.userData.armFit?'#8194a9':'#91a4b8');
+  // The bands follow the draped UVs and turn down the arm with the fringe.
+  for(const u of [.12,.86])for(const [offset,width,color] of [[-12,3,'#bcc7cc'],[-6,8,'#d5d6cd'],[6,3,'#c4cdcf']])fill(c,u*w+offset,0,width,h,color);
+  if(root.userData.armFit){
+   // A double row of oat-coloured herringbone runs across the finished hanging hem.
+   c.strokeStyle='#d9d8cd';c.lineWidth=2.5;c.beginPath();
+   for(let y=-10;y<h+10;y+=12){c.moveTo(w*.907,y);c.lineTo(w*.922,y+5);c.lineTo(w*.907,y+10)}
+   c.stroke();fill(c,w*.945,0,2,h,'#e4dfd0');fill(c,w*.965,0,3,h,'#c8caca');
+  }
+  if(root.userData.armFit){
+   let seed=51;for(let i=0;i<24000;i++){
+    seed=(Math.imul(seed,1664525)+1013904223)>>>0;const x=(seed&511),y=(seed>>>9)%h;
+    c.fillStyle=(seed&8192)?'rgba(244,242,228,.16)':'rgba(48,70,94,.13)';
+    c.fillRect(x,y,2+(seed%4),1);
+   }
+   return;
+  }
+  for(let y=0;y<h;y+=4)for(let x=0;x<w;x+=8){
+   const shift=(Math.floor(y/4)%4)*2;
+   fill(c,x+shift,y,5,2,'rgba(245,241,222,.22)');
+   fill(c,x+shift-2,y+2,3,2,'rgba(55,72,95,.14)');
+  }
+ });
+ wool.material.map=map;wool.material.color.set(0xffffff);wool.material.roughness=.99;
+}
+
+export function finishBookStack(root,canvasFactory=()=>document.createElement('canvas')){
+ const covers=[];root.traverse(o=>{if(o.isMesh&&o.name.startsWith('Book_back'))covers.push(o)});
+ covers.sort((a,b)=>a.position.y-b.position.y);
+ for(const cover of covers){
+  const bottom=cover.clone(false),spine=cover.clone(false);
+  bottom.scale.y=cover.scale.y=.09;bottom.position.y-=.0145;cover.position.y+=.0145;
+  spine.scale.x=.026;spine.position.x-=.111;cover.parent.add(bottom,spine);
+ }
+ const top=covers.at(-1);if(!top)return;
+ const print=imageTexture(canvasFactory,512,384,(c,w,h)=>{
+  fill(c,0,0,w,h,'#e8ddbc');fill(c,0,0,23,h,'#658078');fill(c,34,27,w-60,2,'#a1ab90');
+  text(c,'植物观察簿',50,87,45,'#485f57',true);text(c,'窗边的小花园',52,124,19,'#758b77');
+  c.strokeStyle='#698770';c.lineWidth=4;c.beginPath();c.moveTo(160,322);c.bezierCurveTo(240,263,265,298,405,142);c.stroke();
+  for(let i=0;i<7;i++){const x=175+i*32,y=309-i*22;c.fillStyle=i%2?'#719078':'#9bac8a';c.beginPath();c.ellipse(x,y+(i%2?10:-14),30,11,i%2?.22:-1,0,Math.PI*2);c.fill()}
+  flower(c,365,176,11,'#f4ecca');flower(c,398,142,9,'#fff1ca');
+ });
+ const face=new T.Mesh(new T.PlaneGeometry(.218,.159),new T.MeshStandardMaterial({map:print,roughness:.89}));
+ face.name='Botany-notebook-print';face.rotation.x=-Math.PI/2;face.position.copy(top.position);face.position.y+=.00165;face.receiveShadow=true;top.parent.add(face);
 }

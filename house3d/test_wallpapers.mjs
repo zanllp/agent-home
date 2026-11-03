@@ -1,3 +1,15 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {Group,DataTexture} from 'three';import {readFileSync} from 'node:fs';import {createRoomWalls} from './web/room-walls.js';
 test('paper is per-wall, uses real-world tile sizes and reuses texture resources',async()=>{const parent=new Group();let loads=0;const walls=createRoomWalls(parent,{loadTexture:async()=>{loads++;return new DataTexture(new Uint8Array([255,255,255,255]),1,1)}});await walls.setFinish({wallpapers:{back:'whale-breeze',left:'blue-linen'}});const back=parent.getObjectByName('wall-back').getObjectByName('wallpaper'),left=parent.getObjectByName('wall-left').getObjectByName('wallpaper');assert.equal(back.visible,true);assert.equal(left.visible,true);assert.notEqual(back.material.map,left.material.map);assert.ok(Math.abs(back.material.map.repeat.x-6/.9)<1e-9);assert.equal(parent.getObjectByName('wall-front').getObjectByName('wallpaper').visible,false);await walls.setFinish({wallpapers:{back:'whale-breeze',left:'plain',right:'whale-breeze'}});assert.equal(loads,2);assert.equal(left.visible,false);assert.equal(left.material.map,null);assert.equal(back.visible,true);walls.dispose()});
 test('invalid catalog ids fail explicitly and packaged SVGs have no external references',async()=>{const parent=new Group(),walls=createRoomWalls(parent);await assert.rejects(walls.setFinish({wallpapers:{back:'missing'}}));walls.dispose();const catalog=JSON.parse(readFileSync(new URL('./wallpapers.json',import.meta.url)));for(const paper of Object.values(catalog)){if(!paper.texture)continue;const svg=readFileSync(new URL('./assets/'+paper.texture.replace('/models/',''),import.meta.url),'utf8');assert.ok(svg.includes('<svg'));assert.ok(!/(?:href|src)="https?:/i.test(svg));assert.ok(!svg.includes('<script'))}});
+
+test('matte blue is per wall, needs no texture request, and washes out completely when switched',async()=>{
+ const parent=new Group();let loads=0;const walls=createRoomWalls(parent,{loadTexture:async()=>{loads++;return new DataTexture(new Uint8Array(4),1,1)}});
+ const paper=parent.getObjectByName('wall-left').getObjectByName('wallpaper');
+ try{
+  await walls.setFinish({style:'urban',wallpapers:{left:'harbor-blue'}});
+  assert.ok(paper.visible);assert.equal(paper.material.map,null);assert.ok(paper.material.bumpMap);assert.equal(loads,0);
+  const finish=JSON.parse(readFileSync(new URL('./wallpapers.json',import.meta.url)));assert.equal('#'+paper.material.color.getHexString(),finish['harbor-blue'].color);
+  await walls.setFinish({style:'urban',wallpapers:{left:'daisy-meadow'}});assert.equal(loads,1);assert.equal(paper.material.color.getHex(),0xffffff);assert.equal(paper.material.bumpMap,null);
+  await walls.setFinish({style:'urban',wallpapers:{left:'plain'}});assert.equal(paper.visible,false);
+ }finally{walls.dispose()}
+});

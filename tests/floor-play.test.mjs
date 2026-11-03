@@ -53,3 +53,63 @@ test('packing/unpacking a placed kit preserves its pose job and is discoverable'
   assert.equal(act('unpack').status,200);assert.equal(a.store.state().objects.find(o=>o.id===kit.id).properties.packed,false);
  }finally{a.close()}
 });
+
+test('rug kit packs all seven complete parts and keeps both printed pages in place',async()=>{
+ const {createRugWorkshop,printAssemblyGuide}=await import('../house3d/web/workshop-kit.js');
+ const {packFloorToys}=await import('../house3d/web/floor-toys.js');
+ const source=createRugWorkshop(),placed=source.clone(true),tray=placed.getObjectByName('Tray-bottom').parent;
+ assert.equal(source.getObjectByName('Seat-cushion'),undefined);
+ printAssemblyGuide(placed,{width:1152,height:768});
+ const pages=['Diagram-left','Diagram-right'].map(name=>placed.getObjectByName(name));
+ assert.deepEqual(pages.map(p=>p.material.map.offset.x),[0,.5]);assert.ok(pages.every(p=>p.material.map.repeat.x===.5));
+ packFloorToys(placed);const loose=tray.children.filter(o=>o.name.startsWith('Loose-piece'));
+ assert.equal(loose.length,7);assert.equal(new Set(loose.map(o=>o.position.toArray().join(','))).size,7);
+ assert.ok(loose.every(o=>o.children.length>=2));assert.ok(pages.every(p=>p.parent.name==='Assembly-booklet'));
+ assert.equal(source.getObjectByName('Loose-piece-4').parent,source);
+});
+
+test('contact shade belongs to the rug pose only and is cleaned up when she gets up',async()=>{
+ const {createPlayContact}=await import('../house3d/web/play-contact.js');
+ const avatar=new Group(),bones=new Map();
+ for(const k of ['Hips','LeftLeg','RightLeg','LeftFoot','RightFoot']){const bone=new Bone();avatar.add(bone);bones.set(k,bone)}
+ avatar.position.set(1,.028,-1);avatar.rotation.y=.48;
+ const contact=createPlayContact(avatar,bones),mesh=avatar.getObjectByName('Seated-rug-contact');contact.update(1,.020);
+ assert.equal(mesh.visible,true);assert.ok(Math.abs(mesh.position.y+avatar.position.y-.0206)<1e-8);
+ contact.update(0);assert.equal(mesh.visible,false);contact.dispose();assert.equal(mesh.parent,null);
+});
+
+test('both assembled toys and all loose parts fit the actual rug kit, including when tidied',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js'),{Box3}=await import('three');
+ const {readFileSync}=await import('node:fs'),{finishRugKit}=await import('../house3d/web/scout-model.js'),{packFloorToys}=await import('../house3d/web/floor-toys.js');
+ const bytes=readFileSync(resolve('house3d/assets/furniture/family-rug-robot-v2.glb'));
+ const {scene}=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+ finishRugKit(scene);const placed=scene.clone(true),box=o=>new Box3().setFromObject(o,true);
+ const scout=placed.getObjectByName('Standing-scout'),bot=placed.getObjectByName('Pick-up-robot'),tray=placed.getObjectByName('Parts-tray');
+ const cat=JSON.parse(readFileSync(resolve('house3d/furniture-assets.json')))['family-rug-robot-v2'];
+ const checkBounds=()=>{placed.updateMatrixWorld(true);const b=box(placed);assert.ok(b.max.y<=cat.height&&b.min.y>=-.00001);assert.ok(Math.max(b.max.x,-b.min.x)<=cat.size[0]/2);assert.ok(Math.max(b.max.z,-b.min.z)<=cat.size[1]/2)};
+ const parts=Array.from({length:7},(_,i)=>placed.getObjectByName('Loose-piece-'+i));
+ checkBounds();for(const other of [bot,tray,...parts])assert.equal(box(scout).intersectsBox(box(other)),false,other.name);
+ packFloorToys(placed);checkBounds();assert.equal(scout.parent,tray);assert.equal(bot.parent,tray);
+ for(const other of [bot,...parts])assert.equal(box(scout).intersectsBox(box(other)),false,other.name);
+ assert.ok(parts.every(p=>p.parent===tray));assert.equal(scene.getObjectByName('Standing-scout').parent,scene);
+});
+
+test('agent contact identifies the rug under the seat rather than reporting a nonexistent cushion',()=>{
+ const root=resolve('house3d'),a=new HouseApp(loadContext(root),':memory:',root,resolve('runtime/web'),()=>100);
+ const cmd=(tool,args)=>a.command({id:crypto.randomUUID(),expected_revision:a.store.state().revision,tool,arguments:args},100);
+ try{
+  cmd('apply_preset',{preset_id:'family-home',dry_run:false});cmd('interact',{target_id:'floor-workshop',action:'play'});
+  const s=a.store.state();s.interaction.phase='active';a.store.save(s);
+  const feedback=(x,z)=>{
+   const body={session_id:'floor-contact',visible:true,paused:false,job_id:s.interaction.id,body:{x,z,y:.02,yaw:0,pose:'play',moving:false}};
+   assert.equal(a.handle({method:'POST',url:'/api/viewer',headers:{},body}).status,200);
+   return a.handle({method:'GET',url:'/api/observe',headers:{}}).body;
+  };
+  const on=feedback(-.64,1.40);assert.equal(on.touch[0].object_id,'rug');assert.match(on.summary,/地毯/);assert.equal(on.hands.holding,'toy_robot');
+  // The furniture set can live on bare flooring too: do not mistake its own footprint for a seat.
+  const bare={...s,objects:s.objects.filter(o=>o.id!=='rug')};a.store.save(bare);
+  const off=feedback(-.64,1.40);assert.deepEqual(off.touch,[]);assert.match(off.summary,/地板/);
+  const kit=bare.objects.find(o=>o.id==='floor-workshop');kit.asset_id='floor-robot-kit-v1';a.store.save(bare);
+  const cushion=feedback(-.64,1.40);assert.equal(cushion.touch[0].object_id,kit.id);assert.match(cushion.summary,/软垫/);
+ }finally{a.close()}
+});

@@ -154,7 +154,7 @@ export class Store {
           active:
             e.action === "sleep"
               ? "已经躺好。"
-              : e.action === "draw" ? "坐在椅子上，拿蜡笔画画。" : e.action === "play" ? "坐在地垫上，拿起小机器人。" : e.action === "read"
+              : e.action === "draw" ? "坐在椅子上，拿蜡笔画画。" : e.action === "play" ? "已经坐好，玩具就在手边。" : e.action === "read"
                 ? "坐好，开始看书。"
                 : "已经坐稳。",
           leaving: e.pose === "read" ? "正在放下书、起身。" : "正在起身。",

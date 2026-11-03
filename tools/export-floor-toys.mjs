@@ -1,9 +1,14 @@
 import {writeFileSync,readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {indexExactVertices} from './index-geometry.mjs';
+import {createRugWorkshop} from '../house3d/web/workshop-kit.js';
 import {createFloorToys} from '../house3d/web/floor-toys.js';
 globalThis.FileReader=class{readAsArrayBuffer(blob){blob.arrayBuffer().then(value=>{this.result=value;this.onloadend?.()})}};
-const path='house3d/assets/furniture/floor-robot-kit-v1.glb',bytes=new Uint8Array(await new GLTFExporter().parseAsync(createFloorToys(),{binary:true}));
+const rug=process.argv.includes('--rug'),id=rug?'family-rug-robot-v2':'floor-robot-kit-v1';
+const model=rug?createRugWorkshop():createFloorToys();
+if(rug)model.traverse(o=>{if(o.isMesh)indexExactVertices(o.geometry)});
+const path='house3d/assets/furniture/'+id+'.glb',bytes=new Uint8Array(await new GLTFExporter().parseAsync(model,{binary:true}));
 writeFileSync(path,bytes);const manifest=JSON.parse(readFileSync('runtime-assets.json'));
-manifest.assets[path]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),source:'Original local geometry: house3d/web/floor-toys.js'};
+manifest.assets[path]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),source:'Original local geometry: house3d/web/'+(rug?'workshop-kit.js':'floor-toys.js')};
 writeFileSync('runtime-assets.json',JSON.stringify(manifest,null,2)+'\n');

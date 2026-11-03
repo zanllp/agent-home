@@ -1,0 +1,14 @@
+{
+  "dry_run": true,
+  "operations": [
+    {
+      "op": "add",
+      "id": "family-guest-chair",
+      "label": "一起吃饭的餐椅",
+      "asset_id": "family-maple-dining-chair-v1",
+      "x": 1.90,
+      "z": 0.91,
+      "yaw": 0.15
+    }
+  ]
+}

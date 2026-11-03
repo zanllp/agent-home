@@ -137,3 +137,34 @@ Agent 自己决定画什么、用什么颜色和线条。一次调用 `draw_cray
 用 `list_objects {"capability":"tidy"}` 找到玩具组，然后 `interact {"target_id":"floor-workshop","action":"tidy"}`。机器人和三块散件回到托盘，坐垫和说明书留在原处；`properties.packed` 为 true。用 `unpack` 把它们摆回地毯。两者都是立即生效的物品状态，不是行走任务；可以在她坐在这组玩具上玩的时候调用，不必先让她起身。
 
 想让观众看到她本人在画：先用 `list_objects {"capability":"draw"}` 找到前面有桌子和摊开绘本的椅子。在家庭预设里调用 `interact {"target_id":"child-chair","action":"draw"}`。这是身体动作，需要可见的房间页面；等同一任务进入 `active`、`observe_home` 报告 `pose: draw` 和手持 `crayon`，再调 `draw_crayon` 出图。此时不传 `target_id` 默认画在她膝前的那本；起身用这把椅子的 `leave`，本子回到桌上。只要 PNG 则不必先就座。
+
+### 电饭锅与小饭碗
+
+家庭预设的餐桌上有一口打开的电饭锅（初始 4 份白饭）和一只空碗，两者是可分别摆放的物件。用 `list_objects {"capability":"serve_rice"}` 找碗，然后 `interact {"target_id":"rice-bowl","action":"serve_rice"}` 盛一碗。锅和碗须在同一件家具的同一台面上；有多口锅时用最近且还有饭的那口。盛好后锅的 `properties.servings` 减 1，碗的 `properties.filled` 为 true。不能往满碗重复盛；这是即时物品变化，不是人物吃饭动画。现有存档不会自动被新预设覆盖。
+
+### 家庭直播和生活区
+
+`set_camera {"preset":"broadcast"}` 是房间内前方高处的固定镜头，拍得到墙、窗和真实天花板，不显示 HUD、位置图或物品面板，也不接管人物。轻点画面或在画布聚焦时按 Esc/V 回到普通全景；Agent 可随时再调 `set_camera`。需要查全屋或摆家具时用 `home`。直播截图用 `screenshot {"view":"spectator"}`。
+
+家庭预设里，橘子盘放在餐垫上，旁边的小白花瓶（`dining-flowers`）可单独挪走。靠枕、鲸鱼和搭毯放在沙发上，拖鞋在门垫上；这些都是独立物件，可用 `update_layout` 预演移动。电饭锅与小碗仍在同一张餐桌上。入户门是内景装饰，不是通往其他房间的出口。阳台的两侧亮窗为固定玻璃，中央滑门才是通行口。
+
+家庭电视柜可以布置 `top`、`upper_bay`、`lower_bay` 三处。目录里的 `surfaces` 会给出尺寸；带 `clearance` 的格子还标出层间净高（米）。先用 `update_layout` 预演：超高返回 `support_clearance`，即使中间垫了另一件物品也不能穿过层板。上格的坐标原点在右侧开放格中央，不是整台电视柜的中央。
+
+家庭预设的 `family-trailing-pothos-v1` 可从书柜或墙上层板整盆移动。选目录中标有 `front_edge` 的承载面，让盆底站稳、枝叶朝向前缘。例如 `pothos-child` 在 `wall-shelf-child` 的 `top` 上，局部位置 `x:0.03, z:0.11, yaw:0`。先用 `update_layout` 预演：`support_overhang` 表示盆底悬空，`foliage_clearance` 表示藤叶会穿板或该台面不支持悬垂。普通盆栽仍按原有规则布置。
+
+家庭模板里，两张书桌上的灯彼此独立。例如：
+
+```sh
+node agent.mjs update_object '{"id":"study-lamp","properties":{"on":true,"brightness":0.65}}'
+node agent.mjs interact '{"target_id":"study-lamp","action":"turn_off"}'
+```
+
+### 给第三个人留个饭位
+
+默认家庭模板留着最后一个家具位置，不强制摆满。要一起吃饭时，可以把第三把枫木椅放到餐桌靠书桌的一侧：
+
+```sh
+node agent.mjs update_layout @docs/examples/family-supper.json
+```
+
+示例只预演，适用于未改位置的家庭餐区。检查 `can_apply`、每把椅子的 `reachable` 和通往阳台的路线；通过后再原样提交该批操作并显式设 `dry_run:false`。使用 `interact` 对 `family-guest-chair` 请求 `sit`，再用 `observe_home` 看对应 job 和身体姿态。饭后先 `leave`，再预演移除这把椅子即可腾回名额，不必重置房间。

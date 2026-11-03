@@ -92,6 +92,12 @@ export function drawingBook(chair: Item,state: State) {
   const desk=readingDesk(chair,state);
   return desk && state.objects.find(o=>drawable(o) && o.on?.id===desk.id && o.on.surface==="top");
 }
+export function riceSource(bowl: Item, state: State) {
+  if(bowl.asset_id!=="home-rice-bowl-v1" || !bowl.on)return undefined;
+  return state.objects.filter(o=>o.asset_id==="home-rice-cooker-v1" && o.on?.id===bowl.on!.id &&
+    o.on?.surface===bowl.on!.surface && (o.properties?.servings ?? 4)>0)
+    .sort((a,b)=>Math.hypot(a.x-bowl.x,a.z-bowl.z)-Math.hypot(b.x-bowl.x,b.z-bowl.z))[0];
+}
 export function actionsFor(obj: Item, ctx: Context, state: State) {
   const def = ctx.assets[obj.asset_id || ""] || {},
     result: Data[] = [],
@@ -104,6 +110,11 @@ export function actionsFor(obj: Item, ctx: Context, state: State) {
       reason: busy(state) ? "先结束当前互动" : null,
       reachability: "not_checked",
     });
+  if (obj.asset_id === "home-rice-bowl-v1") {
+    const full=obj.properties?.filled===true,source=riceSource(obj,state);
+    result.push({id:"serve_rice",label:"盛一碗白饭",available:!full && !!source,
+      reason:full?"碗里已经有饭":source?null:"把碗放到还有饭的电饭锅旁，同一个台面上"});
+  }
   if (obj.kind === "toy_set" && def.interactions?.play) {
     const packed = obj.properties?.packed === true;
     const available = !busy(state) || (job.target_id===obj.id && job.pose==="play" && job.phase==="active");
@@ -158,7 +169,7 @@ export function objectList(
   const objects = [];
   for (const obj of state.objects) {
     const def = ctx.assets[obj.asset_id || ""] || {},
-      cat = CATEGORIES[obj.kind] || "decoration",
+      cat = obj.asset_id==="home-rice-bowl-v1"?"tables":CATEGORIES[obj.kind] || "decoration",
       actions = actionsFor(obj, ctx, state);
     if (
       (category && category !== cat) ||
@@ -185,7 +196,7 @@ export function objectList(
             : {},
       actions,
       properties:
-        obj.properties ??
+        obj.asset_id==="home-rice-cooker-v1"?{servings:4,...obj.properties}:obj.asset_id==="home-rice-bowl-v1"?{filled:false,...obj.properties}:obj.properties ??
         (obj.kind==="toy_set"?{packed:false}:obj.id===state.room?.balcony?.door_id?{open:true}:obj.kind === "lamp"
           ? { on: true, brightness: 0.7 }
           : obj.kind === "bed"

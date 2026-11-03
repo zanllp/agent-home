@@ -1,3 +1,4 @@
+import {rugBelow} from '../shared/rug.mjs';
 import {regionAt,balconyGeometry,wallBlocksSight} from '../shared/space.mjs';
 import {
   type State,
@@ -135,7 +136,7 @@ export function observe(
     if (
       !eyesClosed &&
       distance < 5.5 &&
-      !(state.room?.balcony&&wallBlocksSight(state.room,state.objects,eye,point)) &&
+      !(state.room?.balcony&&wallBlocksSight(state.room,state.objects,eye,point,ctx.assets)) &&
       Math.abs(angle) < (70 * Math.PI) / 180 &&
       !state.objects.some(
         (o) =>
@@ -152,13 +153,16 @@ export function observe(
     )
       visible.push(item);
   }
+  const floorPlay = pose==='play' && support && ctx.assets[support.asset_id||'']?.assembly_guide;
+  const seat = floorPlay ? rugBelow(body.x,body.z,state.objects,ctx.assets) : support;
+  const playSurface = floorPlay ? (seat?'地毯':'地板') : '软垫';
   const touch =
-    active && support
+    active && seat
       ? [
           {
-            object_id: support.id,
+            object_id: seat.id,
             kind: pose === "sleep" ? "lying_support" : "seated_support",
-            description: pose === "sleep" ? "身体躺在床面上" : pose === "play" ? "坐在玩具组的软垫上" : "坐在座面上",
+            description: pose === "sleep" ? "身体躺在床面上" : pose === "play" ? "盘腿坐在"+playSurface+"上" : "坐在座面上",
             basis: "confirmed active contact pose",
           },
         ]
@@ -174,7 +178,7 @@ export function observe(
     .sort((a, b) => a.distance_m - b.distance_m);
   let status = eyesClosed
     ? "闭着眼睛，躺在床上。"
-    : pose === "draw" ? "坐在椅子上，低头用蜡笔画画。" : pose === "play" ? (support?.properties?.packed ? "玩具收在盒里，坐在地垫上。" : "坐在地垫上，摆弄拼装机器人。") : pose === "read"
+    : pose === "draw" ? "坐在椅子上，低头用蜡笔画画。" : pose === "play" ? ("坐在"+playSurface+"上，"+(support?.properties?.packed ? "玩具已经收好了。" : "摆弄拼装机器人。")) : pose === "read"
       ? "坐好，正在看书。"
       : pose === "sit"
         ? "坐在座位上。"

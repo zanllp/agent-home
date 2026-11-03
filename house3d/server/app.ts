@@ -99,7 +99,7 @@ export class HouseApp {
               label,
               asset_ids: Object.entries(ctx.assets)
                 .filter(
-                  ([, a]) => (CATEGORIES[a.kind || ""] || "decoration") === key,
+                  ([id, a]) => (id==="home-rice-bowl-v1"?"tables":CATEGORIES[a.kind || ""] || "decoration") === key,
                 )
                 .map(([id]) => id),
             },
@@ -124,7 +124,7 @@ export class HouseApp {
           path: "/wander.html",
           activities: ["idle", "walk"],
           sit: true,
-          object_actions: ["sit", "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw"]:[]), "leave"],
+          object_actions: ["sit", "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw",...(ctx.assets["home-rice-bowl-v1"]?["serve_rice"]:[])]:[]), "leave"],
           interaction_requires_target: true,
           adapter: "Local HTTP only; no DSH connection",
         },
@@ -423,7 +423,8 @@ export class HouseApp {
             );
         } else {
           next = transition(old, body, ctx);
-          if((old.room?.balcony||next.room?.balcony)&&['place_furniture','update_furniture','remove_furniture','apply_layout','update_object'].includes(body.tool)){
+          const changesDoor = body.tool === 'update_object' && body.arguments?.id === old.room?.balcony?.door_id && 'open' in (body.arguments?.properties ?? {});
+          if((old.room?.balcony||next.room?.balcony)&&(changesDoor||['place_furniture','update_furniture','remove_furniture','apply_layout'].includes(body.tool))){
             const snap=store.snapshot();if(snap?.visible&&now-snap.received_at<6){
               requireValue(!snap.body.moving,"Stop walking before changing balcony layout/door");
               transition(next,{tool:'move_character',arguments:{x:snap.body.x,z:snap.body.z}},ctx,{check_busy:false});

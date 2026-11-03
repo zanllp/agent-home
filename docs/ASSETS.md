@@ -21,3 +21,33 @@
 此轻量仓库不包含凭据、数据库、运行截图缓存、依赖目录或本机配置，不应把用户生活状态/账户信息做成发行默认数据。
 
 `floor-robot-kit-v1`：本项目原创的本地几何模型，含机器人、零件盒、拼装示意卡和软垫，由 `tools/export-floor-toys.mjs` 导出。运行包包含成品 GLB，不需要另行生成或下载。
+
+餐桌的蜜橘果盘、电饭锅、小鲸瓷碗和青瓷插花来自 Tripo Studio H3.1，均为独立 GLB。任务地址记录在家具目录和运行资产清单中。开发侧用 `tools/prepare-dining-prop.py` 保留颜色 UV、将纹理缩到最多 2K 并归一化到米；锅和碗另外嵌入 `tools/export-rice-set.mjs` 生成的可独立显示的白饭。浏览器不联系生成服务，运行包不需要 Blender。
+
+家庭餐区、玄关和沙发另有 11 件本地原创 GLB，来源为 `tools/export-family-interior.mjs`。宽景落地窗沿用原 GLB 与远景贴图；固定侧窗、收拢的窗帘和投影窗框在浏览器内生成，没有替换原人物或家具贴图。
+
+家庭墙面和电视角：画框、榉木钟、小帽与帆布袋挂钩、层板台灯、掌机底座、扫地机均为本项目原创可复现几何（`tools/export-family-interior.mjs`）。画框印刷面用 `house3d/assets/materials/family-picnic-v1.jpg`，由内置 imagegen 生成，不是真人家庭照片。画稿：一张横向 3:2、满版无边框的儿童蜡笔画；蓝发孩子和戴眼镜的家长在柳树下看纸船，远处是公寓，保留暖色纸张和蜡笔笔触。
+
+`family-study-chair-v1.glb` 是本地生成的家庭学习椅：无扶手软垫、象牙白椅壳、五爪脚轮，生成器为 `tools/export-family-interior.mjs study-chair`。不是对原 Tripo 椅子的材质覆盖。
+
+家庭客厅的缝边靠枕、鲸鱼布偶和搭毯由 `tools/export-family-interior.mjs` 生成；原有 Tripo 沙发网格未改。阳台矮晾衣架可用 `node tools/export-drying-rack.mjs --family` 重建；旧晾衣架仍在家具目录中。
+
+枫木书墙和陶瓷小鲸鱼：`tools/export-family-interior.mjs maple-library`、`tools/export-family-interior.mjs porcelain-whale`。书刊和布盒沿用既有已标注来源的 GLB，家里的书名、纸签和织纹在 `house3d/web/library-finish.js` 生成，不需要联网取图。铁木开放架仍可从目录单独选用。
+
+家庭地毯机器人：`node tools/export-floor-toys.mjs --rug` 生成模型。内置 imagegen 生成装配册印刷面 `house3d/assets/materials/family-assembly-guide-v1.jpg`：横向双页、奶油纸、蓝色水粉和墨线；左页分三步装配，右页是完成后的蓝白机器人。原始角色 GLB、旧带坐垫套件与收拾接口均保留。
+
+`family-maple-media-unit-v1` 为原创白橡木电视柜；`family-game-corner-v1` 是掌机底座与手柄的组合，另有单独的 `family-wireless-pad-v1` 可换。几何均由 `tools/export-family-interior.mjs` 生成，不影响电视原有的频道与播放。港湾灰蓝是项目自定义墙色，无额外图片或网络请求。
+
+`tools/export-family-interior.mjs` 的 `woven-rug`、`low-table`、`weekend-tea` 是家庭客厅的原创几何。地毯的本地颜色贴图 `house3d/assets/materials/lounge-rug-v1.jpg` 使用内置 imagegen 生成：平铺满幅的 3:2 雾蓝拼织纹理，掺少量燕麦色和浅靛蓝，边缘窄，不绘制家具、透视和投影。小茶几的杂志封面复用自家机器人装配册插图。
+
+青釉垂藤绿萝（`family-trailing-pothos-v1`）由 `tools/trailing-pothos.mjs` 生成，导出命令为 `node tools/export-family-interior.mjs trailing-pothos`。盆、釉圈、藤茎和带叶脉的心形叶片均为原创静态几何，不需要在线生成。只有盆底承重；叶片仍占用前缘空间，不会为了迁就摆放而隐藏。
+
+阳台的 `family-enamel-washer-v1` 和 `family-linen-rail-v1` 由 `tools/balcony-laundry.mjs` 生成，通过 `node tools/export-family-interior.mjs enamel-washer` 或 `linen-rail` 导出。洗衣机外壳有实际开孔，滚筒位于玻璃之后；晾衣架上的棉巾、童装、衣架和木夹均为原创网格。原有 Tripo 洗衣机和矮晾衣架仍在目录。
+
+家庭餐区的两张 `family-maple-dining-chair-v1` 使用同一件枫木弯背椅资产（`tools/maple-chair.mjs`）。坐垫、滚边、木框和椅背为独立网格；`interact` 支持 `sit` 与 `leave`。进食不在这件资产的动作范围内。原来的深色餐椅仍可布置。
+
+家庭客厅使用 2.64 米的宽座奶油沙发（`family-wide-lounge-v1`）。它和 2 米原款共用同一份 GLB 与原色贴图，浏览器只在新款的网格上加宽坐面，扶手与外侧缝线随之平移而不拉伸。两款在目录中有独立的占地和承载面，宽款也参与碰撞和通道预演；靠枕、抱偶、搭毯仍是可移动摆件。
+
+家庭宽沙发配一条独立的燕蓝羊毛毯（`family-arm-throw-v1`），旧窄搭毯仍可选。在开发仓库运行 `node tools/sample-throw-arm.mjs` 可以从原沙发重新采样扶手外形；浏览器用随包附带的轮廓生成褶皱、折角和棉线流苏，不需要在启动时采样或安装建模工具。毯子是按右扶手定形的家具，不会在任意新位置自动重新垂落。
+
+发布用的地毯拼装组 GLB 将所有属性字节相同的重复顶点改为索引引用。三角形顺序、法线、UV、材质和层级保持不变，没有减面或压缩贴图。开发者仍可用 `node tools/export-floor-toys.mjs --rug` 重建。

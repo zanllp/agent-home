@@ -167,7 +167,7 @@ function createSpace(room = {}, objects = []) {
     return Number.isFinite(p.x) && Number.isFinite(p.z) && this.clearance(p) >= radius - 1e-8;
   } };
 }
-function wallBlocksSight(room, objects, a, b) {
+function wallBlocksSight(room, objects, a, b, assets = {}) {
   const d = balconyGeometry(room), door = d && objects.find((o) => o.id === d.door_id), q = door && balconyLocal(room, door), w = (room.width ?? 6) / 2, h = (room.depth ?? 5) / 2;
   for (const [id, axis, value, other, span] of [["left", "x", -w, "z", h], ["right", "x", w, "z", h], ["back", "z", -h, "x", w], ["front", "z", h, "x", w]]) {
     const delta = b[axis] - a[axis];
@@ -176,7 +176,7 @@ function wallBlocksSight(room, objects, a, b) {
     if (t <= 1e-3 || t >= 0.999) continue;
     const p = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }, y = a.y + (b.y - a.y) * t;
     if (Math.abs(p[other]) > span || y < 0 || y > (room.height ?? 2.4)) continue;
-    if (d && id === d.wall && q && Math.abs(balconyLocal(room, p).u - q.u) <= 1.21 && y >= 0.03 && y <= 2.2) continue;
+    if (d && id === d.wall && q && Math.abs(balconyLocal(room, p).u - q.u) <= (assets[door.asset_id]?.wall_opening?.width ?? 2.42) / 2 && y >= 0.03 && y <= 2.2) continue;
     return true;
   }
   return false;
@@ -301,6 +301,15 @@ function parseSupport(value) {
     );
   return { ...value };
 }
+function ledgeFit(obj, ctx, surface) {
+  const mount = definition(obj, ctx).ledge_mount, on = obj.on;
+  const c = Math.cos(on.yaw), s = Math.sin(on.yaw);
+  const [px, pz] = mount.pot_center, r = mount.pot_radius;
+  if (Math.abs(on.x + px * c + pz * s) + r > surface.size[0] / 2 + 2e-3 || Math.abs(on.z - px * s + pz * c) + r > surface.size[1] / 2 + 2e-3) return "support_overhang";
+  const [left, back, right, front] = mount.tail;
+  const nearest = Math.min(...[left, right].flatMap((x) => [back, front].map((z) => on.z - x * s + z * c)));
+  if (surface.front_edge === void 0 || nearest < surface.front_edge + 5e-3) return "foliage_clearance";
+}
 function resolveSupports(objects, ctx) {
   const byId = new Map(objects.map((o) => [o.id, o])), resolved = /* @__PURE__ */ new Set(), visiting = /* @__PURE__ */ new Set(), invalid = /* @__PURE__ */ new Set(), errors = [];
   function error(code, obj, message) {
@@ -343,8 +352,23 @@ function resolveSupports(objects, ctx) {
             yaw: parent.yaw + on.yaw
           });
           const [w, d] = own.size, co = Math.abs(Math.cos(on.yaw)), si = Math.abs(Math.sin(on.yaw));
-          if (Math.abs(on.x) + (w * co + d * si) / 2 > surface.size[0] / 2 + 2e-3 || Math.abs(on.z) + (w * si + d * co) / 2 > surface.size[1] / 2 + 2e-3)
+          if (own.ledge_mount) {
+            const issue = ledgeFit(obj, ctx, surface);
+            if (issue) error(issue, obj, issue === "support_overhang" ? "\u82B1\u76C6\u5E95\u90E8\u6CA1\u6709\u5B8C\u6574\u653E\u5728\u5C42\u677F\u4E0A\u3002" : "\u5782\u85E4\u9700\u8981\u8D8A\u8FC7\u5C42\u677F\u5F00\u653E\u7684\u524D\u7F18\uFF0C\u8BF7\u6362\u4F4D\u7F6E\u6216\u8C03\u6574\u671D\u5411\u3002");
+          } else if (Math.abs(on.x) + (w * co + d * si) / 2 > surface.size[0] / 2 + 2e-3 || Math.abs(on.z) + (w * si + d * co) / 2 > surface.size[1] / 2 + 2e-3)
             error("support_overhang", obj, "\u7269\u54C1\u8D85\u51FA\u627F\u8F7D\u9762\u7684\u5B89\u5168\u8FB9\u7F18\u3002");
+          const top = heightOf(obj, objects, ctx) + own.height;
+          let child = obj;
+          while (child?.on) {
+            const holder = byId.get(child.on.id);
+            if (!holder) break;
+            const level = definition(holder, ctx)?.surfaces?.[child.on.surface];
+            if (level?.clearance !== void 0 && top > heightOf(holder, objects, ctx) + level.height + level.clearance + 2e-3) {
+              error("support_clearance", obj, "\u7269\u54C1\u9AD8\u4E8E\u5C42\u677F\u51C0\u7A7A\uFF0C\u6362\u5230\u66F4\u9AD8\u7684\u683C\u5B50\u6216\u67DC\u9876\u3002");
+              break;
+            }
+            child = holder;
+          }
         }
       } else error("support_invalid", obj, "\u627F\u8F7D\u5173\u7CFB\u672A\u901A\u8FC7\u68C0\u67E5\u3002");
     }
@@ -372,6 +396,28 @@ function footprint(obj, ctx) {
   const [w, d] = definition(obj, ctx).size, c = Math.abs(Math.cos(obj.yaw)), s = Math.abs(Math.sin(obj.yaw));
   return [c * w + s * d, s * w + c * d];
 }
+function occupiedSections(obj, ctx, y, w, d) {
+  const asset = definition(obj, ctx), crown = { x: obj.x, z: obj.z, w, d, bottom: y, top: y + asset.height };
+  if (!asset.ledge_mount) return [crown];
+  const [x0, z0, x1, z1] = asset.ledge_mount.tail;
+  const c = Math.cos(obj.yaw), s = Math.sin(obj.yaw), mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+  const seat = y - asset.support_offset;
+  return [{ ...crown, bottom: seat }, {
+    x: obj.x + mx * c + mz * s,
+    z: obj.z - mx * s + mz * c,
+    w: (x1 - x0) * Math.abs(c) + (z1 - z0) * Math.abs(s),
+    d: (x1 - x0) * Math.abs(s) + (z1 - z0) * Math.abs(c),
+    bottom: y,
+    top: seat
+  }];
+}
+function sectionOverlap(first, second) {
+  for (const a of first) for (const b of second) {
+    if (a.top <= b.bottom + 0.01 || b.top <= a.bottom + 0.01) continue;
+    const x = (a.w + b.w) / 2 - Math.abs(a.x - b.x), z = (a.d + b.d) / 2 - Math.abs(a.z - b.z);
+    if (x > 0.015 && z > 0.015) return { x, z };
+  }
+}
 function validateLayout(state, ctx) {
   validateBalcony(state, ctx);
   const limits = boundaries(state.room), errors = resolveSupports(state.objects, ctx);
@@ -397,15 +443,12 @@ function validateLayout(state, ctx) {
       );
     }
     if (obj.kind === "rug") continue;
-    for (const [other, ow, od, oy, oh] of solids) {
-      if (supportsPair(obj, other, state.objects) || y + h <= oy + 0.01 || oy + oh <= y + 0.01)
-        continue;
-      requireValue(
-        !(Math.abs(obj.x - other.x) < (w + ow) / 2 - 0.015 && Math.abs(obj.z - other.z) < (d + od) / 2 - 0.015),
-        "Furniture overlaps another item: " + other.id + " / " + obj.id
-      );
+    const occupied = occupiedSections(obj, ctx, y, w, d);
+    for (const [other, sections] of solids) {
+      if (!sectionOverlap(occupied, sections) || supportsPair(obj, other, state.objects)) continue;
+      throw Error("Furniture overlaps another item: " + other.id + " / " + obj.id);
     }
-    solids.push([obj, w, d, y, h]);
+    solids.push([obj, occupied]);
   }
 }
 function validateBalcony(state, ctx) {
@@ -417,7 +460,7 @@ function validateBalcony(state, ctx) {
   requireValue(door && def?.wall_opening && def.placement === "wall", "Balcony requires its declared floor window/door");
   requireValue(Math.abs(door.yaw - (b.wall === "left" ? Math.PI / 2 : 0)) < 1e-3, "Balcony door must face its supporting wall");
   const q = balconyLocal(state.room, door);
-  requireValue(Math.abs(q.v) < 0.25 && Math.abs(q.u) + 1.24 <= b.width / 2 - 0.02, "Door opening must lie inside the balcony wall span");
+  requireValue(Math.abs(q.v) < 0.25 && Math.abs(q.u) + def.wall_opening.width / 2 + 0.03 <= b.width / 2 - 0.02, "Door opening must lie inside the balcony wall span");
 }
 
 // house3d/server/objects.ts
@@ -501,6 +544,10 @@ function drawingBook(chair, state) {
   const desk = readingDesk(chair, state);
   return desk && state.objects.find((o) => drawable(o) && o.on?.id === desk.id && o.on.surface === "top");
 }
+function riceSource(bowl, state) {
+  if (bowl.asset_id !== "home-rice-bowl-v1" || !bowl.on) return void 0;
+  return state.objects.filter((o) => o.asset_id === "home-rice-cooker-v1" && o.on?.id === bowl.on.id && o.on?.surface === bowl.on.surface && (o.properties?.servings ?? 4) > 0).sort((a, b) => Math.hypot(a.x - bowl.x, a.z - bowl.z) - Math.hypot(b.x - bowl.x, b.z - bowl.z))[0];
+}
 function actionsFor(obj, ctx, state) {
   const def = ctx.assets[obj.asset_id || ""] || {}, result = [], job = state.interaction || {};
   for (const name of Object.keys(def.interactions || {}))
@@ -511,6 +558,15 @@ function actionsFor(obj, ctx, state) {
       reason: busy(state) ? "\u5148\u7ED3\u675F\u5F53\u524D\u4E92\u52A8" : null,
       reachability: "not_checked"
     });
+  if (obj.asset_id === "home-rice-bowl-v1") {
+    const full = obj.properties?.filled === true, source = riceSource(obj, state);
+    result.push({
+      id: "serve_rice",
+      label: "\u76DB\u4E00\u7897\u767D\u996D",
+      available: !full && !!source,
+      reason: full ? "\u7897\u91CC\u5DF2\u7ECF\u6709\u996D" : source ? null : "\u628A\u7897\u653E\u5230\u8FD8\u6709\u996D\u7684\u7535\u996D\u9505\u65C1\uFF0C\u540C\u4E00\u4E2A\u53F0\u9762\u4E0A"
+    });
+  }
   if (obj.kind === "toy_set" && def.interactions?.play) {
     const packed = obj.properties?.packed === true;
     const available = !busy(state) || job.target_id === obj.id && job.pose === "play" && job.phase === "active";
@@ -558,7 +614,7 @@ function actionsFor(obj, ctx, state) {
 function objectList(state, ctx, category, capability) {
   const objects = [];
   for (const obj of state.objects) {
-    const def = ctx.assets[obj.asset_id || ""] || {}, cat = CATEGORIES[obj.kind] || "decoration", actions = actionsFor(obj, ctx, state);
+    const def = ctx.assets[obj.asset_id || ""] || {}, cat = obj.asset_id === "home-rice-bowl-v1" ? "tables" : CATEGORIES[obj.kind] || "decoration", actions = actionsFor(obj, ctx, state);
     if (category && category !== cat || capability && !actions.some((a) => a.id === capability))
       continue;
     objects.push({
@@ -573,7 +629,7 @@ function objectList(state, ctx, category, capability) {
         brightness: { type: "number", minimum: 0, maximum: 1 }
       } : def.interactions?.sleep ? { covered: { type: "boolean" } } : {},
       actions,
-      properties: obj.properties ?? (obj.kind === "toy_set" ? { packed: false } : obj.id === state.room?.balcony?.door_id ? { open: true } : obj.kind === "lamp" ? { on: true, brightness: 0.7 } : obj.kind === "bed" ? { covered: true } : {}),
+      properties: obj.asset_id === "home-rice-cooker-v1" ? { servings: 4, ...obj.properties } : obj.asset_id === "home-rice-bowl-v1" ? { filled: false, ...obj.properties } : obj.properties ?? (obj.kind === "toy_set" ? { packed: false } : obj.id === state.room?.balcony?.door_id ? { open: true } : obj.kind === "lamp" ? { on: true, brightness: 0.7 } : obj.kind === "bed" ? { covered: true } : {}),
       interaction: state.interaction?.target_id === obj.id ? state.interaction : null
     });
   }
@@ -731,7 +787,11 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
       actionsFor(obj, ctx, state).some((a) => a.id === action && a.available),
       "Action unavailable for this object/state"
     );
-    if (action === "tidy" || action === "unpack") {
+    if (action === "serve_rice") {
+      const pot = riceSource(obj, state);
+      pot.properties = { ...pot.properties, servings: (pot.properties?.servings ?? 4) - 1 };
+      obj.properties = { ...obj.properties, filled: true };
+    } else if (action === "tidy" || action === "unpack") {
       obj.properties = { ...obj.properties, packed: action === "tidy" };
     } else if (["turn_on", "turn_off"].includes(action)) {
       obj.properties ??= { on: true, brightness: 0.7 };
@@ -802,7 +862,7 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
     state.objects = trial.objects;
   } else if (op === "set_camera") {
     requireValue(
-      ["home", "portrait", "front", "face", "side", "back", "top"].includes(
+      ["home", "album", "broadcast", "portrait", "front", "face", "side", "back", "top"].includes(
         args.preset
       ),
       "Unknown camera preset"
@@ -1016,20 +1076,19 @@ function geometryIssues(objects, ctx, room) {
         });
     }
     if (obj.kind === "rug") continue;
-    for (const [other, ow, od, oy, oh] of boxes) {
-      if (supportsPair(obj, other, objects) || y + h <= oy + 0.01 || oy + oh <= y + 0.01)
-        continue;
-      const dx = (w + ow) / 2 - Math.abs(obj.x - other.x), dz = (d + od) / 2 - Math.abs(obj.z - other.z);
-      if (dx > 0.015 && dz > 0.015)
-        issues.push({
-          code: "overlap",
-          ids: [other.id, obj.id],
-          overlap_m: { x: round(dx, 4), z: round(dz, 4) },
-          message: "\u4E24\u4EF6\u5BB6\u5177\u7684\u4FDD\u5B88\u5305\u56F4\u76D2\u91CD\u53E0\u3002",
-          suggestion: "\u62C9\u5F00\u95F4\u8DDD\u6216\u65CB\u8F6C\u540E\u91CD\u65B0 dry-run\uFF1B\u8FD9\u4E0D\u662F\u9010\u4E09\u89D2\u5F62\u78B0\u649E\u68C0\u6D4B\u3002"
-        });
+    const occupied = occupiedSections(obj, ctx, y, w, d);
+    for (const [other, sections] of boxes) {
+      const overlap = sectionOverlap(occupied, sections);
+      if (!overlap || supportsPair(obj, other, objects)) continue;
+      issues.push({
+        code: "overlap",
+        ids: [other.id, obj.id],
+        overlap_m: { x: round(overlap.x, 4), z: round(overlap.z, 4) },
+        message: "\u4E24\u4EF6\u5BB6\u5177\u7684\u4FDD\u5B88\u5305\u56F4\u76D2\u91CD\u53E0\u3002",
+        suggestion: "\u62C9\u5F00\u95F4\u8DDD\u6216\u65CB\u8F6C\u540E\u91CD\u65B0 dry-run\uFF1B\u8FD9\u4E0D\u662F\u9010\u4E09\u89D2\u5F62\u78B0\u649E\u68C0\u6D4B\u3002"
+      });
     }
-    boxes.push([obj, w, d, y, h]);
+    boxes.push([obj, occupied]);
   }
   return issues;
 }
@@ -1279,6 +1338,21 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
+// house3d/shared/rug.mjs
+function rugBelow(x, z, objects, assets) {
+  let highest = null, best = -Infinity;
+  for (const rug of objects) {
+    if (rug.kind !== "rug") continue;
+    const def = assets[rug.asset_id] || { size: [1.8, 1.3], height: 0.018 }, dx = x - rug.x, dz = z - rug.z, c = Math.cos(rug.yaw), s = Math.sin(rug.yaw);
+    const u = (dx * c - dz * s) / (def.size[0] / 2), v = (dx * s + dz * c) / (def.size[1] / 2);
+    if ((def.shape === "ellipse" ? u * u + v * v < 1 : Math.abs(u) < 1 && Math.abs(v) < 1) && def.height > best) {
+      highest = rug;
+      best = def.height;
+    }
+  }
+  return highest;
+}
+
 // house3d/server/observation.ts
 function occludes(a, b, obj, def, baseY = def.elevation || 0) {
   if (obj.kind === "rug") return false;
@@ -1365,7 +1439,7 @@ function observe(state, ctx, snapshot, now, events) {
         (def.height ?? 0.5) * 0.7 + heightOf(obj, state.objects, ctx)
       )
     };
-    if (!eyesClosed && distance < 5.5 && !(state.room?.balcony && wallBlocksSight(state.room, state.objects, eye, point)) && Math.abs(angle) < 70 * Math.PI / 180 && !state.objects.some(
+    if (!eyesClosed && distance < 5.5 && !(state.room?.balcony && wallBlocksSight(state.room, state.objects, eye, point, ctx.assets)) && Math.abs(angle) < 70 * Math.PI / 180 && !state.objects.some(
       (o) => o.id !== obj.id && o.id !== state.room?.balcony?.door_id && occludes(
         eye,
         point,
@@ -1376,11 +1450,14 @@ function observe(state, ctx, snapshot, now, events) {
     ))
       visible.push(item);
   }
-  const touch = active && support ? [
+  const floorPlay = pose === "play" && support && ctx.assets[support.asset_id || ""]?.assembly_guide;
+  const seat = floorPlay ? rugBelow(body.x, body.z, state.objects, ctx.assets) : support;
+  const playSurface = floorPlay ? seat ? "\u5730\u6BEF" : "\u5730\u677F" : "\u8F6F\u57AB";
+  const touch = active && seat ? [
     {
-      object_id: support.id,
+      object_id: seat.id,
       kind: pose === "sleep" ? "lying_support" : "seated_support",
-      description: pose === "sleep" ? "\u8EAB\u4F53\u8EBA\u5728\u5E8A\u9762\u4E0A" : pose === "play" ? "\u5750\u5728\u73A9\u5177\u7EC4\u7684\u8F6F\u57AB\u4E0A" : "\u5750\u5728\u5EA7\u9762\u4E0A",
+      description: pose === "sleep" ? "\u8EAB\u4F53\u8EBA\u5728\u5E8A\u9762\u4E0A" : pose === "play" ? "\u76D8\u817F\u5750\u5728" + playSurface + "\u4E0A" : "\u5750\u5728\u5EA7\u9762\u4E0A",
       basis: "confirmed active contact pose"
     }
   ] : [];
@@ -1391,7 +1468,7 @@ function observe(state, ctx, snapshot, now, events) {
     wallpaper_id: state.room?.wallpapers?.[w.id] ?? "plain",
     distance_m: round(Math.abs(body[w.axis] - w.position), 2)
   })).sort((a, b) => a.distance_m - b.distance_m);
-  let status = eyesClosed ? "\u95ED\u7740\u773C\u775B\uFF0C\u8EBA\u5728\u5E8A\u4E0A\u3002" : pose === "draw" ? "\u5750\u5728\u6905\u5B50\u4E0A\uFF0C\u4F4E\u5934\u7528\u8721\u7B14\u753B\u753B\u3002" : pose === "play" ? support?.properties?.packed ? "\u73A9\u5177\u6536\u5728\u76D2\u91CC\uFF0C\u5750\u5728\u5730\u57AB\u4E0A\u3002" : "\u5750\u5728\u5730\u57AB\u4E0A\uFF0C\u6446\u5F04\u62FC\u88C5\u673A\u5668\u4EBA\u3002" : pose === "read" ? "\u5750\u597D\uFF0C\u6B63\u5728\u770B\u4E66\u3002" : pose === "sit" ? "\u5750\u5728\u5EA7\u4F4D\u4E0A\u3002" : body.moving ? "\u6B63\u5728\u8D70\u52A8\u3002" : pose === "transition" ? "\u6B63\u5728\u8C03\u6574\u59FF\u52BF\u3002" : state.room?.balcony && regionAt(state.room, body) === "balcony" ? "\u7AD9\u5728\u9633\u53F0\u4E0A\u3002" : "\u7AD9\u5728\u623F\u95F4\u91CC\u3002";
+  let status = eyesClosed ? "\u95ED\u7740\u773C\u775B\uFF0C\u8EBA\u5728\u5E8A\u4E0A\u3002" : pose === "draw" ? "\u5750\u5728\u6905\u5B50\u4E0A\uFF0C\u4F4E\u5934\u7528\u8721\u7B14\u753B\u753B\u3002" : pose === "play" ? "\u5750\u5728" + playSurface + "\u4E0A\uFF0C" + (support?.properties?.packed ? "\u73A9\u5177\u5DF2\u7ECF\u6536\u597D\u4E86\u3002" : "\u6446\u5F04\u62FC\u88C5\u673A\u5668\u4EBA\u3002") : pose === "read" ? "\u5750\u597D\uFF0C\u6B63\u5728\u770B\u4E66\u3002" : pose === "sit" ? "\u5750\u5728\u5EA7\u4F4D\u4E0A\u3002" : body.moving ? "\u6B63\u5728\u8D70\u52A8\u3002" : pose === "transition" ? "\u6B63\u5728\u8C03\u6574\u59FF\u52BF\u3002" : state.room?.balcony && regionAt(state.room, body) === "balcony" ? "\u7AD9\u5728\u9633\u53F0\u4E0A\u3002" : "\u7AD9\u5728\u623F\u95F4\u91CC\u3002";
   if (snapshot.paused) status = "\u52A8\u4F5C\u5DF2\u6682\u505C\u3002" + status;
   if (visible.length)
     status += "\u773C\u524D\u6709" + visible.slice(0, 4).map((o) => o.label).join("\u3001") + "\u3002";
@@ -1523,7 +1600,7 @@ var Store = class {
         const labels = {
           approaching: "\u6B63\u5728\u8D70\u8FC7\u53BB\u3002",
           entering: "\u6B63\u5728\u6162\u6162\u5750\u7A33\u3001\u8C03\u6574\u59FF\u52BF\u3002",
-          active: e.action === "sleep" ? "\u5DF2\u7ECF\u8EBA\u597D\u3002" : e.action === "draw" ? "\u5750\u5728\u6905\u5B50\u4E0A\uFF0C\u62FF\u8721\u7B14\u753B\u753B\u3002" : e.action === "play" ? "\u5750\u5728\u5730\u57AB\u4E0A\uFF0C\u62FF\u8D77\u5C0F\u673A\u5668\u4EBA\u3002" : e.action === "read" ? "\u5750\u597D\uFF0C\u5F00\u59CB\u770B\u4E66\u3002" : "\u5DF2\u7ECF\u5750\u7A33\u3002",
+          active: e.action === "sleep" ? "\u5DF2\u7ECF\u8EBA\u597D\u3002" : e.action === "draw" ? "\u5750\u5728\u6905\u5B50\u4E0A\uFF0C\u62FF\u8721\u7B14\u753B\u753B\u3002" : e.action === "play" ? "\u5DF2\u7ECF\u5750\u597D\uFF0C\u73A9\u5177\u5C31\u5728\u624B\u8FB9\u3002" : e.action === "read" ? "\u5750\u597D\uFF0C\u5F00\u59CB\u770B\u4E66\u3002" : "\u5DF2\u7ECF\u5750\u7A33\u3002",
           leaving: e.pose === "read" ? "\u6B63\u5728\u653E\u4E0B\u4E66\u3001\u8D77\u8EAB\u3002" : "\u6B63\u5728\u8D77\u8EAB\u3002",
           completed: e.action === "walk_to" ? "\u5DF2\u7ECF\u5230\u8FBE\u3002" : "\u5DF2\u7ECF\u7AD9\u7A33\u3002",
           failed: "\u8D70\u4E0D\u8FC7\u53BB\u6216\u52A8\u4F5C\u672A\u80FD\u5B8C\u6210\uFF1B\u8BF7\u67E5\u770B\u539F\u56E0\u3002"
@@ -1593,7 +1670,7 @@ var HouseApp = class {
             {
               label,
               asset_ids: Object.entries(ctx.assets).filter(
-                ([, a]) => (CATEGORIES[a.kind || ""] || "decoration") === key
+                ([id, a]) => (id === "home-rice-bowl-v1" ? "tables" : CATEGORIES[a.kind || ""] || "decoration") === key
               ).map(([id]) => id)
             }
           ])
@@ -1617,7 +1694,7 @@ var HouseApp = class {
           path: "/wander.html",
           activities: ["idle", "walk"],
           sit: true,
-          object_actions: ["sit", "sleep", "read", ...Object.values(ctx.assets).some((a) => a.interactions?.play) ? ["play", "tidy", "unpack", "draw"] : [], "leave"],
+          object_actions: ["sit", "sleep", "read", ...Object.values(ctx.assets).some((a) => a.interactions?.play) ? ["play", "tidy", "unpack", "draw", ...ctx.assets["home-rice-bowl-v1"] ? ["serve_rice"] : []] : [], "leave"],
           interaction_requires_target: true,
           adapter: "Local HTTP only; no DSH connection"
         },
@@ -1868,7 +1945,8 @@ var HouseApp = class {
             );
         } else {
           next = transition(old, body, ctx);
-          if ((old.room?.balcony || next.room?.balcony) && ["place_furniture", "update_furniture", "remove_furniture", "apply_layout", "update_object"].includes(body.tool)) {
+          const changesDoor = body.tool === "update_object" && body.arguments?.id === old.room?.balcony?.door_id && "open" in (body.arguments?.properties ?? {});
+          if ((old.room?.balcony || next.room?.balcony) && (changesDoor || ["place_furniture", "update_furniture", "remove_furniture", "apply_layout"].includes(body.tool))) {
             const snap = store.snapshot();
             if (snap?.visible && now - snap.received_at < 6) {
               requireValue(!snap.body.moving, "Stop walking before changing balcony layout/door");

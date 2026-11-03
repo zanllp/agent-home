@@ -9,9 +9,9 @@ export function changedControls(previous,next){
  });
 }
 export const LIGHTING={
- day:{sky:'#f3efe6',sun:2.15,ambient:.68,environment:.60,exposure:1.05,sunColor:'#fff0d8',window:2.8,bounce:1.1,tint:'#ffffff',opacity:0},
- evening:{sky:'#efe1cc',sun:1.4,ambient:.42,environment:.45,exposure:1.05,sunColor:'#ffd2a0',window:1.4,bounce:.85,tint:'#b76331',opacity:.06},
- night:{sky:'#354258',sun:.09,ambient:.25,environment:.25,exposure:1.05,sunColor:'#bccff1',window:.18,bounce:.12,tint:'#172a47',opacity:.38},
+ day:{sky:'#f3efe6',sun:2.15,ambient:.68,environment:.60,exposure:1.05,sunColor:'#fff0d8',window:3.2,bounce:.85,tint:'#ffffff',opacity:0},
+ evening:{sky:'#efe1cc',sun:1.4,ambient:.42,environment:.45,exposure:1.05,sunColor:'#ffd2a0',window:1.4,bounce:.32,tint:'#b76331',opacity:.06},
+ night:{sky:'#354258',sun:.09,ambient:.25,environment:.25,exposure:1.05,sunColor:'#bccff1',window:.18,bounce:.03,tint:'#172a47',opacity:.38},
 };
 
 // Property / label changes must not throw away an in-flight walking route.

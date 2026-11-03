@@ -319,6 +319,216 @@
       "bytes": 596168,
       "sha256": "db8de4b2f99475fdce3694528b66dfc55107958b8f258eb16ec1e0ec63e70dd4",
       "source": "Original local geometry: house3d/web/floor-toys.js"
+    },
+    "house3d/assets/furniture/home-rice-cooker-v1.glb": {
+      "bytes": 1877368,
+      "sha256": "fae6c8eca9ecd0014b830af816bff6a3c1625a580ee316613c2914aceb9de3b0",
+      "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/8867057e-8e2f-4d3d-aac9-204518b108a3 ; separate serving layer: tools/export-rice-set.mjs"
+    },
+    "house3d/assets/furniture/home-rice-bowl-v1.glb": {
+      "bytes": 1200956,
+      "sha256": "c003de78e6e9c17c91876bdeb55cddc210d618383670ccd3cdb536ed00abec87",
+      "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/c8d34963-f05e-45ed-b4fc-7e03041c849a ; separate serving layer: tools/export-rice-set.mjs"
+    },
+    "house3d/assets/furniture/family-maple-table-v1.glb": {
+      "bytes": 194380,
+      "sha256": "58853942f7a66bbda3f0e3a2834fb45a0c6d3467f3451940cb169293a79ced12",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-flax-mat-v1.glb": {
+      "bytes": 422540,
+      "sha256": "ecc3bb3669e3fb2ca1a3cc27351772fe39cacf6e23765408ba35e041112717c3",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-mandarins-v1.glb": {
+      "bytes": 1205332,
+      "sha256": "696ef8b346ed8c51759742f561b34e314b9bd110eb20ee2a23d8e4a68933d820",
+      "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/35c3a78d-bf8d-4812-9cc8-26ff6d0e6521"
+    },
+    "house3d/assets/furniture/family-entry-door-v1.glb": {
+      "bytes": 339572,
+      "sha256": "38afab0eff4f801ccc8c6471e87c3bc37cc45f6cd2a1c141c6143cd88c90e633",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-shoe-cabinet-v1.glb": {
+      "bytes": 668328,
+      "sha256": "a4cbf072aeb4596299396a49029ea3148795631973aa073dc6b4ef5484f89f69",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-key-dish-v1.glb": {
+      "bytes": 81520,
+      "sha256": "df9ae1e3640eb3b6f7cbf9be40282e2b23a96075673b6ed5043c9fb97fb59c45",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-entry-mat-v1.glb": {
+      "bytes": 386104,
+      "sha256": "8f06771f40fb729f7eb9cda24a2ea8229c51c1707ebd102a17441dafa9ee834e",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-blue-slippers-v1.glb": {
+      "bytes": 84768,
+      "sha256": "bb25319f32da657470ea116d3b721654341278dcfc3987606fc7b714992df8fe",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-oat-slippers-v1.glb": {
+      "bytes": 84768,
+      "sha256": "7935fec6c139d3a58743d5d6856f7ab9888eb3e67a63536c15062ad29add488e",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-denim-pillow-v1.glb": {
+      "bytes": 179724,
+      "sha256": "b6258c4fda746a34e6e2bcd6e8046df1b6a751fa4716e1ecfaa834b9c3b4c73e",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-whale-plush-v1.glb": {
+      "bytes": 240012,
+      "sha256": "f4464dc5ff37b7e9b044d37ee8a6b6e2a431a356b740d384ce22e8b969cefb45",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-fringed-throw-v1.glb": {
+      "bytes": 345908,
+      "sha256": "14c5ea1631182f82653b2dc2d17eac7791a4fe314387a4a6fe4272b2e26629c5",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-celadon-flowers-v1.glb": {
+      "bytes": 1609788,
+      "sha256": "e12fbd3ffef73bacaafebb8166f91a77befb56cfa91a7118080a06c12e318470",
+      "source": "Tripo Studio H3.1 text-to-3D + retopology: https://studio.tripo3d.ai/zh/workspace/generate/7fc45dfc-a4ed-4bc9-967d-4c744235c755"
+    },
+    "house3d/assets/furniture/family-picnic-print-v1.glb": {
+      "bytes": 61076,
+      "sha256": "d0f065edf369087c8c40738deccc319763a6468e7a6c3ed90cdbf23203ac7d3f",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-beech-clock-v1.glb": {
+      "bytes": 451880,
+      "sha256": "634bdebd064a61a0ecc6ebaae9046ffb77945d370d7ba60546bd0525df5876c7",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-outing-hooks-v1.glb": {
+      "bytes": 139640,
+      "sha256": "35a8b1a2a8fba0e4042711d6f1dd64e4bed6428e691c16044d9f709add4e40b7",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-game-dock-v1.glb": {
+      "bytes": 263140,
+      "sha256": "98e381bdc894c8a5daac569668608a31bbcca28c3bd7a9eb4dc3bf0b2ec3b7e0",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-robot-vacuum-v1.glb": {
+      "bytes": 106000,
+      "sha256": "577277c6919b878fa1fe06ef1ef5708ebb05b2554107236f3b2b5decfd7f4187",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/materials/family-picnic-v1.jpg": {
+      "bytes": 500238,
+      "sha256": "57997c4b1b5d73be7f2454637ce3908a0e92ab204a36f600d0e2a363800fc52c",
+      "source": "Original imagegen illustration: family picnic keepsake, see docs/ASSETS.md"
+    },
+    "house3d/assets/furniture/family-shelf-lamp-v1.glb": {
+      "bytes": 63060,
+      "sha256": "467e0c0c73413ef2b636a8d858f50c164c97962f90bf826e213617cca6c1159c",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-study-chair-v1.glb": {
+      "bytes": 672452,
+      "sha256": "64a3ff4a566e8d0af58d7c4a608324c7cf7381c41806b0955d5395c28ce72f7e",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-laundry-rack-v2.glb": {
+      "bytes": 568752,
+      "sha256": "a002c742f87d0c3f000a93dee8c69534c727f2e1817824ab8a9305596a9ea296",
+      "source": "Original local geometry: house3d/web/drying-rack.js"
+    },
+    "house3d/assets/furniture/family-maple-library-v1.glb": {
+      "bytes": 942076,
+      "sha256": "a2d4490af5ebc6ae1f78c7847df6b56e98856c671637a3f42f2d1c5df45d79c1",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-porcelain-whale-v1.glb": {
+      "bytes": 122140,
+      "sha256": "8f315ae424dddd67389fdb7c4ca63d786e3f39cb2f84d94a386709ab75a1da05",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-rug-robot-v2.glb": {
+      "bytes": 567636,
+      "sha256": "6fb35013d6a17393ab2a1afdeeb6e565ff96ef41932de34aff8ead52216993c4",
+      "source": "Original local geometry: house3d/web/workshop-kit.js"
+    },
+    "house3d/assets/materials/family-assembly-guide-v1.jpg": {
+      "bytes": 294783,
+      "sha256": "5d7e1c7570a2a72bd229eba58ac157cf661bb874cbcba20b01e661b41c9329bd",
+      "source": "Original imagegen watercolor assembly guide; see docs/ASSETS.md"
+    },
+    "house3d/assets/furniture/family-maple-media-unit-v1.glb": {
+      "bytes": 621336,
+      "sha256": "b8888a3a339c80c619548e8c807055dd0ac652818b63118b3424cdec691f0322",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-wireless-pad-v1.glb": {
+      "bytes": 236856,
+      "sha256": "1c241b237472bf2526a0946d60ca72aea2c244e4bca686facc7a847807a4db59",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-game-corner-v1.glb": {
+      "bytes": 499320,
+      "sha256": "77a31803652dc424e785a64bf413dbe0fd4d8d148b0530c8bbd46d4cdd271f16",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-woven-rug-v1.glb": {
+      "bytes": 31244,
+      "sha256": "b481fd46a4bb894f1952637545a859576479f7b00aaa417f3a6bab1583d677bd",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-low-table-v1.glb": {
+      "bytes": 172168,
+      "sha256": "6e87660a641f06b507d0e36a15aec3658077f3661e4b79f2a3ad1ab22009d304",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-weekend-tea-v1.glb": {
+      "bytes": 532860,
+      "sha256": "8ba74df16b4b20180d6511cf72ff9d6f7b2ad43bbe154c9c06cec38fdc807e5c",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/materials/lounge-rug-v1.jpg": {
+      "bytes": 1005421,
+      "sha256": "0fd86620277641be5ea2d7ca610402850224f2aa9c3e088fa5103508642eabcb",
+      "source": "Original imagegen blue patchwork rug scan; see docs/ASSETS.md"
+    },
+    "house3d/assets/furniture/family-entry-landing-v1.glb": {
+      "bytes": 238344,
+      "sha256": "8ccf47f9f76b673d01325d66e5fc9d64f256c392a1385949d3354a159677e6ac",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-entry-memory-v1.glb": {
+      "bytes": 283636,
+      "sha256": "b43e9d7256c8ca897b09fdbdda8f757ef0ac3d6d98099f6b6f77faf06785fa03",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-studio-board-v1.glb": {
+      "bytes": 279852,
+      "sha256": "13c38a7e1d1eadc007982af54fa02550bfdccaf47449cc231aa50c6a1196e225",
+      "source": "Original local geometry: tools/export-family-interior.mjs"
+    },
+    "house3d/assets/furniture/family-trailing-pothos-v1.glb": {
+      "bytes": 531100,
+      "sha256": "ab603a8fcd24e1d97054b708bd3ed558d4ce50d4a5ad67dc9c07d552a7ae1ff4",
+      "source": "Original local geometry: tools/trailing-pothos.mjs"
+    },
+    "house3d/assets/furniture/family-enamel-washer-v1.glb": {
+      "bytes": 411200,
+      "sha256": "cd2039d12be3b262f22c9a18bc6835b94873fe9029fd545621bf89f1d30723de",
+      "source": "Original local geometry: tools/balcony-laundry.mjs"
+    },
+    "house3d/assets/furniture/family-linen-rail-v1.glb": {
+      "bytes": 301004,
+      "sha256": "460b973881b6108d7e6d0af81926f3c32500cb22dfe42e88434bc70a8b5f754b",
+      "source": "Original local geometry: tools/balcony-laundry.mjs"
+    },
+    "house3d/assets/furniture/family-maple-dining-chair-v1.glb": {
+      "bytes": 81248,
+      "sha256": "fc16abb7d62ddedba8c57733e106f3b5908995db0fe4ce5ce55c170c9c1f1b98",
+      "source": "Original local geometry: tools/maple-chair.mjs"
     }
   }
 }

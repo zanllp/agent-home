@@ -27,8 +27,8 @@ export function createInteriorLighting(renderer,scene){
  sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.00008;sun.shadow.normalBias=.008;sun.shadow.radius=2.4;sun.shadow.intensity=.85;
  scene.add(ambient,sun,sun.target);
  const generator=new T.PMREMGenerator(renderer),radiance=interiorRadiance(),environment=generator.fromEquirectangular(radiance);radiance.dispose();generator.dispose();scene.environment=environment.texture;
- let preset='day';
- function setPreset(value){preset=value;const p=LIGHTING[value]||LIGHTING.day;scene.background.set(p.sky);ambient.intensity=p.ambient;sun.intensity=p.sun;sun.color.set(p.sunColor);scene.environmentIntensity=p.environment;renderer.toneMappingExposure=p.exposure;}
+ let preset='day',wideOpening=false;
+ function setPreset(value){preset=value;const p=LIGHTING[value]||LIGHTING.day;scene.background.set(p.sky);const afternoon=wideOpening&&p===LIGHTING.day;ambient.intensity=afternoon ? .63 : p.ambient;sun.intensity=afternoon?4.05:p.sun;sun.shadow.intensity=afternoon?.95:.85;sun.shadow.radius=afternoon?6:2.4;sun.color.set(afternoon?'#ffdbaf':p.sunColor);scene.environmentIntensity=p.environment;renderer.toneMappingExposure=p.exposure;}
  setPreset('day');
- return {sun,ambient,setPreset,update(objects,assets,room){const pose=windowSunPose(objects,assets);sun.position.set(...pose.position);sun.target.position.set(...pose.target);const window=objects.find(o=>assets[o.asset_id]?.wall_opening);scene.environmentRotation.y=window?window.yaw-Math.PI/2:0;fitSunShadow(sun,room);setPreset(preset)},dispose(){scene.environment=null;environment.dispose();sun.shadow.dispose();scene.remove(ambient,sun,sun.target)}};
+ return {sun,ambient,setPreset,update(objects,assets,room){const pose=windowSunPose(objects,assets);sun.position.set(...pose.position);sun.target.position.set(...pose.target);const window=objects.find(o=>assets[o.asset_id]?.wall_opening);wideOpening=(assets[window?.asset_id]?.wall_opening?.width||0)>3;scene.environmentRotation.y=window?window.yaw-Math.PI/2:0;fitSunShadow(sun,room);setPreset(preset)},dispose(){scene.environment=null;environment.dispose();sun.shadow.dispose();scene.remove(ambient,sun,sun.target)}};
 }

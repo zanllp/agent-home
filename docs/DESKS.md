@@ -12,7 +12,7 @@
 
 ## 画面细节
 
-- 双屏：独立显示器背板、支架、走线、鼠标和约 60 个真实键帽；细小键位标记由本地 Canvas 生成，显示屏继续使用已有静态编辑器/随手记画面。
+- 双屏：独立显示器背板、支架、走线、鼠标和约 60 个真实键帽；细小键位标记由本地 Canvas 生成，横屏轮换编辑器和终端，竖屏独立轮换随手记和周计划。
 - 学习台灯：圆形底座、双连杆、铰链、螺钉、柔和灯罩和小范围暖光。笔筒有中空杯口，彩笔有六角笔杆、木质削尖段和笔芯。
 - 摊开画册：弯曲纸页、页层和绘本/观察笔记印刷；手记、便签板也有本地生成的印刷细节。
 - 桌板木纹为本地确定性纹理，不联网下载；新原生资产保留自身的材质粗糙度，不统一变成粉笔般的哑光表面。
@@ -22,7 +22,7 @@
 
 ## 能力边界与验证
 
-抽屉、桌腿调节扣是静态结构；杯子、书页、便签和电脑画面是装饰，不代表饮用、书写、真实桌面或新增的家电功能。台灯仍为独立摆件，不擅自增加开关工具。未改变原人物、穿搭或坐读动作。
+抽屉、桌腿调节扣是静态结构；杯子、书页、便签和电脑画面是装饰，不代表饮用、书写、真实桌面或新增的家电功能。旧版台灯仍为独立的装饰摆件。家庭模板的暖白阅读灯是可开关的灯，灯罩下的光随桌子和灯的位置移动。未改变原人物、穿搭或坐读动作。
 
 测试覆盖所有新增网格的有限坐标、目录边界、台面高度、膝部留空、原摆件占地约束、材质/印刷资源、闲置绘本隐藏，以及挂载物移动、预演只读、独立移除和支撑关系。浏览器另检查近景、斜侧及现有坐读动作。
 
@@ -41,3 +41,7 @@
 > Use case: illustration-story. Asset type: a flat printed illustration texture for the two pages of an open children's picture book in a cozy stylized 3D family home. Create ONE landscape image, 5:3 aspect ratio. Orthographic perfectly flat scan, edge-to-edge ivory paper, NO perspective, NO book object, NO shadow, NO table. Left half: a charming illustrated neighborhood garden with a small cream house, little orange cat, watering can, herbs, flowers, tiny butterflies. Right half: colorful botanical field notebook with friendly watercolor drawings of sunflowers, tulips, leaves, strawberries, ladybug and tiny diagram doodles. Sophisticated children's editorial illustration, soft gouache and colored pencil details, warm muted cream and sage with bright ochre/coral/sky blue accents, fine delicate hand-drawn linework, generous paper margins and a quiet central gutter. Suitable for a ten-year-old, not babyish. Crisp detailed print, joyful and lived-in. No readable text, no logos, no people, no photorealism.
 
 这轮仅细化家庭模板的儿童学习区；不替换儿童房模板、不增加拿取/喝水/翻页动作，也不宣称已达到参考图全部的模型与照明品质。
+
+家庭书桌现在搭雾蓝无扶手学习椅，保留原椅 0.3515 米座面和起坐位置，裙摆两侧不加硬扶手。儿童房的鲸梦软椅、目录中的 Tripo 双背椅都没有替换。学习椅是独立家具，可通过现有 `update_layout` 换回；角色骨架不变。
+
+家庭双屏保留原模型和占地。浏览器让横屏利用原先两屏间的空隙，把竖屏转向座位，并补上底座、悬臂、理线和一对桌面音箱。两块屏幕用本地画出的山海桌布，横屏叠放编辑器或终端和手作预览，竖屏轮播随手记、周计划；不会读取宿主机桌面或运行屏幕里的指令。壁纸在模型载入时绘制一次，窗口沿用原来的低帧率更新。

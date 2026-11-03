@@ -1,3 +1,4 @@
+import {rugBelow} from '../shared/rug.mjs';
 import {createSpace,spaceBounds} from '../shared/space.mjs';
 import {roomDimensions} from './room-size.js';
 // Pure navigation for the isolated preview. No writes to the house state service.
@@ -62,11 +63,6 @@ export function createWalker(nav,start,{random=Math.random}={}){
 }
 
 export function groundHeightAt(x,z,rugs,assets={}){
- let height=.006;
- for(const rug of rugs){
-  const def=assets[rug.asset_id]||{size:[1.8,1.3],height:.018},dx=x-rug.x,dz=z-rug.z,c=Math.cos(rug.yaw),s=Math.sin(rug.yaw);
-  const u=(dx*c-dz*s)/(def.size[0]/2),v=(dx*s+dz*c)/(def.size[1]/2);
-  if(def.shape==='ellipse'?u*u+v*v<1:Math.abs(u)<1&&Math.abs(v)<1)height=Math.max(height,def.height+.004);
- }
- return height;
+ const rug=rugBelow(x,z,rugs,assets);
+ return rug?Math.max(.006,(assets[rug.asset_id]?.height??.018)+.004):.006;
 }

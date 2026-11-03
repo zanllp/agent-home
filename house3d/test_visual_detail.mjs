@@ -40,3 +40,58 @@ test('wall accent never fills a moved window opening',async()=>{
  await walls.setFinish({style:'urban'});assert.equal(accent.visible,false);
  walls.setOpenings([],{});assert.equal(accent.visible,true);walls.dispose();
 });
+
+test('TV plays moving frames, visits every cartoon and avoids back-to-back repeats',async()=>{
+ const {screenPlayback}=await import('./web/screen-detail.js');const frames=[];
+ const tick=screenPlayback('television',(p,t)=>frames.push([p,t]),()=>.4);
+ assert.deepEqual(frames,[['guide',0]]);tick(5.9);assert.equal(frames.length,1);
+ tick(.11);const first=frames.at(-1)[0];assert.notEqual(first,'guide');
+ tick(.1);assert.equal(frames.at(-1)[0],first);assert.ok(frames.at(-1)[1]>0);
+ const switches=[first];for(let i=0;i<7;i++){tick(25);switches.push(frames.at(-1)[0])}
+ assert.deepEqual([switches[3],switches[7]],['guide','guide']);
+ assert.deepEqual(new Set(switches.slice(0,3)),new Set(['bike','sea','night']));
+ assert.deepEqual(new Set(switches.slice(4,7)),new Set(['bike','sea','night']));
+ assert.notEqual(switches[2],switches[4]);
+});
+test('landscape and portrait monitors rotate independently and register no timers after disposal',async()=>{
+ const root=new T.Group();for(const name of ['Blue_screen','Blue_screen001']){const m=new T.Mesh(new T.BoxGeometry(.5,.3,.006));m.name=name;root.add(m)}
+ const ctx=new Proxy({measureText:()=>({width:7}),createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]??(()=>{})});
+ const players=new Set();enhanceScreens(root,{canvasFactory:()=>({getContext:()=>ctx}),players,random:()=>.5});
+ assert.equal(players.size,2);for(const m of root.children){const map=m.children[0].material.map;const v=map.version;
+  for(const tick of players)tick(.51);assert.ok(map.version>v);map.dispose()}
+ assert.equal(players.size,0);
+});
+
+test('linen spreads below its heading and releases its shared weave exactly once',()=>{
+ const detail=createWindowDetail(source(),{openingWidth:3.04,walkable:true}),cloth=meshes(detail,'Linen-curtain'),map=cloth[0].material.map;
+ assert.equal(cloth[1].material.map,map);assert.ok(detail.getObjectByName('Sheer-curtain').castShadow===false);
+ const pos=cloth[0].geometry.attributes.position,span=(first,last)=>Math.abs(pos.getX(last)-pos.getX(first));
+ assert.ok(span(pos.count-73,pos.count-1)>span(0,72)*1.1);let count=0;map.addEventListener('dispose',()=>count++);
+ disposeWindowDetail(detail);assert.equal(count,1);
+});
+
+test('different book series use one print atlas each and expose page edges between covers',async()=>{
+ const {finishBookSpines}=await import('./web/library-finish.js');
+ const make=theme=>{const g=new T.Group();for(const [i,h] of [.18,.22].entries()){
+  const o=new T.Mesh(new T.BoxGeometry(.04,h,.17),new T.MeshStandardMaterial());o.name='Standing_cover'+i;o.position.x=i*.047;g.add(o)}
+  const draw=new Proxy({},{get:(o,key)=>o[key]||(()=>{})});finishBookSpines(g,theme,()=>({getContext:()=>draw}));return g};
+ const nature=make('nature'),code=make('study'),print=nature.getObjectByName('Printed-book-spines');
+ assert.equal(print.geometry.attributes.position.count,8);assert.notEqual(nature.children[0].material.color.getHex(),code.children[0].material.color.getHex());
+ assert.ok(nature.children[0].scale.x<.1);assert.equal(print.material.map.image.width,192);
+});
+
+test('double curtain tracks separate warm voile from linen and leave the sliding passage clear',()=>{
+ const detail=createWindowDetail(source(),{openingWidth:3.04,walkable:true});
+ try{
+  const cloth=meshes(detail,'Linen-curtain'),voile=meshes(detail,'Sheer-curtain');
+  assert.ok(detail.getObjectByName('Sheer-inner-track').position.z<detail.getObjectByName('Curtain-ceiling-track').position.z);
+  assert.equal(detail.getObjectByName('Curtain-gliders').count,18);
+  for(let side=0;side<2;side++){
+   const pos=voile[side].geometry.attributes.position,colors=voile[side].geometry.attributes.color;
+   assert.equal(colors.itemSize,4);const alpha=Array.from({length:colors.count},(_,i)=>colors.getW(i));
+   assert.ok(Math.min(...alpha)<.4&&Math.max(...alpha)>.7);
+   for(const m of [voile[side],cloth[side]]){m.geometry.computeBoundingBox();const b=m.geometry.boundingBox;assert.ok(side?b.min.x>1.0:b.max.x<-.99)}
+   assert.ok(pos.count>0);assert.equal(voile[side].castShadow,false);
+  }
+ }finally{disposeWindowDetail(detail)}
+});

@@ -20,7 +20,7 @@ import {
   validateLayout,
   definition,
 } from "./geometry.js";
-import { busy, actionsFor, readingDesk, drawingBook } from "./objects.js";
+import { busy, actionsFor, readingDesk, drawingBook, riceSource } from "./objects.js";
 export function transition(
   input: State,
   command: Data,
@@ -180,7 +180,11 @@ export function transition(
       actionsFor(obj, ctx, state).some((a) => a.id === action && a.available),
       "Action unavailable for this object/state",
     );
-    if (action==="tidy" || action==="unpack") {
+    if(action==="serve_rice"){
+      const pot=riceSource(obj,state)!;
+      pot.properties={...pot.properties,servings:(pot.properties?.servings??4)-1};
+      obj.properties={...obj.properties,filled:true};
+    } else if (action==="tidy" || action==="unpack") {
       obj.properties = {...obj.properties, packed: action==="tidy"};
     } else if (["turn_on", "turn_off"].includes(action)) {
       obj.properties ??= { on: true, brightness: 0.7 };
@@ -266,7 +270,7 @@ export function transition(
     state.objects = trial.objects;
   } else if (op === "set_camera") {
     requireValue(
-      ["home", "portrait", "front", "face", "side", "back", "top"].includes(
+      ["home", "album", "broadcast", "portrait", "front", "face", "side", "back", "top"].includes(
         args.preset,
       ),
       "Unknown camera preset",

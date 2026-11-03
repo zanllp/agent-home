@@ -77,7 +77,23 @@ function monitorKit(){
  const mouse=new T.Mesh(new T.SphereGeometry(1,28,18),shell);mouse.name='Mouse-body';mouse.scale.set(.026,.014,.043);mouse.position.set(.25,.015,.12);g.add(mouse);box(g,'Mouse-split',[.0008,.0007,.026],[.25,.029,.105],metal,.0002);const wheel=cylinder(g,'Mouse-wheel',.003,.003,.010,[.25,.028,.102],metal,16);wheel.rotation.z=Math.PI/2;
  return finish(g);
 }
-function lamp(){const g=new T.Group(),white=material('#e6e7de',.45),metal=material('#9eaca6',.4,.25),light=new T.MeshStandardMaterial({color:'#fff5dc',emissive:'#ffe0a1',emissiveIntensity:.8,roughness:.6,side:T.DoubleSide});g.name='Articulated-study-lamp';cylinder(g,'Lamp-base',.060,.064,.015,[-.075,.0075,0],white,40);cylinder(g,'Lamp-base-ring',.058,.06,.003,[-.075,.016,0],metal,40);for(const [a,b] of [[[ -.078,.02,0],[-.085,.18,0]],[[-.085,.18,0],[.065,.29,0]]]){rod(g,'Lamp-arm',a,b,.007,white);rod(g,'Lamp-arm-link',[a[0]-.013,a[1],a[2]],[b[0]-.013,b[1],b[2]],.003,metal)}for(const p of [[-.078,.022,0],[-.085,.18,0],[.065,.29,0]]){const joint=cylinder(g,'Lamp-hinge',.013,.013,.019,p,white);joint.rotation.x=Math.PI/2;const screw=cylinder(g,'Lamp-hinge-screw',.004,.004,.021,p,metal,16);screw.rotation.x=Math.PI/2}cylinder(g,'Task-light-head',.061,.058,.017,[.065,.313,0],white,40);const diffuser=cylinder(g,'Task-light-diffuser',.052,.052,.001,[.065,.304,0],light,40);diffuser.castShadow=false;box(g,'Lamp-switch',[.015,.002,.008],[-.075,.017,.024],metal,.002);const pool=new T.PointLight('#ffe1a6',.06,.65,2);pool.name='Warm-task-light';pool.position.set(.065,.292,0);g.add(pool);return finish(g)}
+export function createStudyLamp(adjustable=false){
+ const g=new T.Group(),white=material('#e6e7de',.45),metal=material('#9eaca6',.4,.25),light=new T.MeshStandardMaterial({color:'#fff5dc',emissive:'#ffe0a1',emissiveIntensity:adjustable?0:.8,roughness:.6,side:T.DoubleSide});
+ const elbow=adjustable?.27:.18,tip=adjustable?.426:.29,h=tip+.023;
+ g.name='Articulated-study-lamp';cylinder(g,'Lamp-base',.060,.064,.015,[-.075,.0075,0],white,40);
+ cylinder(g,'Lamp-base-ring',.058,.06,.003,[-.075,.016,0],metal,40);
+ for(const [a,b] of [[[-.078,.02,0],[-.085,elbow,0]],[[-.085,elbow,0],[.065,tip,0]]]){
+  rod(g,'Lamp-arm',a,b,.007,white);rod(g,'Lamp-arm-link',[a[0]-.013,a[1],a[2]],[b[0]-.013,b[1],b[2]],.003,metal);
+ }
+ for(const p of [[-.078,.022,0],[-.085,elbow,0],[.065,tip,0]]){
+  const joint=cylinder(g,'Lamp-hinge',.013,.013,.019,p,white);joint.rotation.x=Math.PI/2;const screw=cylinder(g,'Lamp-hinge-screw',.004,.004,.021,p,metal,16);screw.rotation.x=Math.PI/2;
+ }
+ cylinder(g,'Task-light-head',.061,.058,.017,[.065,h,0],white,40);
+ const diffuser=cylinder(g,'Task-light-diffuser',.052,.052,.001,[.065,h-.009,0],light,40);
+ box(g,'Lamp-switch',[.015,.002,.008],[-.075,.017,.024],metal,.002);
+ if(!adjustable){const pool=new T.PointLight('#ffe1a6',.06,.65,2);pool.name='Warm-task-light';pool.position.set(.065,h-.021,0);g.add(pool)}
+ finish(g);diffuser.castShadow=false;return g;
+}
 function pencilCup(){const g=new T.Group(),cup=material('#adc3ca',.5),wood=material('#d1b592',.9);g.name='Hollow-pencil-cup';const profile=[[0,0],[.031,0],[.034,.004],[.035,.085],[.032,.09],[.029,.085],[.028,.012],[0,.012]].map(p=>new T.Vector2(...p));const body=new T.Mesh(new T.LatheGeometry(profile,32),cup);body.name='Hollow-pencil-holder';g.add(body);for(let i=0;i<7;i++){const a=i*2.399,r=i===6?0:.018,x=Math.cos(a)*r,z=Math.sin(a)*r,h=.107+(i%3)*.014,color=material(['#d86f55','#61a297','#d6b13b','#87a455','#ac7d9c','#dc9559','#6b9dc0'][i]);cylinder(g,'Painted-pencil',.003,.003,h,[x,.025+h/2,z],color,6);cylinder(g,'Sharpened-wood-tip',0,.003,.010,[x,.025+h+.005,z],wood,6);cylinder(g,'Pencil-pigment-tip',0,.0011,.004,[x,.025+h+.011,z],color,6)}return finish(g)}
 function workbook(){const g=new T.Group(),cover=material('#aebdb0'),paper=material('#f1ebdc',.98);g.name='Open-illustrated-workbook';box(g,'Workbook-cover',[.27,.002,.18],[0,.001,0],cover,.003);for(const sign of [-1,1]){box(g,'Workbook-page-stack',[.131,.008,.174],[sign*.067,.006,0],paper,.002);const geometry=new T.PlaneGeometry(.131,.174,20,2),p=geometry.attributes.position;for(let i=0;i<p.count;i++){const u=(p.getX(i)+.0655)/.131;p.setZ(i,.0025*Math.sin(Math.PI*u))}geometry.computeVertexNormals();const page=new T.Mesh(geometry,paper);page.name=sign<0?'Workbook-page-left':'Workbook-page-right';page.rotation.x=-Math.PI/2;page.position.set(sign*.067,.0105,0);g.add(page)}return finish(g)}
 
@@ -143,4 +159,4 @@ function schoolbag(){
  blob('Puppy-charm-head',.024,[0,0,0],[1,.9,.4],cream);for(const x of [-.023,.023])blob('Puppy-charm-ear',.014,[x,-.002,-.002],[.5,1.1,.45],cream);
  for(const x of [-.008,.008])blob('Puppy-charm-eye',.002,[x,.004,.009],[1,1,.5],dark);blob('Puppy-charm-nose',.003,[0,-.004,.010],[1,.7,.5],dark);blob('Puppy-charm-body',.017,[0,-.030,-.002],[.8,1,.4],cream);g.add(charm);return finish(g);
 }
-export function createStudyProp(model){const id=model.split('/').at(-1)?.replace('.glb','');return ({'urban-dual-monitor-kit-v1':monitorKit,'urban-study-lamp-v1':lamp,'urban-pencil-cup-v1':pencilCup,'urban-workbook-v1':workbook})[id]?.()??null}
+export function createStudyProp(model){const id=model.split('/').at(-1)?.replace('.glb','');return ({'urban-dual-monitor-kit-v1':monitorKit,'urban-study-lamp-v1':createStudyLamp,'urban-pencil-cup-v1':pencilCup,'urban-workbook-v1':workbook})[id]?.()??null}

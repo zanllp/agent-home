@@ -559,7 +559,8 @@
             "play",
             "draw",
             "tidy",
-            "unpack"
+            "unpack",
+            "serve_rice"
           ]
         }
       },
@@ -646,13 +647,15 @@
       ]
     ],
     "set_camera": [
-      "Choose room, frontal full body, face closeup, three-quarter, side, back or overhead view.",
+      "Choose room, album (clean whole-home composition), broadcast (fixed family live shot), frontal full body, face closeup, three-quarter, side, back or overhead view.",
       {
         "preset": {
           "type": "string",
           "description": "Camera view",
           "enum": [
             "home",
+            "album",
+            "broadcast",
             "portrait",
             "front",
             "face",

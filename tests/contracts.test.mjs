@@ -23,6 +23,8 @@ const cases = revive(
     ),
   ),
 );
+// Replay with the wallpaper catalog recorded alongside the original Flask responses.
+const recordedWallpapers = cases.find(f => f.input.url === "/api/catalog" && f.expected.body?.wallpapers).expected.body.wallpapers;
 function normalized(value) {
   if (Array.isArray(value)) return value.map(normalized);
   if (value && typeof value === "object" && !Buffer.isBuffer(value))
@@ -60,7 +62,7 @@ function equivalent(a, b, path = "") {
 for (const [index, fixture] of cases.entries())
   test(`Python contract ${index + 1}: ${fixture.input.method} ${fixture.input.url}`, () => {
     const app = new HouseApp(
-      { ...context, definitions: JSON.parse(readFileSync(new URL("./python-definitions.json",import.meta.url))), presets: JSON.parse(readFileSync(new URL("./python-presets.json",import.meta.url))), assets: fixture.assets },
+      { ...context, wallpapers: recordedWallpapers, definitions: JSON.parse(readFileSync(new URL("./python-definitions.json",import.meta.url))), presets: JSON.parse(readFileSync(new URL("./python-presets.json",import.meta.url))), assets: fixture.assets },
       ":memory:",
       root,
       root + "../runtime/web",
