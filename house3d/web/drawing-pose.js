@@ -34,11 +34,11 @@ export function createDrawingPose(scene, model, avatar){
   for(const j of joints)j.quaternion.slerp(saved.get(j),1-weight);
  }
  return {restore,get focus(){return crayon.visible?tip:null},dispose(){restore();release();scene.remove(crayon);for(const m of meshes){m.geometry.dispose();m.material.dispose()}},
-  update(weight,dt,placed){
+  update(weight,dt,placed,poseTime){
    const page=placed?.getObjectByName('Picturebook-page-right')||placed?.getObjectByName('Workbook-page-right');
    if(!page||!weight){release();return}
    if(placed!==book){release();book=placed;origin.copy(book.position);rotation.copy(book.quaternion)}
-   time+=dt;avatar.getWorldQuaternion(world);
+   time=poseTime??(time+dt);avatar.getWorldQuaternion(world);
    local.set(0,.445,.29);avatar.localToWorld(local);book.parent.worldToLocal(local);
    book.position.copy(origin).lerp(local,weight);
    book.parent.getWorldQuaternion(parentQ);rot.copy(parentQ).invert().multiply(world).multiply(lapRotation);

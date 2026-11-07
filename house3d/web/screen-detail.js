@@ -95,7 +95,7 @@ function drawProgram(c,kind,program,t,w,h,televisionImage,paper){
 // A shuffled deck gives every program airtime and never repeats across a deck boundary.
 export function screenPlayback(kind,paint,random=Math.random){
  const options=kind==='television'?Object.keys(cartoons):kind==='notes'?['notes','planner']:['editor','terminal'];
- let bag=[],previousProgram,current,time=0,remaining=0,last=-Infinity;
+ let bag=[],previousProgram,current,time=0,remaining=0,last=-Infinity,missed=false;
  function next(){
   time=0;last=-Infinity;
   if(kind==='television'&&!bag.length&&current!=='guide'){
@@ -105,8 +105,9 @@ export function screenPlayback(kind,paint,random=Math.random){
    if(bag.at(-1)===previousProgram)[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]]}
   current=previousProgram=bag.pop();remaining=(kind==='television'?12:18)+random()*9;
  }
- function tick(dt){remaining-=dt;time+=dt;if(remaining<=0)next();
-  if((current!=='guide'||last===-Infinity)&&time-last>=1/(kind==='television'?12:2)){paint(current,time);last=time}}
+ function tick(dt,visible=true){remaining-=dt;time+=dt;if(remaining<=0)next();
+  if(!visible){missed=true;return false}if(missed){last=-Infinity;missed=false}
+  if((current!=='guide'||last===-Infinity)&&time-last>=1/(kind==='television'?12:2)){paint(current,time);last=time;return true}return false}
  tick(0);return tick;
 }
 export function screenSurfacePlan(root){const list=[];root.traverse(mesh=>{if(!mesh.isMesh||!/^(?:Display|Blue[ _]screen(?:\.?\d+)?)$/.test(mesh.name))return;mesh.geometry.computeBoundingBox();const box=mesh.geometry.boundingBox;list.push({mesh,width:box.max.x-box.min.x,height:box.max.y-box.min.y,z:box.max.z+.0015,kind:mesh.name==='Display'?'television':/^Blue[ _]screen$/.test(mesh.name)?'editor':'notes'})});return list}
@@ -117,6 +118,7 @@ export function enhanceScreens(root,{canvasFactory=()=>document.createElement('c
   const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=8;
   let paper;if(plan.kind!=='television'){paper=canvasFactory();paper.width=canvas.width;paper.height=canvas.height;drawHarborPaper(paper.getContext('2d'),paper.width,paper.height)}
   const tick=screenPlayback(plan.kind,(program,t)=>{drawProgram(ctx,plan.kind,program,t,canvas.width,canvas.height,televisionImage,paper);texture.needsUpdate=true},random);
+  tick.texture=texture;
   if(players){players.add(tick);texture.addEventListener('dispose',()=>players.delete(tick))}
   const face=new T.Mesh(new T.PlaneGeometry(plan.width*.995,plan.height*.995),new T.MeshBasicMaterial({map:texture,toneMapped:false}));face.position.z=plan.z;face.name='Detailed-screen-'+plan.kind;plan.mesh.add(face);
  }

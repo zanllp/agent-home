@@ -24,7 +24,10 @@ test('gait phase is distance driven and speed changes do not teleport',()=>{
  assert.ok(Math.abs(w.state.phase-travel/(.12/.62*1.3))<1e-8);w.stop();p={...w.state};for(let i=0;i<90;i++)w.update(1/30,1.3);assert.equal(w.state.x,p.x);assert.equal(w.state.z,p.z);
 });
 test('viewer sends only explicit object commands, bounded progress and requested PNGs',()=>{
- const s=readFileSync(new URL('./web/wander.js',import.meta.url),'utf8');const posts=s.match(/fetch\([^;]+?method:'POST'[^;]+/g)||[];assert.equal(posts.length,4);assert.ok(posts.some(p=>p.includes("'interact':'cancel_action'")));assert.ok(posts.some(p=>p.includes('/api/viewer')));assert.ok(posts.some(p=>p.includes('/progress')));assert.ok(posts.some(p=>p.includes('/api/screenshots/')));assert.ok(!s.includes("tool:'move_character'"));
+ const s=readFileSync(new URL('./web/wander.js',import.meta.url),'utf8');const direct=[...s.matchAll(/(?:fetch|ownerFetch)\((['`])([^'`]+)\1,\{method:'POST'/g)].map(m=>m[2]);
+ const wrapped=[...s.matchAll(/\bpost\((['`])([^'`]+)\1/g)].map(m=>m[2]);
+ assert.deepEqual([...new Set([...direct,...wrapped])].sort(),['/api/commands','/api/interactions/${id}/progress','/api/viewer','/api/screenshots/${shot.id}','/api/runtime/frame','/api/runtime/perf','/api/runtime/control','/api/runtime/fault'].sort());
+ assert.ok(s.includes("'interact':'cancel_action'"));assert.ok(!s.includes("tool:'move_character'"));
  const b=readFileSync(new URL('./assets/dafeiyu-contact.glb',import.meta.url)),doc=JSON.parse(b.subarray(20,20+b.readUInt32LE(12)));assert.ok(doc.animations.some(a=>a.name==='little-walk'));assert.ok(!doc.nodes.some(n=>n.extras?.prop==='book'));
 });
 

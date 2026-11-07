@@ -379,7 +379,7 @@
       []
     ],
     "walk_to": [
-      "Walk along a validated route to a free room position. Asynchronous; inspect observe_home/job for completion.",
+      "Walk to x/z or to a reachable edge of target_id (choose exactly one). The home plans the full route; do not send individual waypoints. Object destinations require fresh visible standing body feedback. Asynchronous: inspect matching job and body_job_id to confirm arrival. For sitting/reading/drawing use interact directly; it already walks there.",
       {
         "x": {
           "type": "number",
@@ -388,12 +388,13 @@
         "z": {
           "type": "number",
           "description": "World position in meters; Y is up."
+        },
+        "target_id": {
+          "type": "string",
+          "description": "Object id from list_objects; approaches its floor support edge instead of its occupied centre. Do not also supply x/z."
         }
       },
-      [
-        "x",
-        "z"
-      ]
+      []
     ],
     "cancel_action": [
       "Cancel the matching current job. Seated/lying characters get up safely before completion.",
@@ -518,6 +519,14 @@
           ],
           "additionalProperties": false
         }
+      },
+      []
+    ],
+    "list_interactions": [
+      "List executable object actions with unavailable reasons, current route checks and ready-to-call command.tool/arguments. Call interact once for walk_then_pose; do not send waypoint moves first. state_update actions change properties only, without walking/manipulation animation. Routes are rechecked at execution. Requires a visible unpaused viewer for body actions.",
+      {
+        "category": {"type":"string","description":"Optional object category"},
+        "capability": {"type":"string","description":"Optional action id such as draw or sleep"}
       },
       []
     ],

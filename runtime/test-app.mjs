@@ -1,3 +1,234 @@
+// house3d/shared/space.mjs
+function balconyGeometry(room = {}) {
+  const b = room.balcony;
+  if (!b) return null;
+  const left = b.wall === "left", wall = left ? -(room.width ?? 6) / 2 : -(room.depth ?? 5) / 2;
+  const origin = left ? { x: wall, z: -b.center } : { x: b.center, z: wall };
+  const along = left ? { x: 0, z: -1 } : { x: 1, z: 0 }, outward = left ? { x: -1, z: 0 } : { x: 0, z: -1 };
+  const point = (u, v) => ({ x: origin.x + along.x * u + outward.x * v, z: origin.z + along.z * u + outward.z * v });
+  const a = point(-b.width / 2, 0), c = point(b.width / 2, b.depth);
+  return { ...b, origin, along, outward, point, minX: Math.min(a.x, c.x), maxX: Math.max(a.x, c.x), minZ: Math.min(a.z, c.z), maxZ: Math.max(a.z, c.z) };
+}
+function balconyLocal(room, p) {
+  const b = balconyGeometry(room);
+  if (!b) return null;
+  const x = p.x - b.origin.x, z = p.z - b.origin.z;
+  return { u: x * b.along.x + z * b.along.z, v: x * b.outward.x + z * b.outward.z };
+}
+function regionAt(room, p) {
+  const b = balconyGeometry(room), q = b && balconyLocal(room, p);
+  return q && Math.abs(q.u) <= b.width / 2 + 1e-8 && q.v > 0 && q.v <= b.depth + 1e-8 ? "balcony" : Math.abs(p.x) <= (room.width ?? 6) / 2 + 1e-8 && Math.abs(p.z) <= (room.depth ?? 5) / 2 + 1e-8 ? "interior" : null;
+}
+function spaceBounds(room = {}) {
+  const b = balconyGeometry(room), x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2;
+  return { minX: Math.min(-x, b?.minX ?? -x), maxX: Math.max(x, b?.maxX ?? x), minZ: Math.min(-z, b?.minZ ?? -z), maxZ: Math.max(z, b?.maxZ ?? z) };
+}
+function fitsFootprint(room = {}, p, w, d, margin = 0.05) {
+  const x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2, b = balconyGeometry(room);
+  const within = (a, c, e, f) => p.x - w / 2 >= a + margin - 1e-8 && p.x + w / 2 <= c - margin + 1e-8 && p.z - d / 2 >= e + margin - 1e-8 && p.z + d / 2 <= f - margin + 1e-8;
+  return within(-x, x, -z, z) || !!(b && within(b.minX, b.maxX, b.minZ, b.maxZ));
+}
+function balconyDoor(room, objects) {
+  const b = balconyGeometry(room);
+  if (!b) return null;
+  const door = objects.find((o) => o.id === b.door_id);
+  if (!door) return null;
+  const q = balconyLocal(room, door);
+  return { id: door.id, u: q.u + 0.4, width: 1.55, open: door.properties?.open !== false };
+}
+function distanceToSegment(p, a, b) {
+  const dx = b.x - a.x, dz = b.z - a.z, t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+  return Math.hypot(p.x - a.x - t * dx, p.z - a.z - t * dz);
+}
+function spaceSegments(room = {}, objects = []) {
+  const x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2, b = balconyGeometry(room), door = balconyDoor(room, objects), segments = [];
+  const add = (a, c) => segments.push([a, c]);
+  const walls = [["back", { x: -x, z: -z }, { x, z: -z }], ["right", { x, z: -z }, { x, z }], ["front", { x, z }, { x: -x, z }], ["left", { x: -x, z }, { x: -x, z: -z }]];
+  for (const [id, a, c] of walls) {
+    if (b && id === b.wall && door?.open) {
+      add(a, b.point(door.u - door.width / 2, 0));
+      add(b.point(door.u + door.width / 2, 0), c);
+    } else add(a, c);
+  }
+  if (b) {
+    add(b.point(-b.width / 2, 0), b.point(-b.width / 2, b.depth));
+    add(b.point(-b.width / 2, b.depth), b.point(b.width / 2, b.depth));
+    add(b.point(b.width / 2, b.depth), b.point(b.width / 2, 0));
+  }
+  return segments;
+}
+function createSpace(room = {}, objects = []) {
+  const segments = spaceSegments(room, objects);
+  return { segments, clearance: (p) => regionAt(room, p) ? Math.min(...segments.map(([a, b]) => distanceToSegment(p, a, b))) - (room.balcony ? 0.1 : 0.15) : -Infinity, free(p, radius = 0.57) {
+    return Number.isFinite(p.x) && Number.isFinite(p.z) && this.clearance(p) >= radius - 1e-8;
+  } };
+}
+function wallBlocksSight(room, objects, a, b, assets = {}) {
+  const d = balconyGeometry(room), door = d && objects.find((o) => o.id === d.door_id), q = door && balconyLocal(room, door), w = (room.width ?? 6) / 2, h = (room.depth ?? 5) / 2;
+  for (const [id, axis, value, other, span] of [["left", "x", -w, "z", h], ["right", "x", w, "z", h], ["back", "z", -h, "x", w], ["front", "z", h, "x", w]]) {
+    const delta = b[axis] - a[axis];
+    if (Math.abs(delta) < 1e-9) continue;
+    const t = (value - a[axis]) / delta;
+    if (t <= 1e-3 || t >= 0.999) continue;
+    const p = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }, y = a.y + (b.y - a.y) * t;
+    if (Math.abs(p[other]) > span || y < 0 || y > (room.height ?? 2.4)) continue;
+    if (d && id === d.wall && q && Math.abs(balconyLocal(room, p).u - q.u) <= (assets[door.asset_id]?.wall_opening?.width ?? 2.42) / 2 && y >= 0.03 && y <= 2.2) continue;
+    return true;
+  }
+  return false;
+}
+
+// house3d/shared/navigation.mjs
+function createNavigation(objects, catalog, { radius = 0.57, step = 0.1, assets = {}, room = {} } = {}) {
+  const size = { width: room.width ?? 6, depth: room.depth ?? 5 }, bounds = { x: size.width / 2 - 0.15 - radius, z: size.depth / 2 - 0.15 - radius };
+  const space = room.balcony ? createSpace(room, objects) : null, extent = spaceBounds(room);
+  const obstacles = objects.filter((o) => o.kind !== "rug" && !o.on && (!room.balcony || o.id !== room.balcony.door_id)).map((o) => ({ x: o.x, z: o.z, yaw: o.yaw, w: (assets[o.asset_id] || catalog[o.kind]).size[0] / 2, d: (assets[o.asset_id] || catalog[o.kind]).size[1] / 2 }));
+  function free(p) {
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.z) || (space ? !space.free(p, radius) : Math.abs(p.x) > bounds.x || Math.abs(p.z) > bounds.z)) return false;
+    return !obstacles.some((o) => {
+      const dx = p.x - o.x, dz = p.z - o.z, c = Math.cos(o.yaw), s = Math.sin(o.yaw);
+      const x = Math.abs(dx * c - dz * s), z = Math.abs(dx * s + dz * c);
+      return Math.hypot(Math.max(0, x - o.w), Math.max(0, z - o.d)) < radius;
+    });
+  }
+  function line(a, b) {
+    const d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(d / 0.025));
+    for (let i = 0; i <= n; i++) if (!free({ x: a.x + (b.x - a.x) * i / n, z: a.z + (b.z - a.z) * i / n })) return false;
+    return true;
+  }
+  const minX = space ? extent.minX : -bounds.x, minZ = space ? extent.minZ : -bounds.z, maxX = space ? extent.maxX : bounds.x, maxZ = space ? extent.maxZ : bounds.z;
+  const nx = Math.floor((maxX - minX) / step) + 1, nz = Math.floor((maxZ - minZ) / step) + 1;
+  const point = (i) => ({ x: minX + i % nx * step, z: minZ + Math.floor(i / nx) * step });
+  const nodes = Array.from({ length: nx * nz }, (_, i) => point(i));
+  const valid = nodes.map(free);
+  function nearest(p) {
+    let best = -1, d = Infinity;
+    nodes.forEach((v, i) => {
+      if (!valid[i]) return;
+      const n = Math.hypot(p.x - v.x, p.z - v.z);
+      if (n < d && line(p, v)) {
+        d = n;
+        best = i;
+      }
+    });
+    return best;
+  }
+  function path(a, b) {
+    if (!free(a) || !free(b)) return null;
+    if (line(a, b)) return [{ ...a }, { ...b }];
+    const start = nearest(a), end = nearest(b);
+    if (start < 0 || end < 0) return null;
+    const open = /* @__PURE__ */ new Set([start]), prev = /* @__PURE__ */ new Map(), cost = /* @__PURE__ */ new Map([[start, 0]]), score = /* @__PURE__ */ new Map([[start, 0]]);
+    while (open.size) {
+      let current = -1, best = Infinity;
+      for (const i of open) if (score.get(i) < best) {
+        best = score.get(i);
+        current = i;
+      }
+      if (current === end) {
+        let route = [b];
+        for (let i = end; i !== void 0; i = prev.get(i)) route.push(nodes[i]);
+        route.push(a);
+        route.reverse();
+        const smooth = [route[0]];
+        for (let i = 0; i < route.length - 1; ) {
+          let j = route.length - 1;
+          while (j > i + 1 && !line(route[i], route[j])) j--;
+          smooth.push(route[j]);
+          i = j;
+        }
+        return smooth;
+      }
+      open.delete(current);
+      const x = current % nx, z = Math.floor(current / nx);
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+        const xx = x + dx, zz = z + dz;
+        if (xx < 0 || xx >= nx || zz < 0 || zz >= nz) continue;
+        const next = zz * nx + xx;
+        if (!valid[next] || !line(nodes[current], nodes[next])) continue;
+        const g = cost.get(current) + Math.hypot(dx, dz) * step;
+        if (g >= (cost.get(next) ?? Infinity)) continue;
+        prev.set(next, current);
+        cost.set(next, g);
+        score.set(next, g + Math.hypot(nodes[next].x - nodes[end].x, nodes[next].z - nodes[end].z));
+        open.add(next);
+      }
+    }
+    return null;
+  }
+  function clearance(p) {
+    return Math.min(space ? space.clearance(p) - radius : bounds.x - Math.abs(p.x), space ? Infinity : bounds.z - Math.abs(p.z), ...obstacles.map((o) => {
+      const dx = p.x - o.x, dz = p.z - o.z, c = Math.cos(o.yaw), s = Math.sin(o.yaw);
+      return Math.hypot(Math.max(0, Math.abs(dx * c - dz * s) - o.w), Math.max(0, Math.abs(dx * s + dz * c) - o.d)) - radius;
+    }));
+  }
+  return { free, line, path, clearance, nodes: nodes.filter((_, i) => valid[i]), bounds, radius };
+}
+
+// house3d/shared/object-destination.mjs
+function routeLength(path) {
+  return path.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - path[i].x, p.z - path[i].z), 0);
+}
+function planObjectDestination(objects, catalog, assets, room, start, targetId, nav) {
+  const target = objects.find((o) => o.id === targetId);
+  if (!target) return { ok: false, code: "target_missing", reason: "Target object not found" };
+  nav ??= createNavigation(objects, catalog, { assets, room });
+  if (!nav.free(start)) return { ok: false, code: "start_blocked", reason: "The current body position has no walking clearance" };
+  let support = target;
+  const seen = /* @__PURE__ */ new Set();
+  while (support.on) {
+    if (seen.has(support.id)) return { ok: false, code: "invalid_support", reason: "Support cycle" };
+    seen.add(support.id);
+    support = objects.find((o) => o.id === support.on.id);
+    if (!support) return { ok: false, code: "invalid_support", reason: "Support object missing" };
+  }
+  const def = assets[support.asset_id] || catalog[support.kind];
+  if (!def?.size) return { ok: false, code: "invalid_support", reason: "Object footprint missing" };
+  const [width, depth] = def.size, margin = nav.radius + 0.035;
+  const c = Math.cos(support.yaw), s = Math.sin(support.yaw);
+  const world = (x, z) => ({ x: support.x + x * c + z * s, z: support.z - x * s + z * c });
+  const dx = target.x - support.x, dz = target.z - support.z;
+  const local = { x: dx * c - dz * s, z: dx * s + dz * c };
+  const candidates = [];
+  if (support.kind === "rug") candidates.push({ x: target.x, z: target.z });
+  const clamp = (v, n) => Math.max(-n, Math.min(n, v));
+  for (const sign of [-1, 1]) {
+    candidates.push(world(sign * (width / 2 + margin), clamp(local.z, depth / 2)));
+    candidates.push(world(clamp(local.x, width / 2), sign * (depth / 2 + margin)));
+    for (let i = 0; i <= Math.ceil(depth / 0.25); i++) candidates.push(world(sign * (width / 2 + margin), -depth / 2 + depth * i / Math.ceil(depth / 0.25)));
+    for (let i = 0; i <= Math.ceil(width / 0.25); i++) candidates.push(world(-width / 2 + width * i / Math.ceil(width / 0.25), sign * (depth / 2 + margin)));
+  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let i = 1; i < 8; i++) {
+    const angle = i * Math.PI / 16;
+    candidates.push(world(sx * (width / 2 + margin * Math.cos(angle)), sz * (depth / 2 + margin * Math.sin(angle))));
+  }
+  const unique = new Map(candidates.filter((p) => nav.free(p)).map((p) => [`${p.x.toFixed(5)},${p.z.toFixed(5)}`, p]));
+  const goals = [...unique.values()].sort((a, b) => Math.hypot(a.x - start.x, a.z - start.z) - Math.hypot(b.x - start.x, b.z - start.z));
+  let best = null;
+  for (const p of goals) {
+    if (best && Math.hypot(p.x - start.x, p.z - start.z) >= best.distance) break;
+    const path = nav.path(start, p);
+    if (!path) continue;
+    const distance = routeLength(path);
+    if (!best || distance < best.distance) best = { point: p, path, distance };
+  }
+  return best ? { ok: true, target_id: targetId, support_id: support.id, ...best } : { ok: false, code: "unreachable", reason: "No collision-free route to the object edge; clear a passage" };
+}
+
+// house3d/shared/interaction-approach.mjs
+function worldPoint(obj, [x, y, z]) {
+  const c = Math.cos(obj.yaw), s = Math.sin(obj.yaw);
+  return { x: obj.x + x * c + z * s, y, z: obj.z - x * s + z * c, yaw: obj.yaw };
+}
+function chooseApproach(obj, config, nav, start) {
+  return config.approaches.map((p, index) => ({ point: worldPoint(obj, p), index })).filter((v) => nav.free(v.point)).map((v) => ({ ...v, path: nav.path(start, v.point) })).filter((v) => v.path).sort((a, b) => routeLength(a.path) - routeLength(b.path))[0] || null;
+}
+function interactionApproach(obj, config, nav, start, { objects, catalog, assets, room }) {
+  const target = worldPoint(obj, config.root);
+  const entryNav = createNavigation(objects.filter((o) => o.id !== obj.id), catalog, { assets, radius: 0.32, room });
+  return chooseApproach(obj, config, { ...nav, free: (p) => nav.free(p) && entryNav.line(p, target) }, start);
+}
+
 // house3d/server/crayon.mjs
 import { deflateSync, inflateSync, crc32 } from "node:zlib";
 var palette = { ink: [44, 66, 88], mint: [94, 176, 166], green: [99, 155, 86], blue: [75, 131, 194], ochre: [241, 174, 58], coral: [223, 107, 110] };
@@ -96,91 +327,6 @@ function crayonPng(marks, base = void 0) {
   hdr[9] = 2;
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", hdr), chunk("IDAT", deflateSync(scan)), chunk("IEND", Buffer.alloc(0))]);
 }
-
-// house3d/shared/space.mjs
-function balconyGeometry(room = {}) {
-  const b = room.balcony;
-  if (!b) return null;
-  const left = b.wall === "left", wall = left ? -(room.width ?? 6) / 2 : -(room.depth ?? 5) / 2;
-  const origin = left ? { x: wall, z: -b.center } : { x: b.center, z: wall };
-  const along = left ? { x: 0, z: -1 } : { x: 1, z: 0 }, outward = left ? { x: -1, z: 0 } : { x: 0, z: -1 };
-  const point = (u, v) => ({ x: origin.x + along.x * u + outward.x * v, z: origin.z + along.z * u + outward.z * v });
-  const a = point(-b.width / 2, 0), c = point(b.width / 2, b.depth);
-  return { ...b, origin, along, outward, point, minX: Math.min(a.x, c.x), maxX: Math.max(a.x, c.x), minZ: Math.min(a.z, c.z), maxZ: Math.max(a.z, c.z) };
-}
-function balconyLocal(room, p) {
-  const b = balconyGeometry(room);
-  if (!b) return null;
-  const x = p.x - b.origin.x, z = p.z - b.origin.z;
-  return { u: x * b.along.x + z * b.along.z, v: x * b.outward.x + z * b.outward.z };
-}
-function regionAt(room, p) {
-  const b = balconyGeometry(room), q = b && balconyLocal(room, p);
-  return q && Math.abs(q.u) <= b.width / 2 + 1e-8 && q.v > 0 && q.v <= b.depth + 1e-8 ? "balcony" : Math.abs(p.x) <= (room.width ?? 6) / 2 + 1e-8 && Math.abs(p.z) <= (room.depth ?? 5) / 2 + 1e-8 ? "interior" : null;
-}
-function spaceBounds(room = {}) {
-  const b = balconyGeometry(room), x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2;
-  return { minX: Math.min(-x, b?.minX ?? -x), maxX: Math.max(x, b?.maxX ?? x), minZ: Math.min(-z, b?.minZ ?? -z), maxZ: Math.max(z, b?.maxZ ?? z) };
-}
-function fitsFootprint(room = {}, p, w, d, margin = 0.05) {
-  const x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2, b = balconyGeometry(room);
-  const within = (a, c, e, f) => p.x - w / 2 >= a + margin - 1e-8 && p.x + w / 2 <= c - margin + 1e-8 && p.z - d / 2 >= e + margin - 1e-8 && p.z + d / 2 <= f - margin + 1e-8;
-  return within(-x, x, -z, z) || !!(b && within(b.minX, b.maxX, b.minZ, b.maxZ));
-}
-function balconyDoor(room, objects) {
-  const b = balconyGeometry(room);
-  if (!b) return null;
-  const door = objects.find((o) => o.id === b.door_id);
-  if (!door) return null;
-  const q = balconyLocal(room, door);
-  return { id: door.id, u: q.u + 0.4, width: 1.55, open: door.properties?.open !== false };
-}
-function distanceToSegment(p, a, b) {
-  const dx = b.x - a.x, dz = b.z - a.z, t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz || 1)));
-  return Math.hypot(p.x - a.x - t * dx, p.z - a.z - t * dz);
-}
-function spaceSegments(room = {}, objects = []) {
-  const x = (room.width ?? 6) / 2, z = (room.depth ?? 5) / 2, b = balconyGeometry(room), door = balconyDoor(room, objects), segments = [];
-  const add = (a, c) => segments.push([a, c]);
-  const walls = [["back", { x: -x, z: -z }, { x, z: -z }], ["right", { x, z: -z }, { x, z }], ["front", { x, z }, { x: -x, z }], ["left", { x: -x, z }, { x: -x, z: -z }]];
-  for (const [id, a, c] of walls) {
-    if (b && id === b.wall && door?.open) {
-      add(a, b.point(door.u - door.width / 2, 0));
-      add(b.point(door.u + door.width / 2, 0), c);
-    } else add(a, c);
-  }
-  if (b) {
-    add(b.point(-b.width / 2, 0), b.point(-b.width / 2, b.depth));
-    add(b.point(-b.width / 2, b.depth), b.point(b.width / 2, b.depth));
-    add(b.point(b.width / 2, b.depth), b.point(b.width / 2, 0));
-  }
-  return segments;
-}
-function createSpace(room = {}, objects = []) {
-  const segments = spaceSegments(room, objects);
-  return { segments, clearance: (p) => regionAt(room, p) ? Math.min(...segments.map(([a, b]) => distanceToSegment(p, a, b))) - (room.balcony ? 0.1 : 0.15) : -Infinity, free(p, radius = 0.57) {
-    return Number.isFinite(p.x) && Number.isFinite(p.z) && this.clearance(p) >= radius - 1e-8;
-  } };
-}
-function wallBlocksSight(room, objects, a, b, assets = {}) {
-  const d = balconyGeometry(room), door = d && objects.find((o) => o.id === d.door_id), q = door && balconyLocal(room, door), w = (room.width ?? 6) / 2, h = (room.depth ?? 5) / 2;
-  for (const [id, axis, value, other, span] of [["left", "x", -w, "z", h], ["right", "x", w, "z", h], ["back", "z", -h, "x", w], ["front", "z", h, "x", w]]) {
-    const delta = b[axis] - a[axis];
-    if (Math.abs(delta) < 1e-9) continue;
-    const t = (value - a[axis]) / delta;
-    if (t <= 1e-3 || t >= 0.999) continue;
-    const p = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }, y = a.y + (b.y - a.y) * t;
-    if (Math.abs(p[other]) > span || y < 0 || y > (room.height ?? 2.4)) continue;
-    if (d && id === d.wall && q && Math.abs(balconyLocal(room, p).u - q.u) <= (assets[door.asset_id]?.wall_opening?.width ?? 2.42) / 2 && y >= 0.03 && y <= 2.2) continue;
-    return true;
-  }
-  return false;
-}
-
-// house3d/server/app.ts
-import { readFileSync, statSync, realpathSync, existsSync } from "node:fs";
-import { resolve, sep, extname } from "node:path";
-import { randomUUID } from "node:crypto";
 
 // house3d/server/types.ts
 var record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -516,7 +662,7 @@ var BUSY_PHASES = /* @__PURE__ */ new Set([
   "leaving"
 ]);
 var busy = (state) => BUSY_PHASES.has(state.interaction?.phase);
-function worldPoint(obj, point) {
+function worldPoint2(obj, point) {
   const [x, y, z] = point, c = Math.cos(obj.yaw), s = Math.sin(obj.yaw);
   return {
     x: obj.x + x * c + z * s,
@@ -636,8 +782,81 @@ function objectList(state, ctx, category, capability) {
   };
 }
 
+// house3d/server/interactions.ts
+var POSES = /* @__PURE__ */ new Set(["sit", "sleep", "read", "draw", "play"]);
+function interactionList(state, ctx, snapshot, now, category, capability) {
+  const fresh = !!snapshot?.visible && now - snapshot.received_at < 6;
+  const body = snapshot?.body;
+  const viewerReason = !fresh ? "\u6CA1\u6709\u65B0\u9C9C\u7684\u8EAB\u4F53\u53CD\u9988\uFF0C\u8BF7\u6253\u5F00\u5C0F\u5BB6\u9875\u9762" : snapshot?.paused ? "\u5C0F\u5BB6\u5DF2\u6682\u505C\uFF0C\u8BF7\u5148\u6062\u590D" : null;
+  let nav;
+  const checked = /* @__PURE__ */ new Map();
+  const objects = objectList(state, ctx, category, capability).objects.flatMap((obj) => {
+    if (!obj.actions.length) return [];
+    const actions = obj.actions.filter((a) => !capability || a.id === capability).map((action) => {
+      const pose = POSES.has(action.id), bodyAction = pose || action.id === "leave";
+      let available = action.available, reason = action.reason ?? null;
+      let reachability = bodyAction ? "not_checked" : "not_required";
+      let approach = null;
+      if (available && bodyAction && viewerReason) {
+        available = false;
+        reason = viewerReason;
+      }
+      if (available && pose) {
+        if (body?.pose !== "stand") {
+          available = false;
+          reason = "\u5148\u8D77\u8EAB\u7AD9\u7A33\uFF0C\u518D\u5F00\u59CB\u65B0\u7684\u52A8\u4F5C";
+        } else {
+          nav ??= createNavigation(state.objects, ctx.catalog, { assets: ctx.assets, room: state.room ?? {} });
+          const kind = ["read", "draw"].includes(action.id) ? "sit" : action.id;
+          const key = obj.id + ":" + kind;
+          if (!checked.has(key)) checked.set(key, interactionApproach(
+            obj,
+            ctx.assets[obj.asset_id].interactions[kind],
+            nav,
+            body,
+            { objects: state.objects, catalog: ctx.catalog, assets: ctx.assets, room: state.room ?? {} }
+          ));
+          const plan = checked.get(key);
+          if (plan) {
+            reachability = "reachable";
+            approach = { x: plan.point.x, z: plan.point.z, distance_m: Math.round(routeLength(plan.path) * 100) / 100 };
+          } else {
+            available = false;
+            reachability = "blocked";
+            reason = "\u6CA1\u6709\u80FD\u8D70\u5230\u5E76\u8FDB\u5165\u8BE5\u59FF\u52BF\u7684\u8DEF\u7EBF\uFF0C\u8BF7\u5148\u817E\u51FA\u901A\u9053";
+          }
+        }
+      }
+      if (action.id === "leave" && available) reachability = "not_required";
+      return {
+        ...action,
+        available,
+        reason,
+        reachability,
+        execution: pose ? "walk_then_pose" : bodyAction ? "leave_pose" : "state_update",
+        ...approach ? { approach } : {},
+        command: { tool: "interact", arguments: { target_id: obj.id, action: action.id } }
+      };
+    });
+    return [{ id: obj.id, label: obj.label, category: obj.category, category_label: obj.category_label, actions }];
+  });
+  return {
+    revision: state.revision,
+    fresh,
+    body_job_id: snapshot?.job_id ?? null,
+    position: body ? { x: body.x, z: body.z, yaw: body.yaw, pose: body.pose } : null,
+    objects,
+    limitations: ["Reachability uses current body and furniture clearance; execution checks the route again. State updates do not imply a walking or manipulation animation."]
+  };
+}
+
+// house3d/server/app.ts
+import { readFileSync, statSync, realpathSync, existsSync } from "node:fs";
+import { resolve, sep, extname } from "node:path";
+import { randomUUID } from "node:crypto";
+
 // house3d/server/transition.ts
-function transition(input, command, ctx, { check_geometry = true, check_busy = true } = {}) {
+function transition(input, command, ctx, { check_geometry = true, check_busy = true, navigation_start = null } = {}) {
   let state = clone(input);
   const op = command.tool, args = command.arguments === void 0 ? {} : command.arguments;
   requireValue(record(args), "arguments must be an object");
@@ -745,14 +964,23 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
     }
   } else if (op === "walk_to") {
     requireValue(!busy(state), "Finish the current action first");
-    const b = boundaries(state.room), extent = spaceBounds(state.room), point = {
+    const objectTarget = "target_id" in args;
+    requireValue(objectTarget ? !("x" in args || "z" in args) : "x" in args && "z" in args, "Use target_id OR x and z, not both");
+    let planned = null;
+    if (objectTarget) {
+      requireValue(typeof args.target_id === "string" && args.target_id.length > 0, "Invalid target_id");
+      requireValue(navigation_start, "A fresh visible standing body is required to plan an object destination");
+      planned = planObjectDestination(state.objects, ctx.catalog, ctx.assets, state.room ?? {}, navigation_start, args.target_id);
+      requireValue(planned.ok, planned.reason);
+    }
+    const b = boundaries(state.room), extent = spaceBounds(state.room), point = planned?.point ?? {
       x: number(args.x, state.room?.balcony ? extent.minX : -b.body_x, state.room?.balcony ? extent.maxX : b.body_x),
       z: number(args.z, state.room?.balcony ? extent.minZ : -b.body_z, state.room?.balcony ? extent.maxZ : b.body_z)
     };
     mutate(state, { tool: "move_character", arguments: point });
     state.interaction = {
       id: command.id || "walk-" + (state.revision + 1),
-      target_id: null,
+      target_id: objectTarget ? args.target_id : null,
       target: point,
       action: "walk_to",
       pose: "walk",
@@ -1165,10 +1393,10 @@ function navigationReport(objects, ctx, body, room) {
     for (const [action, config] of Object.entries(
       ctx.assets[obj.asset_id || ""]?.interactions || {}
     )) {
-      const root = worldPoint(obj, config.root);
+      const root = worldPoint2(obj, config.root);
       const approaches = config.approaches.map(
         (local, index) => {
-          const p = worldPoint(obj, local), standing = free(p), entry = standing && line(p, root, 0.32, obj.id), reachable = entry && [...reached].some(
+          const p = worldPoint2(obj, local), standing = free(p), entry = standing && line(p, root, 0.32, obj.id), reachable = entry && [...reached].some(
             (k) => Math.hypot(points.get(k).x - p.x, points.get(k).z - p.z) < 0.2 && line(points.get(k), p)
           );
           return {
@@ -1384,6 +1612,7 @@ function observe(state, ctx, snapshot, now, events) {
     source: "character perspective, not spectator camera",
     fresh,
     age_seconds: age === null ? null : round(age, 2),
+    body_job_id: snapshot?.job_id ?? null,
     execution: {
       paused: snapshot ? snapshot.paused ?? false : null,
       requires_visible_viewer: true
@@ -1715,6 +1944,8 @@ var HouseApp = class {
         ),
         applying: "Explicit template reset: dry-run first; places the character at the declared spawn, preserves appearance"
       });
+    if (get && path === "/api/interactions")
+      return json(interactionList(store.state(), ctx, store.snapshot(), now, url.searchParams.get("category"), url.searchParams.get("capability")));
     if (get && path === "/api/objects")
       return json(
         objectList(
@@ -1764,7 +1995,7 @@ var HouseApp = class {
         tools: {
           observe_home: { method: "GET", path: "/api/observe" },
           ...ctx.definitions.draw_crayon ? { draw_crayon: ["title", "marks", "target_id?", "base_url?"] } : {},
-          walk_to: ["x", "z"],
+          walk_to: ["x and z, or target_id"],
           cancel_action: ["job_id"],
           update_room: [
             "wall_color",
@@ -1780,6 +2011,7 @@ var HouseApp = class {
           apply_preset: ["preset_id", "dry_run"],
           set_wallpaper: ["wall_id", "wallpaper_id"],
           list_objects: { method: "GET", path: "/api/objects" },
+          list_interactions: { method: "GET", path: "/api/interactions" },
           interact: ["target_id", "action"],
           update_object: ["id", "label", "properties"],
           get_state: { method: "GET", path: "/api/state" },
@@ -1939,7 +2171,9 @@ var HouseApp = class {
               422
             );
         } else {
-          next = transition(old, body, ctx);
+          const snapshot = store.snapshot();
+          const navigation_start = snapshot?.visible && !snapshot.paused && now - snapshot.received_at < 6 && snapshot.body.pose === "stand" ? snapshot.body : null;
+          next = transition(old, body, ctx, { navigation_start });
           const changesDoor = body.tool === "update_object" && body.arguments?.id === old.room?.balcony?.door_id && "open" in (body.arguments?.properties ?? {});
           if ((old.room?.balcony || next.room?.balcony) && (changesDoor || ["place_furniture", "update_furniture", "remove_furniture", "apply_layout"].includes(body.tool))) {
             const snap = store.snapshot();
@@ -1950,17 +2184,17 @@ var HouseApp = class {
           }
           if (["apply_preset", "update_room"].includes(body.tool)) {
             if (body.tool === "update_room" && Object.keys(body.arguments || {}).some((k) => k in LIMITS || k === "balcony")) {
-              const snapshot = store.snapshot();
-              if (snapshot?.visible && now - snapshot.received_at < 6) {
+              const snapshot2 = store.snapshot();
+              if (snapshot2?.visible && now - snapshot2.received_at < 6) {
                 requireValue(
-                  !snapshot.body.moving,
+                  !snapshot2.body.moving,
                   "Stop walking before resizing the room"
                 );
                 transition(
                   next,
                   {
                     tool: "move_character",
-                    arguments: { x: snapshot.body.x, z: snapshot.body.z }
+                    arguments: { x: snapshot2.body.x, z: snapshot2.body.z }
                   },
                   ctx,
                   { check_busy: false }
@@ -2055,7 +2289,7 @@ var HouseApp = class {
         error: phase === "failed" ? body.error : null
       });
       if (phase === "active") {
-        const p = worldPoint(obj, config.root);
+        const p = worldPoint2(obj, config.root);
         Object.assign(state.character, {
           x: p.x,
           z: p.z,
@@ -2066,7 +2300,7 @@ var HouseApp = class {
       if (phase === "completed" && job.action === "leave")
         state.character.activity = "idle";
       if (phase === "completed" && job.action === "leave" && job.from_active && config) {
-        const p = worldPoint(obj, config.approaches[index]);
+        const p = worldPoint2(obj, config.approaches[index]);
         Object.assign(state.character, {
           x: p.x,
           z: p.z,

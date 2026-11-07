@@ -1,6 +1,7 @@
-import {shortestAngle,createNavigation} from './wander-navigation.js';
+import {shortestAngle} from './wander-navigation.js';
+import {worldPoint,interactionApproach} from '../shared/interaction-approach.mjs';
+export {worldPoint,chooseApproach} from '../shared/interaction-approach.mjs';
 export const ease=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
-export function worldPoint(obj,[x,y,z]){const c=Math.cos(obj.yaw),s=Math.sin(obj.yaw);return {x:obj.x+x*c+z*s,y,z:obj.z-x*s+z*c,yaw:obj.yaw}}
 const mix=(a,b,t)=>a+(b-a)*t;
 export function contactFrame(kind,start,target,progress){
  const p=Math.max(0,Math.min(1,progress)),sleep=kind==='sleep';
@@ -8,12 +9,8 @@ export function contactFrame(kind,start,target,progress){
  const seatY=sleep?.18:target.y;
  return {x:mix(start.x,target.x,t),z:mix(start.z,target.z,t),y:mix(start.y,seatY,t)+.08*Math.sin(Math.PI*t)+(target.y-seatY)*r,yaw:start.yaw+shortestAngle(start.yaw,target.yaw)*t,pitch:r?-Math.PI/2*r:0,sit:t*(1-r),sleep:r};
 }
-export function chooseApproach(obj,config,nav,start){
- return config.approaches.map((p,index)=>({point:worldPoint(obj,p),index})).filter(v=>nav.free(v.point)).map(v=>({...v,path:nav.path(start,v.point)})).filter(v=>v.path).sort((a,b)=>length(a.path)-length(b.path))[0]||null;
-}
-function length(path){return path.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-path[i].x,p.z-path[i].z),0)}
 export function createObjectInteraction({context,onStart,onExit,onStatus,report}){
- let playSurface='软垫',job=null,phase='none',start,target,index=0,time=0,progress=0,leaveFrom=1,queue=Promise.resolve(),kind='sit',lastFrame=null;
+ let playSurface='软垫',job=null,phase='none',start,target,approachPoint,index=0,time=0,progress=0,leaveFrom=1,queue=Promise.resolve(),kind='sit',lastFrame=null;
  function send(next,error){const id=job.id,body={phase:next,approach_index:index,...(error?{error}: {}),...(next==='completed'&&job.action==='leave'?{position:((s)=>({x:s.x,z:s.z,yaw:s.yaw}))(context().walker.state)}:{})};queue=queue.then(()=>report(id,body)).catch(e=>onStatus('互动状态暂时没同步：'+e.message));}
  function consume(next){
   if(!next||next.id===job?.id||['completed','failed'].includes(next.phase))return;
@@ -39,12 +36,9 @@ export function createObjectInteraction({context,onStart,onExit,onStatus,report}
    index=next.approach_index??0;start=worldPoint(obj,config.approaches[index]);start.y=ctx.groundHeight(start.x,start.z);phase='active';progress=1;
    if(next.phase==='entering')send('active');return;
   }
-  const entryNav=createNavigation(ctx.objects.filter(o=>o.id!==obj.id),ctx.catalog||{},{assets:ctx.assets,radius:.32,room:ctx.room});
-  const candidates={...config,approaches:config.approaches};
-  const entryChecked={...ctx.nav,free:p=>ctx.nav.free(p)&&entryNav.line(p,target)};
-  const choice=chooseApproach(obj,candidates,entryChecked,ctx.walker.state);
+  const choice=interactionApproach(obj,config,ctx.nav,ctx.walker.state,{objects:ctx.objects,catalog:ctx.catalog||{},assets:ctx.assets,room:ctx.room||{}});
   if(!choice){index=0;phase='none';onStatus('走不到那里，先挪开挡路的家具吧');send('failed','No reachable approach point; move blocking furniture and retry');return}
-  index=choice.index;start=choice.point;start.y=ctx.groundHeight(start.x,start.z);ctx.walker.go(start);phase='approaching';progress=0;send('approaching');
+  index=choice.index;start=choice.point;approachPoint={...choice.point};start.y=ctx.groundHeight(start.x,start.z);ctx.walker.go(start);phase='approaching';progress=0;send('approaching');
  }
  function tick(dt){
   const ctx=context();
@@ -56,6 +50,7 @@ export function createObjectInteraction({context,onStart,onExit,onStatus,report}
   if(phase==='approaching'){
    onStatus('走过去，准备'+(kind==='sleep'?'上床':'坐下'));
    if(!ctx.walker.state.route.length){
+    if(Math.hypot(ctx.walker.state.x-approachPoint.x,ctx.walker.state.z-approachPoint.z)>=.035){phase='none';onStatus('还没走到家具旁，路线被打断了');send('failed','Route was interrupted before reaching the approach point');return null}
     const s=ctx.walker.state,delta=shortestAngle(s.yaw,target.yaw);s.yaw+=Math.sign(delta)*Math.min(Math.abs(delta),dt*2.2);
     if(Math.abs(delta)<.03){start={x:s.x,z:s.z,y:ctx.groundHeight(s.x,s.z),yaw:s.yaw};phase='entering';time=0;send('entering')}
    }

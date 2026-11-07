@@ -44,9 +44,9 @@ try {
     get_tools: "/api/tools",
     get_presets: "/api/presets"
   };
-  if (tool === "observe_home" || tool === "list_objects")
+  if (tool === "observe_home" || tool === "list_objects" || tool === "list_interactions")
     result = await call(
-      (tool === "observe_home" ? "/api/observe?" : "/api/objects?") + new URLSearchParams(args)
+      (tool === "observe_home" ? "/api/observe?" : tool === "list_interactions" ? "/api/interactions?" : "/api/objects?") + new URLSearchParams(args)
     );
   else if (reads[tool]) result = await call(reads[tool]);
   else if (tool === "screenshot") {

@@ -13,6 +13,8 @@
 import http from "node:http";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 
 const BASE = new URL(process.env.AGENT_HOME_URL || "http://127.0.0.1:19130");
 const READS = {
@@ -24,6 +26,7 @@ const READS = {
   presets: "/api/presets",
   viewer: "/api/viewer",
   tools: "/api/tools",
+  interactables: "/api/interactions",
 };
 // 模型可能按 schema 里的工具名来调只读工具，这里做个别名
 const READ_ALIAS = {
@@ -32,6 +35,7 @@ const READ_ALIAS = {
   get_catalog: "catalog",
   list_objects: "objects",
   get_presets: "presets",
+  list_interactions: "interactables",
 };
 
 function rawRequest(method, path, body) {
@@ -68,105 +72,100 @@ async function request(method, path, body) {
   return { status: r.status, body: parsed };
 }
 
-async function waitJob(timeoutMs = 8000) {
-  const deadline = Date.now() + timeoutMs;
+const BUSY = new Set(["requested", "approaching", "entering", "active", "leaving"]);
+const BODY_ACTIONS = new Set(["sit", "sleep", "read", "play", "draw"]);
+
+export class ActionError extends Error {
+  constructor(code, message, details = {}) {
+    super(message);
+    this.code = code;
+    this.details = details;
+  }
+}
+
+function checked(response) {
+  if (response.status >= 400 || response.body?.ok === false) {
+    throw new ActionError("request_failed", response.body?.error || "请求失败", { status: response.status });
+  }
+  return response.body;
+}
+
+// Matching the accepted job and a newer body sample matters more than polling faster.
+export async function waitForJob(request, expected, {
+  timeoutMs = 25000,
+  now = Date.now, sleep = ms => new Promise(r => setTimeout(r, ms)),
+} = {}) {
+  if (!expected?.id) throw new ActionError("missing_job", "响应里没有本次动作编号");
+  const deadline = now() + timeoutMs;
   let last = null;
-  while (Date.now() < deadline) {
-    const r = await request("GET", "/api/observe");
-    last = r.body || {};
+  while (now() < deadline) {
+    last = checked(await request("GET", "/api/observe"));
     const job = last.job;
-    if (!job) return last;
-    const phase = job.phase || job.status;
-    if (["done", "completed", "error", "failed", "cancelled"].includes(phase)) return last;
-    // 坐下/睡觉这类是持续姿态：pose 对上就算完成，不等 job 结束
-    const pose = last.body && last.body.pose;
-    const holding = phase === "active" && job.pose && pose === job.pose && !["leave", "cancel"].includes(job.action);
-    if (holding) return last;
-    await new Promise((res) => setTimeout(res, 400));
-  }
-  return last;
-}
-
-async function command(tool, args) {
-  const st = await request("GET", "/api/state");
-  if (st.status !== 200) throw new Error(`读 state 失败: ${st.status}`);
-  return request("POST", "/api/commands", {
-    id: crypto.randomUUID(),
-    expected_revision: st.body.revision,
-    tool,
-    arguments: args,
-  });
-}
-
-async function clearJob() {
-  const first = (await request("GET", "/api/observe")).body || {};
-  const job = first.job;
-  if (!job) return;
-  const pose = first.body && first.body.pose;
-  const seated = ["sit", "sleep", "read", "play", "draw"].includes(job.action) && pose && pose !== "stand";
-  if (seated && job.target_id) {
-    await command("interact", { target_id: job.target_id, action: "leave" });
-  } else if (job.id) {
-    await command("cancel_action", { job_id: job.id });
-  }
-  const deadline = Date.now() + 4000;
-  while (Date.now() < deadline) {
-    const o = (await request("GET", "/api/observe")).body || {};
-    if (!o.job) return;
-    await new Promise((r) => setTimeout(r, 400));
-  }
-}
-
-async function goto(x, z) {
-  await clearJob();
-  let walked = await command("walk_to", { x, z });
-  if (walked.status >= 400) {
-    // 目标点被家具占了：在附近螺旋找最近的空位
-    const offsets = [];
-    for (let r = 0.4; r <= 1.6; r += 0.4) {
-      for (const [dx, dz] of [[r,0],[-r,0],[0,r],[0,-r],[r,r],[-r,r],[r,-r],[-r,-r]]) {
-        offsets.push([dx, dz]);
-      }
+    if (job && job.id !== expected.id) {
+      throw new ActionError("superseded", "动作已被另一个任务替换", { job_id: expected.id, observe: last });
     }
-    for (const [dx, dz] of offsets) {
-      const alt = await command("walk_to", { x: x + dx, z: z + dz });
-      if (alt.status < 400) { walked = alt; break; }
+    if (job?.phase === "failed" || job?.phase === "cancelled") {
+      throw new ActionError(job.phase, job.error || "动作未完成", { job_id: expected.id, observe: last });
     }
+    if (last.execution?.paused) {
+      throw new ActionError("paused", "小家暂停了，请先恢复页面", { job_id: expected.id, observe: last });
+    }
+    const matchingBody = last.fresh === true && last.body_job_id === expected.id;
+    if (job?.id === expected.id && matchingBody) {
+      const body = last.body;
+      const arrived = ["walk_to", "leave"].includes(expected.action) && job.phase === "completed" && body?.pose === "stand" && body.moving === false &&
+        (expected.action !== "walk_to" || (expected.target &&
+          Math.hypot(body.x - expected.target.x, body.z - expected.target.z) <= .08));
+      const holding = job.phase === "active" && BODY_ACTIONS.has(expected.action) &&
+        body?.pose === expected.pose && body.moving === false;
+      if (arrived || holding) return last;
+    }
+    await sleep(Math.min(200, Math.max(0, deadline - now())));
   }
-  if (walked.status >= 400) {
-    out({ status: walked.status, step: "walk_to", ...(walked.body || {}) });
-    process.exit(1);
-  }
-  const fb = await waitJob(15000);
-  out({ ok: true, target: { x, z }, observe: fb });
+  throw new ActionError(last?.fresh === false ? "viewer_unavailable" : "timeout",
+    last?.fresh === false ? "没有新鲜的身体反馈，动作尚未确认" : "等待超时，动作尚未确认",
+    { job_id: expected.id, observe: last });
 }
 
-async function interactables() {
-  const r = await request("GET", "/api/objects");
-  const items = (r.body && (r.body.objects || r.body)) || [];
-  const rows = [];
-  for (const o of items) {
-    const acts = (o.actions || []).filter((a) => a.available);
-    if (!acts.length) continue;
-    rows.push({
-      id: o.id,
-      label: o.label || o.kind,
-      actions: acts.map((a) => `${a.id}(${a.label})`).join(", "),
+export function createActions(request) {
+  async function command(tool, args) {
+    const st = checked(await request("GET", "/api/state"));
+    const response = await request("POST", "/api/commands", {
+      id: crypto.randomUUID(), expected_revision: st.revision, tool, arguments: args,
     });
+    return { body: checked(response) };
   }
-  out({ count: rows.length, interactables: rows });
+  async function wait(result, timeoutMs) {
+    return waitForJob(request, result.body.state?.interaction, { timeoutMs });
+  }
+  async function clearJob() {
+    const feedback = checked(await request("GET", "/api/observe")), job = feedback.job;
+    if (!job || !BUSY.has(job.phase)) return;
+    if (job.action === "leave") {
+      await waitForJob(request, job, { timeoutMs: 15000 });
+      return;
+    }
+    const result = await command("cancel_action", { job_id: job.id });
+    await wait(result, 15000);
+  }
+  async function goto(x, z) {
+    await clearJob();
+    const result = await command("walk_to", typeof x === "string" && z === undefined ? {target_id:x} : { x, z });
+    // Never send exploratory movement commands or silently change the user's destination.
+    const feedback = await wait(result, 60000);
+    return { ok: true, target: result.body.state.interaction.target, target_id: result.body.state.interaction.target_id ?? null, observe: feedback };
+  }
+  async function doAction(targetId, action) {
+    if (BODY_ACTIONS.has(action)) await clearJob();
+    const result = await command("interact", { target_id: targetId, action });
+    if (!BODY_ACTIONS.has(action) && action !== "leave") return { ...result.body, target_id: targetId, action };
+    const feedback = await wait(result, 60000);
+    return { ok: true, target_id: targetId, action, observe: feedback };
+  }
+  return { command, goto, doAction };
 }
+const actions = createActions(request);
 
-async function doAction(targetId, action) {
-  await clearJob();
-  const r = await command("interact", { target_id: targetId, action });
-  if (r.status >= 400) {
-    out({ status: r.status, step: "interact", ...(r.body || {}) });
-    process.exit(1);
-  }
-  const fb = await waitJob(25000);
-  out({ ok: true, target_id: targetId, action, observe: fb });
-}
 
 function out(v) {
   console.log(JSON.stringify(v, null, 2));
@@ -198,10 +197,11 @@ async function screenshot(view, output) {
   process.exit(1);
 }
 
+if (process.argv[1] && import.meta.url === pathToFileURL(fs.realpathSync(resolve(process.argv[1]))).href) {
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (!cmd || cmd === "help") {
-    console.log("用法: node tools/agent-home.mjs <schemas|state|observe|objects|catalog|presets|interactables|do TARGET ACTION|goto X Z|screenshot [character|spectator] --out FILE|call TOOL JSON>");
+    console.log("用法: node tools/agent-home.mjs <schemas|state|observe|objects|catalog|presets|interactables|do TARGET ACTION|goto X Z|goto OBJECT_ID|screenshot [character|spectator] --out FILE|call TOOL JSON>");
     process.exit(0);
   }
   if (cmd in READS) {
@@ -209,20 +209,18 @@ try {
     out(r.body);
     process.exit(r.status >= 400 ? 1 : 0);
   }
-  if (cmd === "interactables") {
-    await interactables();
-    process.exit(0);
-  }
   if (cmd === "do") {
     if (!rest[0] || !rest[1]) throw new Error("用法: do TARGET_ID ACTION");
-    await doAction(rest[0], rest[1]);
+    out(await actions.doAction(rest[0], rest[1]));
     process.exit(0);
   }
   if (cmd === "goto") {
-    const x = Number(rest[0]);
-    const z = Number(rest[1]);
-    if (!Number.isFinite(x) || !Number.isFinite(z)) throw new Error("用法: goto X Z");
-    await goto(x, z);
+    if (rest.length === 1 && rest[0].trim()) out(await actions.goto(rest[0]));
+    else {
+      const x = Number(rest[0]), z = Number(rest[1]);
+      if (rest.length !== 2 || !rest[0].trim() || !rest[1].trim() || !Number.isFinite(x) || !Number.isFinite(z)) throw new Error("用法: goto X Z 或 goto OBJECT_ID");
+      out(await actions.goto(x, z));
+    }
     process.exit(0);
   }
   if (cmd === "screenshot") {
@@ -236,7 +234,11 @@ try {
     const tool = rest[0];
     if (!tool) throw new Error("缺少 tool 名");
     if (tool in READ_ALIAS) {
-      const r = await request("GET", READS[READ_ALIAS[tool]]);
+      const args = rest[1] ? JSON.parse(rest[1]) : {};
+      const filterable = ["list_interactions", "list_objects"].includes(tool);
+      if (filterable && (!args || Array.isArray(args) || typeof args !== "object" || Object.keys(args).some(k=>!["category","capability"].includes(k)) || Object.values(args).some(v=>typeof v!=="string"))) throw new Error("列表筛选只接受 category 和 capability 字符串");
+      const query = filterable ? new URLSearchParams(args).toString() : "";
+      const r = await request("GET", READS[READ_ALIAS[tool]] + (query ? "?"+query : ""));
       out(r.body);
       process.exit(r.status >= 400 ? 1 : 0);
     }
@@ -250,23 +252,17 @@ try {
     const argText = rest[1] && rest[1] !== "--wait" ? rest[1] : null;
     let args = {};
     if (argText) args = JSON.parse(argText);
-    const st = await request("GET", "/api/state");
-    if (st.status !== 200) throw new Error(`读 state 失败: ${st.status}`);
-    const r = await request("POST", "/api/commands", {
-      id: crypto.randomUUID(),
-      expected_revision: st.body.revision,
-      tool,
-      arguments: args,
-    });
-    out({ status: r.status, ...(typeof r.body === "object" ? r.body : { raw: r.body }) });
-    if (wait && r.status < 400) {
-      const fb = await waitJob();
-      out({ observe: fb });
-    }
-    process.exit(r.status >= 400 ? 1 : 0);
+    const result = await actions.command(tool, args);
+    if (wait && (tool === "walk_to" || tool === "cancel_action" ||
+        (tool === "interact" && (BODY_ACTIONS.has(args.action) || args.action === "leave")))) {
+      const observe = await waitForJob(request, result.body.state?.interaction, { timeoutMs: 60000 });
+      out({ ...result.body, observe });
+    } else out(result.body);
+    process.exit(0);
   }
   throw new Error(`未知命令: ${cmd}`);
 } catch (e) {
-  console.error("ERR " + (e && e.message ? e.message : String(e)));
+  out({ ok: false, error: e.message || String(e), code: e.code || "client_error", ...e.details });
   process.exit(1);
+}
 }

@@ -6,15 +6,15 @@
 
 ![家庭预设全景：大肥鱼在客厅地毯上玩机器人，午后阳光从阳台照进来](docs/images/family-afternoon.jpg)
 
-## 只用 Node 启动
+## 启动
 
-需要 **Node.js 22.12+**，然后：
+默认需要 **Node.js 22.12+ 和已有的 Chrome/Chromium**，不用安装 npm 依赖：
 
 ```sh
 node start.mjs
 ```
 
-打开 **http://127.0.0.1:19130/**。不用 Python、`npm install`、Blender 或本地构建。网页和后端已经构建在 `runtime/`；第三方前端代码随网页产物包含，后端只使用 Node 内置模块，SQLite 也不需要下载原生依赖。
+在 WSL 内启动后，可在 Windows 浏览器打开 **http://localhost:19130/**。默认后台 Runner 执行动作，关掉观看页也能走动和截图。只需要原可见页模式可用 `node start.mjs --no-runner`。见 [Runner 与性能日志](docs/RUNNER.md)。不用 Python、`npm install`、Blender 或本地构建。网页和后端已经构建在 `runtime/`；第三方前端代码随网页产物包含，后端只使用 Node 内置模块，SQLite 也不需要下载原生依赖。
 
 Node 22.12 所需的 SQLite 启动参数由入口自动处理。某些 Node 版本会显示官方实验性模块提示；不是缺少安装包。
 
@@ -34,6 +34,7 @@ node agent.mjs get_tools
 node agent.mjs get_catalog
 node agent.mjs get_presets
 node agent.mjs observe_home
+node agent.mjs list_interactions
 node agent.mjs apply_preset '{"preset_id":"family-home","dry_run":true}'
 node agent.mjs apply_preset '{"preset_id":"family-home","dry_run":false}'
 ```
@@ -67,7 +68,7 @@ node agent.mjs apply_preset '{"preset_id":"family-home","dry_run":false}'
 
 ## 还未完成
 
-独立换装/换发型、通用抓取、进食动画、任意家具自动坐卧、多房间/多人、社区内容包导入、公网认证、DSH 对接和服务端无头渲染均未完成。身体动作与截图仍需要可见的生活页面，关闭页面后不持续模拟身体。
+独立换装/换发型、通用抓取、进食动画、任意家具自动坐卧、多房间/多人、社区内容包导入、公网认证和 DSH 对接均未完成。
 
 角色保留既有参考服装与专用修复，不代表通用角色/换装系统已经交付。没有实体手机、服务器/WSL 资源或长期性能验收。
 

@@ -20,7 +20,7 @@ export function createCanvasHud(){
  }
  function lineText(c,text){text=String(text);if(c.measureText(text).width<=350)return text;while(text.length&&c.measureText(text+'…').width>350)text=text.slice(0,-1);return text+'…'}
  function rounded(c,x,y,w,h,r,fill){c.fillStyle=fill;c.beginPath();c.roundRect(x,y,w,h,r);c.fill()}
- function update(s){if(!rects.length)return;const key=JSON.stringify(s);if(key===previous)return;previous=key;const light=LIGHTING[s.light||'day'];veil.material.color.set(light.tint);veil.material.opacity=light.opacity;
+ function update(s){if(!rects.length)return;const key=JSON.stringify(s);if(key===previous)return;previous=key;const light=LIGHTING[s.light||'day'];veil.material.color.set(light.tint);veil.material.opacity=light.opacity;veil.visible=light.opacity>0;
   const c=bar.context;c.clearRect(0,0,470,54);rounded(c,0,0,470,54,22,'rgba(255,253,247,.95)');
   const objectLabel=['approaching','entering'].includes(s.objectPhase)?'取消':s.objectPhase==='leaving'?'起身中':s.objectPose==='sleep'?'起床':['sit','read','play','draw'].includes(s.objectPose)?'起身':null;
   const labels=[objectLabel||(s.auto?'逛逛':'休息'),s.paused?'继续':'暂停',s.brisk?'走跑走':'慢慢走',{home:'全景',broadcast:'直播',follow:'跟随',front:'正面',face:'看脸',portrait:'斜侧',side:'侧面',back:'背面',top:'俯视'}[s.cameraMode],s.sound?'有声':'静音'];
@@ -35,5 +35,5 @@ export function createCanvasHud(){
  return {size,update,hit(x,y){
   const u=(x-16)*370/Math.min(370,width-32),v=y-16,b=albumButton;
   if(u>=b.x&&u<=b.x+b.w&&v>=b.y&&v<=b.y+b.h)return 'album';
-  return rects.find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)?.id},render(renderer){const clear=renderer.autoClear;renderer.autoClear=false;renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=clear},dispose(){veil.geometry.dispose();veil.material.dispose();for(const p of [bar,title]){p.mesh.geometry.dispose();p.mesh.material.dispose();p.texture.dispose()}}};
+  return rects.find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)?.id},render(renderer){const clear=renderer.autoClear;renderer.autoClear=false;renderer.render(scene,camera);renderer.autoClear=clear},dispose(){veil.geometry.dispose();veil.material.dispose();for(const p of [bar,title]){p.mesh.geometry.dispose();p.mesh.material.dispose();p.texture.dispose()}}};
 }

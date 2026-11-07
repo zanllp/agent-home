@@ -8,7 +8,8 @@ Agent Home 是一个独立的可观察、可操作环境。不要把模型生成
 - `get_tools`：HTTP/命令入口。
 - `get_catalog`：资产、承载面、墙纸、房间边界与尺寸限制。
 - `get_presets`：`childroom`、`family-home` 两套模板。
-- `list_objects`：已放置的物品、分类、实际可用动作；支持 `category`/`capability` 筛选。
+- `list_objects`：已放置的物品、分类、状态；支持 `category`/`capability` 筛选。
+- `list_interactions`（`GET /api/interactions`）：可直接执行的动作列表，保留不可用原因、当前身体的路线检查和 `command.tool/arguments`；同样支持分类/动作筛选。只在选择动作时查询，不必逐帧检查。
 - `observe_home`：身体视角反馈；`get_state`：持久化的期望状态。两者不是同一回事。
 
 CLI 语法：
@@ -18,6 +19,14 @@ node agent.mjs TOOL '{"argument":"value"}'
 ```
 
 可用 `--url http://127.0.0.1:19130` 指定实例，`--id` 指定幂等 ID，`--revision` 指定期望版本。CLI 不调用模型、不持有模型密钥。
+
+先选动作而不是猜坐标：
+
+```sh
+node agent.mjs list_interactions '{"capability":"draw"}'
+```
+
+检查 `available` 和 `reason`，直接提交返回的 `command`。`execution: walk_then_pose` 已含整段走路和进入姿态；`approach` 是预演信息，不是让 Agent 逐段下发的路线。`state_update` 仅改变物品状态，`leave_pose` 为安全起身。`reachable` 基于当时的身体和布置，执行时仍会重新核验；收到受理后还要确认实际完成。
 
 ## 2. 布置：选择、预演、应用
 
@@ -58,6 +67,8 @@ node agent.mjs update_room '{"width":8.4,"depth":6.8,"height":2.7,"dry_run":true
 
 ```sh
 node agent.mjs walk_to '{"x":1.2,"z":0.3}'
+# 或只指定物品，小家选择可达边缘；两种参数不能混用
+node agent.mjs walk_to '{"target_id":"child-desk"}'
 node agent.mjs observe_home
 # 确认 child-chair 支持 read 且当前可用之后
 node agent.mjs interact '{"target_id":"child-chair","action":"read"}'
@@ -65,12 +76,14 @@ node agent.mjs interact '{"target_id":"child-chair","action":"read"}'
 
 上述目标是家庭模板示例，不保证所有布置中都可走到。以反馈为准。
 
-- `walk_to` 会请求避障走到目标；`move_character` 是直接定位，不是走路。
+- `walk_to` 接收 x/z 或 target_id，自动规划整条路线，无需分段。对象模式要求新鲜、可见、未暂停的站立身体反馈；用该位置选择可达终点，返回 job.target 和 target_id。桌面物品按其地面支撑家具选边缘位置。指定坐标则保持精确目标，不静默换终点；`move_character` 是直接定位，不是走路。
 - 动作一般经过 requested → approaching → entering → active；走到目的地会 completed。
 - `read`/`sleep` 的 active 表示姿态保持中，不是自动结束。用 `interact` 的 `leave` 安全起身；也可用 `cancel_action` 携带当前 job_id 取消匹配动作。
-- 确认同一个 job_id、phase、error，并检查 `fresh` 和 `body.pose`；新鲜反馈未到时不能宣布已完成。
+- 确认同一个 job_id、phase、error，并检查 `fresh`、`body_job_id` 和 `body.pose`；`body_job_id` 是身体快照对应的任务，不是当前期望任务。它必须与本次 job.id 一致；新鲜反馈未到时不能宣布已完成。
 - `observe_home` 的 `since` 接上次 cursor 读取增量事件，不要反复把历史完成事件当新消息。
-- `fresh:false`、无可见执行页面或 paused 时，应报告等待/不可执行，而不是编造成功。
+- `fresh:false`、无在线执行者或 paused 时，应报告等待/不可执行，而不是编造成功。
+
+HTTP 便捷客户端 `node tools/agent-home.mjs goto X Z` 和 `do TARGET ACTION` 会等待匹配任务及身体反馈，失败返回非零退出码。已完成的旧任务不再取消或多等四秒；即时物品操作不会自动起身。超时只表示尚未确认，不会自行取消正在执行的动作。
 
 ## 5. 看自己与截图
 
@@ -83,7 +96,7 @@ node agent.mjs screenshot '{"view":"character"}' --output /tmp/agent-home-eyes.p
 node agent.mjs screenshot '{"view":"spectator"}' --output /tmp/agent-home-room.png
 ```
 
-截图请求返回任务 ID/URL；CLI 的 `--output` 等待 PNG 再写文件。**需要一个打开且可见的当前生活页面**；超时/expired 不能当成截图成功。睡觉时角色视角会变暗。接口只拍小家画布，不读取桌面、摄像头或其他应用。
+截图请求返回任务 ID/URL；CLI 的 `--output` 等待 PNG 再写文件。**默认需要在线 Runner；--no-runner 模式才需要可见生活页面**；超时/expired 不能当成截图成功。睡觉时角色视角会变暗。接口只拍小家画布，不读取桌面、摄像头或其他应用。
 
 ## 6. HTTP、并发与重试
 
@@ -101,7 +114,7 @@ POST `/api/commands`。revision 必须来自刚读取的状态，不硬编码示
 - 409：版本冲突或幂等 ID 被不同请求复用。重新读取、判断意图、预演后再发新请求。
 - 400：参数/直接操作验证失败；422：批量布局正式应用被阻止，查看 layout 报告。
 - 同一 ID + 完全相同请求重试可返回已保存结果；不要对一次已受理动作生成新 ID 盲目重复。
-- 多个可见页面只有一个身体执行者；不要删租约或改数据库来抢控制。状态工具不依赖模型提供商，但身体动作和截图依赖浏览器执行者。
+- 默认 Runner 是唯一执行者，多个观看页只同步展示；--no-runner 模式才由一个可见页执行；不要删租约或改数据库来抢控制。状态工具不依赖模型提供商，但身体动作和截图依赖浏览器执行者。
 
 当前不含已安装的 MCP server 或 DSH 插件。接入适配器应只暴露这些声明工具，不把任意自然语言/家具元数据当作 shell 授权。
 
@@ -136,7 +149,7 @@ Agent 自己决定画什么、用什么颜色和线条。一次调用 `draw_cray
 
 用 `list_objects {"capability":"tidy"}` 找到玩具组，然后 `interact {"target_id":"floor-workshop","action":"tidy"}`。机器人和三块散件回到托盘，坐垫和说明书留在原处；`properties.packed` 为 true。用 `unpack` 把它们摆回地毯。两者都是立即生效的物品状态，不是行走任务；可以在她坐在这组玩具上玩的时候调用，不必先让她起身。
 
-想让观众看到她本人在画：先用 `list_objects {"capability":"draw"}` 找到前面有桌子和摊开绘本的椅子。在家庭预设里调用 `interact {"target_id":"child-chair","action":"draw"}`。这是身体动作，需要可见的房间页面；等同一任务进入 `active`、`observe_home` 报告 `pose: draw` 和手持 `crayon`，再调 `draw_crayon` 出图。此时不传 `target_id` 默认画在她膝前的那本；起身用这把椅子的 `leave`，本子回到桌上。只要 PNG 则不必先就座。
+想让观众看到她本人在画：先用 `list_objects {"capability":"draw"}` 找到前面有桌子和摊开绘本的椅子。在家庭预设里调用 `interact {"target_id":"child-chair","action":"draw"}`。这是身体动作，需要在线 Runner 或可见页执行者；等同一任务进入 `active`、`observe_home` 报告 `pose: draw` 和手持 `crayon`，再调 `draw_crayon` 出图。此时不传 `target_id` 默认画在她膝前的那本；起身用这把椅子的 `leave`，本子回到桌上。只要 PNG 则不必先就座。
 
 ### 电饭锅与小饭碗
 
@@ -168,3 +181,5 @@ node agent.mjs update_layout @docs/examples/family-supper.json
 ```
 
 示例只预演，适用于未改位置的家庭餐区。检查 `can_apply`、每把椅子的 `reachable` 和通往阳台的路线；通过后再原样提交该批操作并显式设 `dry_run:false`。使用 `interact` 对 `family-guest-chair` 请求 `sit`，再用 `observe_home` 看对应 job 和身体姿态。饭后先 `leave`，再预演移除这把椅子即可腾回名额，不必重置房间。
+
+启动、WSL 跨端观看、停用 Runner 和监控字段见 [Runner 与性能日志](RUNNER.md)。

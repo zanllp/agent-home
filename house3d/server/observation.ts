@@ -63,6 +63,7 @@ export function observe(
     source: "character perspective, not spectator camera",
     fresh,
     age_seconds: age === null ? null : round(age, 2),
+    body_job_id: snapshot?.job_id ?? null,
     execution: {
       paused: snapshot ? (snapshot.paused ?? false) : null,
       requires_visible_viewer: true,

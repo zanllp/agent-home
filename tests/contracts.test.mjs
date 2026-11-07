@@ -92,6 +92,14 @@ for (const [index, fixture] of cases.entries())
       assert.equal(actual.status, fixture.expected.status);
       // The live discovery endpoint intentionally advertises the approved balcony extension.
       if(fixture.input.url==='/api/tools'&&fixture.expected.body?.tools?.update_room&&!fixture.expected.body.tools.update_room.includes('balcony'))fixture.expected.body.tools.update_room.push('balcony');
+      if (fixture.input.url === "/api/tools") {
+        fixture.expected.body.tools.walk_to = ["x and z, or target_id"];
+        fixture.expected.body.tools.list_interactions = {method:"GET",path:"/api/interactions"};
+      }
+      // This additive field binds observed body feedback to its stored viewer sample.
+      if (fixture.input.url.split("?")[0] === "/api/observe" && actual.status === 200) {
+        fixture.expected.body.body_job_id = app.store.snapshot()?.job_id ?? null;
+      }
       if (fixture.expected.body !== null)
         equivalent(actual.body, fixture.expected.body, "response");
       if (fixture.expected.bytes)

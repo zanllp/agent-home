@@ -1,3 +1,4 @@
+import {fitOverlayQuad} from './overlay-quad.js';
 import {spaceBounds,balconyGeometry,regionAt} from '../shared/space.mjs';
 import {roomDimensions} from './room-size.js';
 import * as T from 'three';
@@ -15,8 +16,8 @@ export function createSelfMap(){
  function round(r,fill){c.fillStyle=fill;c.beginPath();c.roundRect(r.x,r.y,r.w,r.h,14);c.fill()}
  function text(value,x,y,bold=false,color='#536758',align='left'){c.font=`${bold?'bold ':''}12px -apple-system,"PingFang SC",sans-serif`;c.fillStyle=color;c.textAlign=align;c.textBaseline='middle';c.fillText(value,x,y)}
  function update({ready,body,objects=[],assets={},catalog={},route=[],paused=false,hidden:hide=false,room={}}){
-  hidden=hide;const key=JSON.stringify(open?[width,height,open,hidden,ready,body,objects,route,paused,room]:[width,height,open,hidden]);if(key===previous)return;const now=performance.now();if(previous&&now-drawnAt<100)return;previous=key;drawnAt=now;c.clearRect(0,0,width,height);if(hidden){texture.needsUpdate=true;return}
-  layout=selfMapLayout(width,height,room);const dimensions=roomDimensions(room);const {toggle,panel,map}=layout;round(toggle,open?'#dce9dc':'rgba(255,253,247,.95)');text(open?'收起位置':'位置',toggle.x+toggle.w/2,toggle.y+18,true,'#405747','center');
+  hidden=hide;mesh.visible=!hide;const key=JSON.stringify(open?[width,height,open,hidden,ready,body,objects,route,paused,room]:[width,height,open,hidden]);if(key===previous)return;const now=performance.now();if(previous&&now-drawnAt<100)return;previous=key;drawnAt=now;c.clearRect(0,0,width,height);if(hidden){texture.needsUpdate=true;return}
+  layout=selfMapLayout(width,height,room);fitOverlayQuad(mesh,width,height,open?null:layout.toggle);const dimensions=roomDimensions(room);const {toggle,panel,map}=layout;round(toggle,open?'#dce9dc':'rgba(255,253,247,.95)');text(open?'收起位置':'位置',toggle.x+toggle.w/2,toggle.y+18,true,'#405747','center');
   if(open){round(panel,'rgba(255,253,247,.97)');text('位置与朝向',panel.x+16,panel.y+19,true);if(room.balcony){const b=balconyGeometry(room),d=roomDimensions(room),a=mapPoint({x:-d.width/2,z:-d.depth/2},map,room),z=mapPoint({x:d.width/2,z:d.depth/2},map,room),p=mapPoint({x:b.minX,z:b.minZ},map,room),q=mapPoint({x:b.maxX,z:b.maxZ},map,room);c.fillStyle='#eee9dc';c.fillRect(a.x,a.y,z.x-a.x,z.y-a.y);c.fillStyle='#dce8df';c.fillRect(p.x,p.y,q.x-p.x,q.y-p.y);text('阳台',(p.x+q.x)/2,p.y+9,false,'#6f8a7b','center')}else round(map,'#eee9dc');
    text('后墙',map.x+map.w/2,map.y-10,false,'#8a9588','center');text('前墙',map.x+map.w/2,map.y+map.h+11,false,'#8a9588','center');text('左',map.x-12,map.y+map.h/2,false,'#8a9588','center');text('右',map.x+map.w+12,map.y+map.h/2,false,'#8a9588','center');
    c.save();c.beginPath();c.rect(map.x,map.y,map.w,map.h);c.clip();
@@ -30,5 +31,5 @@ export function createSelfMap(){
   }texture.needsUpdate=true;
  }
  function hit(x,y){if(hidden)return null;const inside=r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;if(inside(layout.toggle))return 'self-map-toggle';if(open&&inside(layout.panel))return 'self-map-panel';return null}
- return {size,update,hit,toggle(){open=!open;previous=''},close(){open=false;previous=''},get open(){return open},render(renderer){const clear=renderer.autoClear;renderer.autoClear=false;renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=clear},dispose(){texture.dispose();mesh.geometry.dispose();material.dispose()}};
+ return {size,update,hit,toggle(){open=!open;previous=''},close(){open=false;previous=''},get open(){return open},render(renderer){if(hidden)return;const clear=renderer.autoClear;renderer.autoClear=false;renderer.render(scene,camera);renderer.autoClear=clear},dispose(){texture.dispose();mesh.geometry.dispose();material.dispose()}};
 }

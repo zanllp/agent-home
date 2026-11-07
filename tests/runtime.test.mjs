@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { createServer } from "node:net";
 import { request as httpRequest } from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { once } from "node:events";
 import { createHash } from "node:crypto";
 import { unzipSync } from "fflate";
@@ -192,6 +192,7 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       PATH: "",
       NODE_PATH: "",
       HOUSE_PORT: String(port),
+      HOUSE_RUNNER: "0",
       HOUSE_DB: join(folder, "house3d/data/house.sqlite"),
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -219,6 +220,12 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       await new Promise((r) => setTimeout(r, 40));
     }
     assert.ok(ready, output);
+    assert.ok(existsSync(join(folder, "SKILL.md")));
+    const clientObservation = JSON.parse(execFileSync(process.execPath,
+      [join(folder, "tools/agent-home.mjs"), "observe"],
+      {cwd: folder, env: {...process.env, PATH: "", NODE_PATH: "", AGENT_HOME_URL: url}, encoding: "utf8"}));
+    assert.equal(clientObservation.body_job_id, null);
+    assert.equal(clientObservation.fresh, false);
     assert.equal((await fetch(url + "/")).status, 200);
     assert.equal(
       await new Promise((resolve, reject) => {
@@ -294,6 +301,16 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       ).body.state.revision,
       1,
     );
+    const listed = JSON.parse(execFileSync(process.execPath,
+      [join(folder, "tools/agent-home.mjs"), "call", "list_interactions", '{"capability":"draw"}'],
+      {cwd:folder,env:{...process.env,PATH:"",NODE_PATH:"",AGENT_HOME_URL:url},encoding:"utf8"}));
+    assert.ok(listed.objects.length > 0);
+    assert.ok(listed.objects.every(o=>o.actions.every(a=>a.id==="draw" && a.command.tool==="interact" && !a.available)));
+    const primaryList = JSON.parse(execFileSync(process.execPath,
+      [join(folder,"agent.mjs"),"list_interactions",'{"capability":"draw"}',"--url",url],
+      {cwd:folder,env:{...process.env,PATH:"",NODE_PATH:""},encoding:"utf8"}));
+    assert.deepEqual(primaryList.objects,listed.objects);
+
     const cat = (await api("/api/catalog")).body;
     for (const asset of Object.values(cat.assets)) {
       const r = await fetch(url + asset.model, { method: "HEAD" });
@@ -379,4 +396,26 @@ test("malformed preview flags never add durable rejection events", () => {
   } finally {
     app.close();
   }
+});
+
+
+test("observation exposes the body sample's job, not the newer requested job", () => {
+  const app = new HouseApp(ctx, ":memory:", root, web);
+  try {
+    const feedback = (job_id) => request(app, "/api/viewer", {
+      session_id: "client-verification", visible: true, job_id,
+      body: {x:0,y:0,z:0,yaw:0,pose:"stand",moving:false},
+    });
+    assert.equal(feedback(null).status,200);
+    const accepted = command(app,"walk_to",{x:0,z:0},"new-walk");
+    assert.equal(accepted.status,200);
+    let seen=request(app,"/api/observe").body;
+    assert.equal(seen.job.id,"new-walk");
+    assert.equal(seen.body_job_id,null);
+    assert.equal(seen.fresh,true);
+    assert.equal(feedback("new-walk").status,200);
+    seen=request(app,"/api/observe").body;
+    assert.equal(seen.body_job_id,"new-walk");
+    assert.equal(feedback("old-walk").status,400);
+  } finally { app.close(); }
 });

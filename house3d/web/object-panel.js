@@ -1,3 +1,4 @@
+import {fitOverlayQuad} from './overlay-quad.js';
 import * as T from 'three';
 const categories=[['all','全部'],['seating','坐具'],['sleeping','寝具'],['study','学习'],['play','玩具'],['lighting','灯光'],['storage','收纳'],['appliances','家电'],['decoration','装饰'],['environment','环境'],['tables','桌几']];
 export function createObjectPanel(){
@@ -8,7 +9,8 @@ export function createObjectPanel(){
  function size(w,h){texture.dispose();width=w;height=h;canvas.width=w*2;canvas.height=h*2;c.setTransform(2,0,0,2,0,0);camera.left=-w/2;camera.right=w/2;camera.top=h/2;camera.bottom=-h/2;camera.updateProjectionMatrix();mesh.scale.set(w,h,1);previous=''}
  function button(id,label,x,y,w,h,active=false,enabled=true){rects.push({id,x,y,w,h,enabled});c.fillStyle=active?'#dce9dc':'#f4f1e9';c.beginPath();c.roundRect(x,y,w,h,12);c.fill();c.fillStyle=enabled?'#405747':'#9a9c94';c.font='bold 13px -apple-system,"PingFang SC",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(label,x+w/2,y+h/2)}
  function text(s,x,y,bold=false,color='#405747'){c.fillStyle=color;c.textAlign='left';c.textBaseline='top';c.font=`${bold?'bold ':''}13px -apple-system,"PingFang SC",sans-serif`;c.fillText(s,x,y)}
- function update(next){data=next||data;const key=JSON.stringify([width,height,open,category,page,selected,data,pending]);if(key===previous)return;previous=key;c.clearRect(0,0,width,height);rects=[];
+ function update(next){data=next||data;const key=JSON.stringify([width,height,open,category,page,selected,open?data:null,pending]);if(key===previous)return;previous=key;c.clearRect(0,0,width,height);rects=[];
+  fitOverlayQuad(mesh,width,height,open?null:{x:width-94,y:18,w:76,h:36});
   button('toggle',open?'收起物品':'物品',width-94,18,76,36,open);
   if(open){const w=Math.min(380,width-24),x=width-w-12,y=78,h=Math.min(510,height-168);c.fillStyle='rgba(255,253,247,.98)';c.beginPath();c.roundRect(x,y,w,h,20);c.fill();rects.push({id:'panel',x,y,w,h,enabled:true});text('家里的东西',x+18,y+18,true);
    categories.forEach(([id,label],i)=>button('category:'+id,label,x+14+(i%6)*(w-28)/6,y+46+Math.floor(i/6)*36,(w-36)/6,30,category===id));
@@ -20,5 +22,5 @@ export function createObjectPanel(){
  }
  function hit(x,y){return [...rects].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)}
  function activate(id){if(id==='toggle')open=!open;else if(id.startsWith('category:')){category=id.slice(9);page=0;selected=null}else if(id.startsWith('select:'))selected=id.slice(7);else if(id==='prev')page=Math.max(0,page-1);else if(id==='next')page++;previous=''}
- return {size,update,hit,activate,get open(){return open},set pending(v){pending=v;previous=''},render(renderer){const clear=renderer.autoClear;renderer.autoClear=false;renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=clear},dispose(){texture.dispose();mesh.geometry.dispose();mesh.material.dispose()}};
+ return {size,update,hit,activate,get open(){return open},get pending(){return pending},set pending(v){pending=v;previous=''},render(renderer){const clear=renderer.autoClear;renderer.autoClear=false;renderer.render(scene,camera);renderer.autoClear=clear},dispose(){texture.dispose();mesh.geometry.dispose();mesh.material.dispose()}};
 }

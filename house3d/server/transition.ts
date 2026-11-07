@@ -1,3 +1,4 @@
+import {planObjectDestination} from '../shared/object-destination.mjs';
 import {drawable, validateDrawing, drawingWidth, drawingHeight} from './crayon.mjs';
 import {createSpace,spaceBounds} from '../shared/space.mjs';
 import {
@@ -25,7 +26,7 @@ export function transition(
   input: State,
   command: Data,
   ctx: Context,
-  { check_geometry = true, check_busy = true }: Data = {},
+  { check_geometry = true, check_busy = true, navigation_start = null }: Data = {},
 ): State {
   let state = clone(input);
   const op = command.tool,
@@ -142,15 +143,24 @@ export function transition(
     }
   } else if (op === "walk_to") {
     requireValue(!busy(state), "Finish the current action first");
+    const objectTarget = "target_id" in args;
+    requireValue(objectTarget ? !("x" in args || "z" in args) : "x" in args && "z" in args, "Use target_id OR x and z, not both");
+    let planned: Data | null = null;
+    if (objectTarget) {
+      requireValue(typeof args.target_id === "string" && args.target_id.length > 0, "Invalid target_id");
+      requireValue(navigation_start, "A fresh visible standing body is required to plan an object destination");
+      planned = planObjectDestination(state.objects, ctx.catalog, ctx.assets, state.room ?? {}, navigation_start, args.target_id);
+      requireValue(planned.ok, planned.reason);
+    }
     const b = boundaries(state.room),extent=spaceBounds(state.room),
-      point = {
+      point = planned?.point ?? {
         x: number(args.x, state.room?.balcony?extent.minX:-b.body_x,state.room?.balcony?extent.maxX:b.body_x),
         z: number(args.z, state.room?.balcony?extent.minZ:-b.body_z,state.room?.balcony?extent.maxZ:b.body_z),
       };
     mutate(state, { tool: "move_character", arguments: point });
     state.interaction = {
       id: command.id || "walk-" + (state.revision + 1),
-      target_id: null,
+      target_id: objectTarget ? args.target_id : null,
       target: point,
       action: "walk_to",
       pose: "walk",

@@ -1,3 +1,4 @@
+import {interactionList} from './interactions.js';
 import {crayonPng} from './crayon.mjs';
 import {balconyGeometry,balconyDoor,spaceBounds} from '../shared/space.mjs';
 import { readFileSync, statSync, realpathSync, existsSync } from "node:fs";
@@ -151,6 +152,8 @@ export class HouseApp {
         applying:
           "Explicit template reset: dry-run first; places the character at the declared spawn, preserves appearance",
       });
+    if (get && path === "/api/interactions")
+      return json(interactionList(store.state(),ctx,store.snapshot(),now,url.searchParams.get("category"),url.searchParams.get("capability")));
     if (get && path === "/api/objects")
       return json(
         objectList(
@@ -200,7 +203,7 @@ export class HouseApp {
         tools: {
           observe_home: { method: "GET", path: "/api/observe" },
           ...(ctx.definitions.draw_crayon ? {draw_crayon:["title","marks","target_id?","base_url?"]} : {}),
-          walk_to: ["x", "z"],
+          walk_to: ["x and z, or target_id"],
           cancel_action: ["job_id"],
           update_room: [
             "wall_color",
@@ -216,6 +219,7 @@ export class HouseApp {
           apply_preset: ["preset_id", "dry_run"],
           set_wallpaper: ["wall_id", "wallpaper_id"],
           list_objects: { method: "GET", path: "/api/objects" },
+          list_interactions: { method: "GET", path: "/api/interactions" },
           interact: ["target_id", "action"],
           update_object: ["id", "label", "properties"],
           get_state: { method: "GET", path: "/api/state" },
@@ -422,7 +426,9 @@ export class HouseApp {
               422,
             );
         } else {
-          next = transition(old, body, ctx);
+          const snapshot = store.snapshot();
+          const navigation_start = snapshot?.visible && !snapshot.paused && now-snapshot.received_at<6 && snapshot.body.pose === "stand" ? snapshot.body : null;
+          next = transition(old, body, ctx, {navigation_start});
           const changesDoor = body.tool === 'update_object' && body.arguments?.id === old.room?.balcony?.door_id && 'open' in (body.arguments?.properties ?? {});
           if((old.room?.balcony||next.room?.balcony)&&(changesDoor||['place_furniture','update_furniture','remove_furniture','apply_layout'].includes(body.tool))){
             const snap=store.snapshot();if(snap?.visible&&now-snap.received_at<6){
