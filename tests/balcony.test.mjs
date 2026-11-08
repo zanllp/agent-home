@@ -125,3 +125,22 @@ test('wood shelf and the agent-visible mounting surface agree on height and open
  assert.ok(envelope.max.z<=asset.size[1]/2&&-envelope.min.z<=asset.size[1]/2);
  assert.equal(ctx.assets['family-enamel-washer-v1'].surfaces,undefined);
 });
+
+test('balcony spectator keeps child-room walls and railing except in dollhouse presets',async()=>{
+ const {CAMERA_PRESETS,roomViewOptions,roomCameraDistance}=await import('../house3d/web/camera-presets.js');
+ const {createAnnexRooms}=await import('../house3d/web/annex-rooms.js');
+ const room={...ctx.presets['connected-home'].room,child_finish:{}},p={x:-5,y:1.6,z:-1};
+ const parent=new Group(),annex=createAnnexRooms(parent,room,[],{},new Texture());
+ const railing=createBalcony(room,new Mesh(new PlaneGeometry(2,2),new MeshBasicMaterial({map:new Texture()})));
+ for(const mode of [...CAMERA_PRESETS.map(([id])=>id),'follow','character']){
+  const options=roomViewOptions(mode),cut=['album','home','top'].includes(mode);
+  annex.updateView(p,options);railing.userData.updateView({x:-7,y:1.6,z:-1},options);
+  assert.equal(parent.getObjectByName('child-back').visible,!cut,mode);
+  assert.equal(parent.getObjectByName('child-back').getObjectByName('Exterior-plaster').visible,!cut,mode);
+  assert.equal(railing.getObjectByName('Balcony-front-rail').visible,!cut,mode);
+ }
+ annex.dispose();disposeBalcony(railing);
+ const wall=[[{x:-4,z:-.5},{x:-4,z:1}]];
+ assert.ok(roomCameraDistance({x:-5,z:0},{x:-2,z:0},wall)<1/3);
+ assert.equal(roomCameraDistance({x:-5,z:-1},{x:-2,z:-1},wall),1);
+});

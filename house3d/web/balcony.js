@@ -37,7 +37,7 @@ export function createBalcony(room,view,door,openingWidth=2.42){
   const city=new T.Mesh(geometry,mat);city.name='Distant-city-only';city.position.set(0,1.8,-b.depth-2);city.renderOrder=12;root.add(city);root.userData.outdoors=createOutdoorScene(city,tiles);
   const mask=new T.Mesh(new T.PlaneGeometry(b.width,2.4),new T.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:T.DoubleSide,stencilWrite:true,stencilRef:200,stencilFunc:T.AlwaysStencilFunc,stencilFail:T.KeepStencilOp,stencilZFail:T.KeepStencilOp,stencilZPass:T.ReplaceStencilOp}));mask.name='Balcony-city-aperture';mask.position.set(0,1.2,-b.depth-.01);mask.renderOrder=10;root.add(mask);
   const inner=mask.clone();inner.geometry=new T.PlaneGeometry(openingWidth,2.17);inner.name='Balcony-door-aperture';const q=door?balconyLocal(room,door):{u:0,v:-.14};inner.position.set(q.u,1.11,-q.v-.035);root.add(inner);
-  root.userData.updateView=position=>{const q=balconyLocal(room,position),outside=q.v>0;city.visible=q.v<b.depth-.03;mask.visible=outside;inner.visible=!outside;for(const mesh of root.children){const edge=mesh.userData.cutawayEdge;if(edge)mesh.visible=!(edge==='left'&&q.u< -b.width/2+.03||edge==='right'&&q.u>b.width/2-.03||edge==='outer'&&q.v>b.depth-.03)}};
+  root.userData.updateView=(position,{cutaway=true}={})=>{const q=balconyLocal(room,position),outside=q.v>0;city.visible=q.v<b.depth-.03;mask.visible=outside;inner.visible=!outside;for(const mesh of root.children){const edge=mesh.userData.cutawayEdge;if(edge)mesh.visible=!cutaway||!(edge==='left'&&q.u< -b.width/2+.03||edge==='right'&&q.u>b.width/2-.03||edge==='outer'&&q.v>b.depth-.03)}};
  }
  return root;
 }

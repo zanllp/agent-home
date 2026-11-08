@@ -4,6 +4,24 @@ export const CAMERA_PRESETS = [
   ['home', '房间全景'], ['album','全屋留影'], ['broadcast','家庭直播'], ['front', '人物正面'], ['face', '脸部特写'],
   ['companion','家长跟拍'], ['portrait', '斜侧近景'], ['side', '人物侧面'], ['back', '人物背面'], ['top', '房间俯视'],
 ];
+const cutawayView=Object.freeze({cutaway:true}),solidView=Object.freeze({cutaway:false});
+export function roomViewOptions(mode){
+ return ['home','album','top'].includes(mode)?cutawayView:solidView;
+}
+// Keep the camera on the subject's side of a partition, including during orbit/lerp.
+export function roomCameraDistance(target,eye,segments){
+ const dx=eye.x-target.x,dz=eye.z-target.z,length=Math.hypot(dx,dz);
+ if(length<.001)return 1;
+ let limit=1;
+ for(const [a,b] of segments){
+  const axis=a.x===b.x?'x':'z',cross=axis==='x'?'z':'x',delta=eye[axis]-target[axis];
+  if(Math.abs(delta)<1e-8)continue;
+  const t=(a[axis]-target[axis])/delta,u=target[cross]+(eye[cross]-target[cross])*t;
+  if(t<=0||t>1+.13/Math.abs(delta)||u<Math.min(a[cross],b[cross])-.07||u>Math.max(a[cross],b[cross])+.07)continue;
+  limit=Math.min(limit,Math.max(.01,t-.13/Math.abs(delta)));
+ }
+ return limit;
+}
 const CHARACTER_VIEWS = {
   front: { offset: [0, .85, 3.1], targetY: .72 },
   face: { offset: [0, 1.1, 1.4], targetY: 1.04 },

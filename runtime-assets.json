@@ -1,9 +1,9 @@
 {
-  "note": "Runtime assets copied byte-for-byte from the complete local project. No mesh, animation, material or texture modification.",
+  "note": "Byte sizes and SHA256 of shipped assets, including documented local model refinements.",
   "assets": {
     "house3d/assets/dafeiyu-contact.glb": {
-      "bytes": 5574568,
-      "sha256": "ba77ffe8f161201ba515577b006620ee9f12468794908aa997c7946f4e4e2ae6"
+      "bytes": 5655500,
+      "sha256": "78fd10ff01ca9e37c98a12f1c37369d4b3e3819e3d9859c92040a0ec4a1315ab"
     },
     "house3d/assets/materials/honey-oak-floor-v1.png": {
       "bytes": 1773528,
@@ -531,28 +531,28 @@
       "source": "Original local geometry: tools/maple-chair.mjs"
     },
     "house3d/assets/furniture/apartment-bed-v1.glb": {
-      "bytes": 18524,
-      "sha256": "21d6863bcde395bb776ea17542084e998b0d7c06b940d65c15415dc34ce6d2d9",
+      "bytes": 115224,
+      "sha256": "3f7ad8a2045961121e4c4571bbabdbf8efe9d135a9e17e2bb6f0900d89f8028c",
       "source": "Original local geometry: tools/export-annex-furniture.mjs"
     },
     "house3d/assets/furniture/apartment-basin-v1.glb": {
-      "bytes": 31936,
-      "sha256": "3eb0e04b443319c604a900be19e3418d239dbc15060978b951f712d37017be09",
+      "bytes": 53688,
+      "sha256": "8b85ad2fd35beafbe81b578a4525121b83e18c6853b3b2f95536218626b0d525",
       "source": "Original local geometry: tools/export-annex-furniture.mjs"
     },
     "house3d/assets/furniture/apartment-shower-v1.glb": {
-      "bytes": 20072,
-      "sha256": "6bf49725939e036faf5e5016b1f1d8791da5fbe6ac101b4b3042ea8d12029f6b",
+      "bytes": 58048,
+      "sha256": "152e9fab4eccc81ba6b8419ba0610cb0c7099a70250516fd83211b0891257129",
       "source": "Original local geometry: tools/export-annex-furniture.mjs"
     },
     "house3d/assets/furniture/apartment-toilet-v1.glb": {
-      "bytes": 24644,
-      "sha256": "2db791d66946bd6d91c5634b786130a4a967231b4196066ae855c0ae917577b6",
+      "bytes": 53332,
+      "sha256": "36b3f9ef0d8c9c1f208b518f4289d3f8f2749bcf45f8bc397e2fe6fc7a1913b3",
       "source": "Original local geometry: tools/export-annex-furniture.mjs"
     },
     "house3d/assets/furniture/apartment-step-v1.glb": {
-      "bytes": 12488,
-      "sha256": "f606f7dd10fd13fd1ff61852ea5f9fb42e884dafb9340acbca0636cbe394a59c",
+      "bytes": 19836,
+      "sha256": "9537c12b2e0beb912bdf2dc9c665571681a9e7306bec0cea0e998038fa40711a",
       "source": "Original local geometry: tools/export-annex-furniture.mjs"
     }
   }
