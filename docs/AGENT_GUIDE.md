@@ -7,7 +7,7 @@ Agent Home 是一个独立的可观察、可操作环境。不要把模型生成
 - `GET /api/tool-schemas`：当前 function schemas，接入方以它为准。
 - `get_tools`：HTTP/命令入口。
 - `get_catalog`：资产、承载面、墙纸、房间边界与尺寸限制。
-- `get_presets`：`childroom`、`family-home` 两套模板。
+- `get_presets`：`childroom`、`family-home`、`connected-home` 三套模板。
 - `list_objects`：已放置的物品、分类、状态；支持 `category`/`capability` 筛选。
 - `list_interactions`（`GET /api/interactions`）：可直接执行的动作列表，保留不可用原因、当前身体的路线检查和 `command.tool/arguments`；同样支持分类/动作筛选。只在选择动作时查询，不必逐帧检查。
 - `observe_home`：身体视角反馈；`get_state`：持久化的期望状态。两者不是同一回事。
@@ -183,6 +183,19 @@ node agent.mjs update_layout @docs/examples/family-supper.json
 示例只预演，适用于未改位置的家庭餐区。检查 `can_apply`、每把椅子的 `reachable` 和通往阳台的路线；通过后再原样提交该批操作并显式设 `dry_run:false`。使用 `interact` 对 `family-guest-chair` 请求 `sit`，再用 `observe_home` 看对应 job 和身体姿态。饭后先 `leave`，再预演移除这把椅子即可腾回名额，不必重置房间。
 
 启动、WSL 跨端观看、停用 Runner 和监控字段见 [Runner 与性能日志](RUNNER.md)。
+
+### 直接使用演示中的连通小家
+
+在家里的 agent-home 仓库正常停止旧服务，备份实际使用的 SQLite 存档，执行 `git pull --ff-only`，再按原配置启动。无需安装 npm 依赖或重新构建。传统单房存档不会自动变更。等她站定后执行：
+
+```sh
+node agent.mjs get_presets
+node agent.mjs apply_preset '{"preset_id":"connected-home","dry_run":true}'
+# 仅在确认用整套预设替换当前布置时执行
+node agent.mjs apply_preset '{"preset_id":"connected-home","dry_run":false}'
+```
+
+预设保存了演示中的墙面、阳台、96 件物品的摆放和状态、日间灯光、阳台起点和家长跟拍。不会从演示机复制动作队列、数据库、会话或天气；角色外观沿用自己的存档。CLI 默认连接 19130；不同端口在每条命令后加 `--url http://127.0.0.1:实际端口`。**想保留自己摆的家具，请用下面的 `connect_rooms`，不要应用整套预设。**
 
 ### 把两个房间接起来
 在命名的 `family-home` 或标准尺寸的 `childroom` 存档，站定并离开家具交互后：

@@ -39,12 +39,15 @@ node tools/agent-home.mjs observe
 - `execution.requires_visible_viewer:true` 只是说明需要可见页面，不代表页面离线
 - `state` 是期望状态，`observe` 才是真实身体反馈
 
-## 两套房子
+## 切换房屋预设
+
+演示款：`connected-home`（96 件物品、全屋连通、家长跟拍）。`apply_preset` 是整套替换，先预演；保留原房布置的扩建用 `connect_rooms`。
 
 | id | 名字 | 气质 |
 |---|---|---|
 | `childroom` | 儿童房（鲸鱼主题） | 6×5m，9 件：床 / 书桌 / 椅子 / 书架 / 沙发 / 绿植 / 台灯 / 地毯 / 窗 |
 | `family-home` | 和饲养员的家 | 8×6.5m，79 件，urban 风，带 3.6×2m 阳台 |
+| `connected-home` | 大肥鱼的连通小家 | 96 件，儿童房、客厅、走廊、家长卧室、浴室和阳台 |
 
 - 儿童房完整就是 9 件；少了 `sofa` 或 `window`、房间显空，重新 `apply_preset childroom` 恢复
 - 应用模板会整体重置布置，人物回到出生点；先 `dry_run` 再应用

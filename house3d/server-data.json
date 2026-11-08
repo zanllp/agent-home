@@ -648,7 +648,7 @@
       ]
     ],
     "get_presets": [
-      "List the childroom and family-home templates. Applying resets furniture/room to the template, not a multi-room simulation.",
+      "List the childroom, family-home and furnished connected-home templates. Applying replaces the current layout; preview first.",
       {},
       []
     ],
@@ -660,7 +660,8 @@
           "description": "Preset id",
           "enum": [
             "childroom",
-            "family-home"
+            "family-home",
+            "connected-home"
           ]
         },
         "dry_run": {

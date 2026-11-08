@@ -1,4 +1,5 @@
 import {airingBed} from '../shared/airing.mjs';
+import {CONNECTED_HOME} from '../shared/apartment.mjs';
 import {connectHome} from './connect-home.js';
 import {planObjectDestination} from '../shared/object-destination.mjs';
 import {drawable, validateDrawing, drawingWidth, drawingHeight} from './crayon.mjs';
@@ -406,30 +407,37 @@ export function transition(
     const preset = ctx.presets[args.preset_id],
       rev = state.revision;
     let trial: State = { ...clone(state), objects: [] };
-    if(trial.room){delete trial.room.floorplan;delete trial.room.child_finish}
-    trial = mutate(
-      trial,
-      {
-        tool: "update_room",
-        arguments: Object.fromEntries(
-          Object.entries({...preset.room,...(state.room?.balcony&&!preset.room.balcony?{balcony:null}:{})}).filter(([k]) => k !== "wallpapers"),
-        ),
-      },
-      { check_busy: false, check_geometry: false },
-    );
-    for (const [wall_id, wallpaper_id] of Object.entries(
-      preset.room.wallpapers || {},
-    ))
+    if (preset.room.floorplan === CONNECTED_HOME) {
+      // Installed snapshot includes object state (e.g. rice servings), not placement commands.
+      trial.room = clone(preset.room);
+      trial.objects = clone(preset.objects);
+      validateLayout(trial, ctx);
+    } else {
+      if(trial.room){delete trial.room.floorplan;delete trial.room.child_finish}
       trial = mutate(
         trial,
-        { tool: "set_wallpaper", arguments: { wall_id, wallpaper_id } },
+        {
+          tool: "update_room",
+          arguments: Object.fromEntries(
+            Object.entries({...preset.room,...(state.room?.balcony&&!preset.room.balcony?{balcony:null}:{})}).filter(([k]) => k !== "wallpapers"),
+          ),
+        },
+        { check_busy: false, check_geometry: false },
+      );
+      for (const [wall_id, wallpaper_id] of Object.entries(
+        preset.room.wallpapers || {},
+      ))
+        trial = mutate(
+          trial,
+          { tool: "set_wallpaper", arguments: { wall_id, wallpaper_id } },
+          { check_busy: false },
+        );
+      trial = mutate(
+        trial,
+        { tool: "apply_layout", arguments: { objects: preset.objects } },
         { check_busy: false },
       );
-    trial = mutate(
-      trial,
-      { tool: "apply_layout", arguments: { objects: preset.objects } },
-      { check_busy: false },
-    );
+    }
     trial = mutate(
       trial,
       { tool: "move_character", arguments: preset.spawn },
@@ -438,8 +446,8 @@ export function transition(
     delete trial.interaction;
     Object.assign(trial, {
       revision: rev,
-      camera: "home",
-      light: "day",
+      camera: preset.camera ?? "home",
+      light: preset.light ?? "day",
       preset_id: args.preset_id,
     });
     trial.control_revisions = {

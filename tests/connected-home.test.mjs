@@ -46,3 +46,23 @@ test('a child can break into a jog in the furnished hallway and brake without cr
   assert.ok(peak>.85);assert.ok(almostThere<.15);assert.ok(Math.abs(walker.state.x-to.x)<.01);
  }finally{a.close()}
 });
+
+test('installed connected preset previews and restores the demo without copying its live job',()=>{
+ const {a,cmd}=fixture('childroom');try{
+  const before=a.store.state(),preset=ctx.presets['connected-home'];
+  const listed=a.handle({method:'GET',url:'/api/presets',headers:{}}).body.presets;
+  assert.equal(listed['connected-home'].objects,96);
+  const preview=cmd('apply_preset',{preset_id:'connected-home'});
+  assert.equal(preview.status,200,preview.body.error);assert.equal(preview.body.applied,false);
+  assert.deepEqual(a.store.state(),before);
+  const applied=cmd('apply_preset',{preset_id:'connected-home',dry_run:false});
+  assert.equal(applied.status,200,applied.body.error);
+  const s=a.store.state();
+  assert.deepEqual(s.objects,preset.objects);assert.deepEqual(s.room,preset.room);
+  assert.equal(s.camera,'companion');assert.equal(s.light,'day');
+  assert.equal(s.interaction,undefined);assert.equal(s.character.activity,'idle');
+  assert.equal(s.character.x,preset.spawn.x);assert.equal(s.character.z,preset.spawn.z);assert.equal(s.character.outfit,before.character.outfit);
+  assert.equal(cmd('apply_preset',{preset_id:'family-home',dry_run:false}).status,200);
+  assert.equal(a.store.state().room.floorplan,undefined);
+ }finally{a.close()}
+});
