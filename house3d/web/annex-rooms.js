@@ -38,6 +38,13 @@ export function createAnnexRooms(parent,room,objects,assets,oakMap,onChange){
     part(paint,c.width,c.height,.054,c.x,c.y,0);
     if(texture){const geom=batches.get(paint).at(-1),p=geom.attributes.position,uv=geom.attributes.uv;for(let i=0;i<p.count;i++)uv.setXY(i,p.getX(i)/paper.tile_m,p.getY(i)/paper.tile_m)}
     if(c.y-c.height/2<.001)part(wood,c.width,.08,.075,c.x,.04,0);
+    if(zone.id==='parent'&&side.id==='back'&&c.y-c.height/2<.001&&c.height>1.10){
+     // Shallow painted joinery belongs to the wall, not the movable headboard.
+     const sage=mat('#b4beb2'),moulding=mat('#cbd1c1'),count=Math.max(1,Math.round(c.width/.75));
+     part(sage,c.width,.96,.018,c.x,.55,.034);
+     part(moulding,c.width,.036,.043,c.x,1.04,.041);
+     for(let n=1;n<count;n++)part(moulding,.024,.94,.022,c.x-c.width/2+n*c.width/count,.55,.047);
+    }
     if(bath)for(let y=.38;y<height;y+=.38)if(Math.abs(y-c.y)<c.height/2)part(wood,c.width,.007,.058,c.x,y,0);
    }
    const facade=mesh(g,mergeGeometries(outsideFaces),mat('#ddd9ce'));facade.name='Exterior-plaster';facade.visible=false;

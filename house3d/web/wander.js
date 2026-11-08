@@ -15,7 +15,7 @@ import {spaceSegments,balconyGeometry} from '../shared/space.mjs';
 import {changedControls,navigationKey} from './wander-state.js';
 import {createObjectInteraction} from './object-interaction.js';
 import {createObjectPanel} from './object-panel.js';
-import {createNapQuilt} from './nap-quilt.js';
+import {sleepTurnClock,applySleepTurn} from './sleep-turn.js';
 import {createSleepFace} from './sleep-face.js';
 import {createFloorPlay} from './floor-play.js';
 import {createDrawingPose} from './drawing-pose.js';
@@ -43,13 +43,14 @@ const ui={ready:false,error:'',auto:true,paused:false,brisk:true,sound:false,sta
 const mount=document.getElementById('app');
  let companion,companionLayout,companionBoxes,companionPlan,companionBalcony;
  let activityCamera,drawingPose,floorPlay,playTime=0;
- let scene,renderer,camera,controls,resize,raf,walker,mixer,walk,run,rest,avatar,scale=1,weight=0,last=0,disposed=false,marker,nav,pointer,audio,lastSteps=0,tapTimer=0,room,motion,rugs=[],hud,motionTime=0,turnVelocity=0,syncTimer,layoutKey='',navKey='',roomRevision=-1,furnitureAssets={},lighting,noticeUntil=0,captureNotBefore=0,objectPanel,interaction,sitAction,sleepAction,characterModel,roomObjects=[],objectData={objects:[]},napQuilt,sleepFace,readAction,readingBook,controller=false,selfMap,roomCatalog={},roomSpec=roomDimensions();
+ let scene,renderer,camera,controls,resize,raf,walker,mixer,walk,run,rest,avatar,scale=1,weight=0,last=0,disposed=false,marker,nav,pointer,audio,lastSteps=0,tapTimer=0,room,motion,rugs=[],hud,motionTime=0,turnVelocity=0,syncTimer,layoutKey='',navKey='',roomRevision=-1,furnitureAssets={},lighting,noticeUntil=0,captureNotBefore=0,objectPanel,interaction,sitAction,sleepAction,characterModel,roomObjects=[],objectData={objects:[]},sleepFace,readAction,readingBook,controller=false,selfMap,roomCatalog={},roomSpec=roomDimensions();
  const cleanView=mode=>mode==='broadcast'||mode==='album';
  const viewerSession=crypto.randomUUID();
  const runnerKey=new URLSearchParams(location.hash.slice(1)).get('runner');
  const isRunner=!!runnerKey,playback=playbackBuffer();
  let pausedRev=0,briskRev=0,watchers=0;
- const gait={time:0,weight:0,turn:0,poseTime:0};
+ const turns=sleepTurnClock();let lastDrawnSide=0;
+ const gait={time:0,weight:0,turn:0,poseTime:0,sleepSide:0};
  let spectator=false,feed,perf,framePending=false,lastPublish=-Infinity,lastPacket='',remoteDirty=false,controlRevision=0,lastShadow=-Infinity,lastCameraMode='';
  const ownerFetch=(url,opts={})=>fetch(url,{...opts,headers:{...opts.headers,...(runnerKey?{'X-House-Runner':runnerKey}:{})}});
  const post=(url,body)=>ownerFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -168,7 +169,11 @@ const mount=document.getElementById('app');
  function groundHeight(x,z){return groundHeightAt(x,z,rugs,furnitureAssets)}
  function applyBody(dt,remote){bodyDirty=false;remoteDirty=false;
    drawingPose.restore();floorPlay.restore();const contact=remote?remote.contact:interaction.tick(dt);
-   sleepFace.update(contact?.sleep||0);const bedObject=roomObjects.find(o=>o.id===interaction?.targetId);napQuilt.update(bedObject?.properties?.covered===false||bedObject&&roomObjects.some(o=>o.properties?.quilt_from===bedObject.id)?0:contact?.sleep||0,bedObject);
+   const side=remote?.gait?.sleepSide??gait.sleepSide;
+   lastDrawnSide=side;
+   const roll=side*(contact?.sleep||0);
+   applySleepTurn(characterModel.parent,roll);
+   sleepFace.update(contact?.sleep||0);room.setSleep(interaction?.targetId,contact?.sleep||0,roll);
    characterModel.parent.position.y=0;
    if(contact){
     motion?.restore();walk.setEffectiveWeight(0);run.setEffectiveWeight(0);rest.setEffectiveWeight(1-contact.sit-contact.sleep);sitAction.setEffectiveWeight(contact.sit*(1-(contact.read||contact.play||contact.draw||0)));readAction.setEffectiveWeight(contact.sit*(contact.read||contact.play||contact.draw||0));readAction.time=.5;sleepAction.setEffectiveWeight(contact.sleep);sitAction.time=sleepAction.time=.5;mixer.update(0);
@@ -205,7 +210,9 @@ const mount=document.getElementById('app');
     Object.assign(interaction,{phase:remote.phase,pose:remote.pose,busy:remote.busy,targetId:remote.targetId,relatedId:remote.relatedId,frame:remote.contact,jobId:remote.jobId});
     ui.auto=remote.auto;ui.brisk=remote.brisk;ui.paused=remote.paused;ui.status=remote.status;
   }else ui.status='等待家里的 Runner 连接…'}
-  const animateBody=ui.ready&&(spectator?!!remote&&(remoteDirty||bodyDirty||(!ui.paused&&(remote.body.moving||remote.walk.mode==='turn'||remote.phase==='approaching'||remote.phase==='entering'||remote.phase==='leaving'||remote.phase==='active'&&['draw','play'].includes(remote.pose)))):controller&&!ui.paused&&(continuousBaseline||bodyDirty||renderDemand.animate(now,{ready:ui.ready,controller,paused:ui.paused,auto:ui.auto,routeLength:walker?.state.route.length||0,phase:interaction?.phase,pose:interaction?.pose,weight:isRunner?0:weight})));
+  if(ui.ready&&controller&&!spectator)gait.sleepSide=turns.sample(now,interaction,ui.paused);
+  const turnChanged=(spectator?(remote?.gait?.sleepSide??0):gait.sleepSide)!==lastDrawnSide;
+  const animateBody=ui.ready&&(spectator?!!remote&&(remoteDirty||bodyDirty||turnChanged||(!ui.paused&&(remote.body.moving||remote.walk.mode==='turn'||remote.phase==='approaching'||remote.phase==='entering'||remote.phase==='leaving'||remote.phase==='active'&&['draw','play'].includes(remote.pose)))):controller&&!ui.paused&&(continuousBaseline||bodyDirty||(!isRunner&&turnChanged)||renderDemand.animate(now,{ready:ui.ready,controller,paused:ui.paused,auto:ui.auto,routeLength:walker?.state.route.length||0,phase:interaction?.phase,pose:interaction?.pose,weight:isRunner?0:weight})));
   perf?.tick(elapsed*1000,animateBody);
   if(isRunner&&ui.ready&&controller){
    if(animateBody){bodyDirty=false;gait.poseTime+=dt;const c=interaction.tick(dt);if(c){avatar.position.set(c.x,c.y,c.z);avatar.rotation.set(c.pitch,c.yaw,0,'YXZ')}else{
@@ -247,7 +254,7 @@ const mount=document.getElementById('app');
 async function init(){try{
   const runtime=await (await fetch('/api/runtime')).json();spectator=runtime.runner&&!isRunner;
   scene=new T.Scene();scene.background=new T.Color('#f3efe6');camera=new T.PerspectiveCamera(36,1,.05,40);
-  renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,stencil:true});renderer.info.autoReset=false;perf=perfSampler(renderer,data=>post('/api/runtime/perf',{session:viewerSession,...data}));renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=T.ACESFilmicToneMapping;mount.appendChild(renderer.domElement);renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('role','application');hud=createCanvasHud();selfMap=createSelfMap();objectPanel=createObjectPanel();napQuilt=createNapQuilt(scene);
+  renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,stencil:true});renderer.info.autoReset=false;perf=perfSampler(renderer,data=>post('/api/runtime/perf',{session:viewerSession,...data}));renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=T.ACESFilmicToneMapping;mount.appendChild(renderer.domElement);renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('role','application');hud=createCanvasHud();selfMap=createSelfMap();objectPanel=createObjectPanel();
   controls=new OrbitControls(camera,renderer.domElement);controls.minDistance=1;controls.maxDistance=15;controls.maxPolarAngle=Math.PI*.48;view('home');
   controls.addEventListener('start',()=>manualCamera.start());
   controls.addEventListener('change',()=>manualCamera.change());
@@ -260,7 +267,7 @@ async function init(){try{
   walker=createWalker(nav,start);walker.setBrisk(ui.brisk);
   room=createPreviewRoom(scene,{renderer,batchStatic:!continuousBaseline,onChange:()=>renderDemand.invalidate()});await room.update(state.objects,catalog.assets,state.room);lighting.update(state.objects,catalog.assets,state.room);await room.setFinish(state.room);layoutKey=JSON.stringify([state.objects,roomDimensions(state.room)]);navKey=navigationKey(state.objects,state.room);roomRevision=state.revision;
   marker=new T.Mesh(new T.RingGeometry(.09,.12,40),new T.MeshBasicMaterial({color:'#789d83',side:T.DoubleSide}));marker.rotation.x=-Math.PI/2;marker.visible=false;scene.add(marker);
-  const gltf=await new GLTFLoader().loadAsync('/models/dafeiyu-contact.glb?v=sleeves-78fd10ff');const model=gltf.scene;characterModel=model;usePaintedCharacter(model);sleepFace=createSleepFace(model);model.traverse(o=>{if(o.userData.sleep_eye)o.visible=false});model.updateMatrixWorld(true);
+  const gltf=await new GLTFLoader().loadAsync('/models/dafeiyu-contact.glb?v=brows-4a347b12');const model=gltf.scene;characterModel=model;usePaintedCharacter(model);sleepFace=createSleepFace(model);model.traverse(o=>{if(o.userData.sleep_eye)o.visible=false});model.updateMatrixWorld(true);
   const box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());scale=1.3/size.y;
   const normalized=new T.Group();normalized.scale.setScalar(scale);model.position.set(-center.x,-box.min.y,-center.z);normalized.add(model);avatar=new T.Group();avatar.rotation.order='YXZ';avatar.add(normalized);avatar.position.set(start.x,groundHeight(start.x,start.z),start.z);avatar.rotation.y=start.yaw;scene.add(avatar);readingBook=createReadingBook(scene);
   mixer=new T.AnimationMixer(model);const clip=gltf.animations.find(a=>a.name==='little-walk'),idle=gltf.animations.find(a=>a.name==='rest'),running=gltf.animations.find(a=>a.name==='little-run');if(!clip||!idle||!running)throw Error('小碎步动作没有载入完整。');
@@ -369,5 +376,5 @@ async function init(){try{
   void syncOutdoors();syncTimer=setTimeout(syncRoom,1200);
   invalidateBody();ui.ready=true;ui.status='点空地走过去，拖动转一转';
  }catch(e){ui.error=e.message;hud?.update(ui);if(isRunner)post('/api/runtime/fault',{message:e.message}).catch(()=>{})}}
-window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(outdoorTimer);clearTimeout(syncTimer);cancelAnimationFrame(raf);if(isRunner)clearTimeout(raf);feed?.close();perf?.dispose();resize?.disconnect();controls?.dispose();audio?.close();hud?.dispose();selfMap?.dispose();objectPanel?.dispose();napQuilt?.dispose();sleepFace?.dispose();readingBook?.dispose();drawingPose?.dispose();floorPlay?.dispose();room?.dispose();lighting?.dispose();scene?.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[]))m.dispose()});renderer?.dispose()},{once:true});
+window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(outdoorTimer);clearTimeout(syncTimer);cancelAnimationFrame(raf);if(isRunner)clearTimeout(raf);feed?.close();perf?.dispose();resize?.disconnect();controls?.dispose();audio?.close();hud?.dispose();selfMap?.dispose();objectPanel?.dispose();sleepFace?.dispose();readingBook?.dispose();drawingPose?.dispose();floorPlay?.dispose();room?.dispose();lighting?.dispose();scene?.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[]))m.dispose()});renderer?.dispose()},{once:true});
 init();

@@ -15,9 +15,9 @@
     "interactions": {
       "sleep": {
         "root": [
-          0,
-          0.64,
-          0.65
+          -0.24,
+          0.405,
+          0.47
         ],
         "yaw": 0,
         "approaches": [
@@ -2783,9 +2783,9 @@
     "interactions": {
       "sleep": {
         "root": [
-          0,
-          0.6,
-          0.65
+          -0.4,
+          0.452,
+          0.5
         ],
         "yaw": 0,
         "approaches": [
@@ -2823,7 +2823,20 @@
     "source_type": "native_geometry",
     "native_materials": true,
     "recolorable": false,
-    "source": "Original procedural household asset"
+    "source": "Original procedural household asset",
+    "surfaces": {
+      "ledge": {
+        "size": [
+          0.66,
+          0.102
+        ],
+        "center": [
+          0,
+          -0.182
+        ],
+        "height": 1.218
+      }
+    }
   },
   "apartment-shower-v1": {
     "label": "青瓷淋浴角和挂巾",
@@ -2872,5 +2885,39 @@
     "native_materials": true,
     "recolorable": false,
     "source": "Original procedural household asset"
+  },
+  "evening-paperback-v1": {
+    "label": "读到一半的书和细框眼镜",
+    "kind": "books",
+    "model": "/models/furniture/evening-paperback-v1.glb",
+    "size": [
+      0.2973,
+      0.222
+    ],
+    "height": 0.0375,
+    "style": "maple-family",
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "painted": false,
+    "recolorable": false,
+    "source": "Original local geometry: tools/export-evening-props.mjs"
+  },
+  "evening-wash-kit-v1": {
+    "label": "并排的两把牙刷和卷尾牙膏",
+    "kind": "desktop",
+    "model": "/models/furniture/evening-wash-kit-v1.glb",
+    "size": [
+      0.1735,
+      0.077
+    ],
+    "height": 0.1972,
+    "style": "maple-family",
+    "placement": "surface",
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "painted": false,
+    "recolorable": false,
+    "source": "Original local geometry: tools/export-evening-props.mjs"
   }
 }

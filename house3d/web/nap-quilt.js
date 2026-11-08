@@ -1,14 +1,92 @@
-import * as T from 'three';
-// A reversible sleep-only cover, separate from the original bed / character.
-export function createNapQuilt(scene){
- const group=new T.Group();scene.add(group);group.visible=false;const nx=56,nz=64,w=1.06,z0=-.06,length=.92,vertices=[],colors=[],indices=[];
- const base=new T.Color('#adc0e1'),cream=new T.Color('#f5ead6');
- function height(x,z){const fall=Math.exp(-Math.pow(x/.36,4)),along=.33+.06*Math.exp(-Math.pow((z-.12)/.4,4));const seam=Math.pow(Math.abs(Math.sin(x*22+z*16)*Math.sin(x*22-z*16)),.35);return .555+fall*(along+.012*seam)+.004*Math.sin(z*36+x*6)}
- for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++){const x=(i/nx-.5)*w,z=z0+j/nz*length,seam=Math.pow(Math.abs(Math.sin(x*22+z*16)*Math.sin(x*22-z*16)),.35),shade=.92+.08*seam;vertices.push(x,height(x,z),z);const c=base.clone().multiplyScalar(shade);colors.push(c.r,c.g,c.b)}
- for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,b=a+1,d=a+nx+1,c=d+1;indices.push(a,c,b,a,d,c)}
- const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setIndex(indices);geometry.computeVertexNormals();const material=new T.MeshBasicMaterial({vertexColors:true,side:T.DoubleSide,toneMapped:false});group.add(new T.Mesh(geometry,material));
- const edge=[];for(let i=0;i<=40;i++)edge.push(new T.Vector3(-w/2+i/40*w,height(-w/2+i/40*w,z0)+.002,z0));for(let i=1;i<=40;i++)edge.push(new T.Vector3(w/2,height(w/2,z0+i/40*length)+.002,z0+i/40*length));for(let i=1;i<=40;i++)edge.push(new T.Vector3(w/2-i/40*w,height(w/2-i/40*w,z0+length)+.002,z0+length));for(let i=1;i<=40;i++)edge.push(new T.Vector3(-w/2,height(-w/2,z0+length-i/40*length)+.002,z0+length-i/40*length));const piping=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(edge,true),240,.008,6,true),new T.MeshBasicMaterial({color:cream,toneMapped:false}));group.add(piping);
- // Soft stitched dots mark the quilt intersections without a texture dependency.
- const dotGeometry=new T.SphereGeometry(.005,8,6),dotMaterial=new T.MeshBasicMaterial({color:'#ecdfbd',toneMapped:false});for(let z=-.12;z<.8;z+=.18)for(let x=-.36;x<=.36;x+=.18){const dot=new T.Mesh(dotGeometry,dotMaterial);dot.scale.y=.35;dot.position.set(x,height(x,z)+.006,z);group.add(dot)}
- return {update(weight,obj){group.visible=!!obj&&weight>.72;if(obj){group.position.set(obj.x,0,obj.z);group.rotation.y=obj.yaw}},dispose(){const geometries=new Set(),materials=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material)});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.remove(group)}};
+// The bed's own painted quilt has three shapes: made, turned down and occupied.
+// Shapes are prepared once per cached model. Each placed bed owns only its weights.
+import { Float32BufferAttribute, Mesh, MeshStandardMaterial, MeshBasicMaterial, DataTexture, RepeatWrapping, SRGBColorSpace, LinearFilter, LinearMipmapLinearFilter, PlaneGeometry } from 'three';
+import {finishBedLinen} from './bed-linen.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const clamp = v => Math.max(0, Math.min(1, v));
+const smooth = v => { const t = clamp(v); return t*t*(3-2*t) };
+
+function cottonTicking() {
+  const n=128, data=new Uint8Array(n*n*4);
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++) {
+    const line=x<2||x===5, thread=((x^y)&1)*3-1;
+    const rgb=line?[170,191,203]:[241,232,216];
+    data.set([...rgb.map(v=>v+thread),255],4*(y*n+x));
+  }
+  const t=new DataTexture(data,n,n);t.colorSpace=SRGBColorSpace;
+  t.wrapS=t.wrapT=RepeatWrapping;t.repeat.set(15,16);t.magFilter=LinearFilter;
+  t.minFilter=LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;return t;
+}
+
+// Soft contact on the sheet, strongest beneath the torso and two heels.
+// Local to this sleeper; it fades with the sleep pose, not the cover switch.
+function sheetContact() {
+  const w=80,h=128,data=new Uint8Array(w*h*4);
+  function lobe(x,z,cx,cz,rx,rz){return Math.exp(-(((x-cx)/rx)**2+((z-cz)/rz)**2))}
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+    const x=(i/(w-1)-.5)*1.04,z=(.5-j/(h-1))*1.43;
+    const shade=.39*lobe(x,z,0,-.08,.22,.36)+.24*lobe(x,z,0,-.46,.25,.16)
+      +.35*(lobe(x,z,-.084,.37,.061,.095)+lobe(x,z,.084,.37,.061,.095));
+    data.set([98,75,82,Math.round(255*shade)],(j*w+i)*4);
+  }
+  const map=new DataTexture(data,w,h);map.magFilter=map.minFilter=LinearFilter;map.colorSpace=SRGBColorSpace;map.needsUpdate=true;
+  const shadow=new Mesh(new PlaneGeometry(1.04,1.43),new MeshBasicMaterial({map,transparent:true,depthWrite:false}));
+  shadow.name='Bedding-contact';shadow.rotation.x=-Math.PI/2;return shadow;
+}
+
+export function prepareBedding(root, asset) {
+  const child = asset.model.endsWith('/whale-bed-v1.glb');
+  const quilt = root.getObjectByName(child ? 'Sleep-quilt' : 'Channel-quilt');
+  if (!quilt) return;
+  if (!child) finishBedLinen(quilt);
+  if (child) {
+    // The generated asset has no mattress sides underneath the draped portion.
+    const sheet = new Mesh(new RoundedBoxGeometry(1.40,.18,1.55,4,.047),
+      new MeshStandardMaterial({color:'#fffaf0',map:cottonTicking(),roughness:.96}));
+    sheet.name='Fitted-sheet'; sheet.position.set(0,.351,.006);
+    sheet.receiveShadow=sheet.castShadow=true;
+    root.add(sheet);
+    const rail=new Mesh(new RoundedBoxGeometry(1.40,.17,1.53,3,.019),
+      new MeshStandardMaterial({color:'#a57554',roughness:.69}));
+    rail.position.set(0,.177,.006); root.add(rail);
+  }
+  const geometry=quilt.geometry, p=geometry.attributes.position, folded=[], occupied=[], side=[];
+  const start=child?-.439:-.41, end=child?.78:1.05;
+  const [cx,rootY,rootZ]=asset.interactions.sleep.root;
+  const contact=sheetContact();contact.position.set(cx,(child?.441:.48)+.001,rootZ-.45);
+  contact.visible=false;root.add(contact);
+  for (let i=0;i<p.count;i++) {
+    const x=p.getX(i), y=p.getY(i), z=p.getZ(i), v=clamp((z-start)/(end-start));
+    const sheetY=child?.441:.48;
+    const hemDrop=Math.max(0,(child?.485:.55)-y);
+    folded.push(x*.94,sheetY+.028+.035*v+.028*Math.sin(v*Math.PI*3)**2-.32*hemDrop,
+      end-.21+.20*v+.036*Math.sin(2*Math.PI*v));
+    // Ease the top binding down to the collar; keep the hanging edges on the bed.
+    const newZ=z+(.185*(1-v)**2), d=newZ-rootZ;
+    const reach=(.32+.038*Math.sin(12*d))*(1-.27*smooth((d+.36)/.25));
+    const loft=(.251+.018*Math.cos(d*13) - .085*smooth((d+.32)/.20))
+      * (1-smooth((d-.01)/.23));
+    const under= (rootY+loft+.048-sheetY)*Math.exp(-Math.pow((x-cx)/reach,4));
+    const relief=(y-(child?.51:.56))*(child?.40:.60);
+    const flat=sheetY+.029+relief-.60*hemDrop;
+    occupied.push(x,flat+under,newZ);
+    const sideLoft=(rootY+loft+.105-sheetY)*Math.exp(-Math.pow((x-cx+.035)/(reach*.88),4));
+    side.push(x,flat+sideLoft,newZ);
+  }
+  geometry.morphAttributes.position=[folded,occupied,side].map(a=>new Float32BufferAttribute(a,3));
+  geometry.morphAttributes.normal=geometry.morphAttributes.position.map(position=>{
+    const copy=geometry.clone(); copy.morphAttributes={}; copy.setAttribute('position',position);
+    copy.computeVertexNormals();const n=copy.attributes.normal;copy.dispose();return n;
+  });
+  quilt.updateMorphTargets();
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+}
+
+export function poseBedding(quilt, sleep, covered, away, side=0) {
+  quilt.visible=!away;
+  const influences=quilt.morphTargetInfluences;
+  const turn=smooth(sleep/.46);
+  const tuck=covered?smooth((sleep-.64)/.36):0;
+  influences[0]=turn*(1-tuck); influences[1]=tuck*(1-side); influences[2]=tuck*side;
 }

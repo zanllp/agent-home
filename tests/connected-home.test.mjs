@@ -16,7 +16,7 @@ for(const preset of ['family-home','childroom'])test(preset+' connects without r
   assert.equal(cmd('update_object',{id:old.id,label:'我的灯',properties:{on:false}}).status,200);
   const saved=a.store.state(),preview=cmd('connect_rooms',{});assert.equal(preview.body.applied,false);assert.deepEqual(a.store.state(),saved);
   const r=cmd('connect_rooms',{dry_run:false});assert.equal(r.status,200,r.body.error);
-  const s=r.body.state,plan=apartment(s.room);assert.equal(s.objects.length,96);
+  const s=r.body.state,plan=apartment(s.room);assert.equal(s.objects.length,110);
   for(const original of saved.objects){const item=s.objects.find(o=>o.id===original.id);assert.equal(item.asset_id,original.asset_id);assert.deepEqual(item.on,original.on);
    if(preset==='family-home'){assert.equal(item.x,original.x);assert.equal(item.z,original.z)}
    else assert.equal(zoneAt(plan,item).id,'child');
@@ -51,7 +51,7 @@ test('installed connected preset previews and restores the demo without copying 
  const {a,cmd}=fixture('childroom');try{
   const before=a.store.state(),preset=ctx.presets['connected-home'];
   const listed=a.handle({method:'GET',url:'/api/presets',headers:{}}).body.presets;
-  assert.equal(listed['connected-home'].objects,96);
+  assert.equal(listed['connected-home'].objects,110);
   const preview=cmd('apply_preset',{preset_id:'connected-home'});
   assert.equal(preview.status,200,preview.body.error);assert.equal(preview.body.applied,false);
   assert.deepEqual(a.store.state(),before);
@@ -64,5 +64,33 @@ test('installed connected preset previews and restores the demo without copying 
   assert.equal(s.character.x,preset.spawn.x);assert.equal(s.character.z,preset.spawn.z);assert.equal(s.character.outfit,before.character.outfit);
   assert.equal(cmd('apply_preset',{preset_id:'family-home',dry_run:false}).status,200);
   assert.equal(a.store.state().room.floorplan,undefined);
+ }finally{a.close()}
+});
+
+test('a new sleep pulls up the bed quilt, unless it is out on the rack',()=>{
+ for(const airing of [false,true]){
+  const {a,cmd}=fixture('connected-home');
+  try {
+   const id='childroom-bed';
+   assert.equal(cmd('update_object',{id,properties:{covered:false}}).status,200);
+   if(airing)assert.equal(cmd('interact',{target_id:'balcony-drying-rack',action:'air_quilt'}).status,200);
+   const r=cmd('interact',{target_id:id,action:'sleep'});
+   assert.equal(r.status,200,r.body.error);
+   assert.equal(r.body.state.objects.find(o=>o.id===id).properties.covered,!airing);
+  }finally{a.close()}
+ }
+});
+
+test('evening details stay movable and a clear path is left to the bed',()=>{
+ const {a,cmd}=fixture('connected-home');
+ try{
+  const before=a.store.state(),covered=before.objects.find(o=>o.id==='bedroom-bed');
+  const lamp=before.objects.find(o=>o.id==='evening-lamp');
+  assert.equal(lamp.on.id,'evening-bed-table');assert.equal(lamp.properties.brightness,.48);
+  assert.equal(before.objects.find(o=>o.id==='evening-brushes').on.surface,'ledge');
+  const preview=cmd('update_layout',{operations:[{op:'remove',id:'evening-paperback'}]});
+  assert.deepEqual(preview.body.layout.errors,[]);assert.equal(preview.body.layout.can_apply,true);
+  assert.ok(preview.body.layout.navigation.interactions.find(o=>o.id===covered.id&&o.action==='sleep')?.reachable);
+  assert.deepEqual(a.store.state(),before);
  }finally{a.close()}
 });

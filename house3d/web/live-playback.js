@@ -14,7 +14,7 @@ export function playbackBuffer() {
           frame.walk.mode === "turn" ||
           ["approaching", "entering", "leaving"].includes(frame.phase) ||
           (frame.phase === "active" &&
-            ["draw", "play"].includes(frame.pose))) &&
+            (["draw", "play"].includes(frame.pose) || (frame.pose === "sleep" && current.gait?.sleepSide !== frame.gait?.sleepSide)))) &&
         current.jobId === frame.jobId &&
         current.phase === frame.phase &&
         Math.hypot(
@@ -52,6 +52,7 @@ export function playbackBuffer() {
                 "weight",
                 "turn",
                 "poseTime",
+                "sleepSide",
               ])
             : current.gait,
         walk: lerpObj(previous.walk, current.walk, [

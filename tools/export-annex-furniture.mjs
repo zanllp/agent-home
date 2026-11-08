@@ -51,7 +51,7 @@ await asset('bed','雾蓝棉被双人床','bed',(b,c,o,g)=>{
  }
  for(const x of [-.64,-.22,.22,.64])o('Tuft',teal,x,.75,-.929,.028,.028,.009);
 
-},{interactions:{sleep:{root:[0,.6,.65],yaw:0,approaches:[[0,0,1.8],[-1.52,0,.1],[1.52,0,.1]],surface_height:.53}}});
+},{interactions:{sleep:{root:[-.40,.452,.50],yaw:0,approaches:[[0,0,1.8],[-1.52,0,.1],[1.52,0,.1]],surface_height:.53}}});
 await asset('basin','白瓷台盆和橡木浴室柜','sideboard',(b,c,o,g)=>{
  b('Plinth','#776f66',0,.08,0,.76,.16,.39);b('Cabinet',maple,0,.46,0,.86,.72,.48);
  for(const x of [-.206,.206]){b('Shaker-door',cream,x,.47,.246,.397,.63,.028);b('Brass-handle','#ad8b58',x,.65,.269,.08,.021,.022)}
@@ -66,7 +66,7 @@ await asset('basin','白瓷台盆和橡木浴室柜','sideboard',(b,c,o,g)=>{
  c('Rinse-cup',teal,-.369,.93,-.09,.080,.10,.080);c('Cup-inner','#466965',-.369,.981,-.09,.062,.002,.062);
  b('Mirror-frame',maple,0,1.49,-.23,.67,.55,.047);b('Mirror','#c2d9dd',0,1.49,-.20,.632,.512,.015);b('Vanity-ledge',maple,0,1.206,-.182,.72,.024,.14);
 
-});
+},{surfaces:{ledge:{size:[.66,.102],center:[0,-.182],height:1.218}}});
 await asset('shower','青瓷淋浴角和挂巾','appliance',(b,c,o,g)=>{
  b('Pan',cream,0,.048,0,1.05,.094,1.04);b('Inset','#a6c4be',0,.095,0,.91,.014,.91);
  b('Tile-back','#c6d9cf',0,1.04,-.49,1.04,2,.055);

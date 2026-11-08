@@ -218,6 +218,9 @@ export function transition(
       obj.properties ??= { covered: true };
       obj.properties.covered = action === "cover";
     } else {
+      if (action === "sleep" && obj.properties?.covered === false &&
+          !state.objects.some(o => o.properties?.quilt_from === obj.id))
+        obj.properties = { ...obj.properties, covered: true };
       const old = state.interaction || {};
       state.interaction = {
         id: command.id || "interaction-" + (state.revision + 1),

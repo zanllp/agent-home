@@ -1,5 +1,5 @@
 import {regionAt} from './space.mjs';
-// A loose sleep quilt, not the bed's fitted cover. The rack owns its location.
+// The bed and rack share one quilt. The rack owns its location.
 export function airingBed(state,rack){
  if(rack.kind!=='drying_rack')return null;
  const airing=new Set(state.objects.filter(o=>o.kind==='drying_rack').map(o=>o.properties?.quilt_from));

@@ -7,7 +7,7 @@ export function contactFrame(kind,start,target,progress){
  const p=Math.max(0,Math.min(1,progress)),sleep=kind==='sleep';
  let t=ease(sleep?Math.min(1,p/.4):p),r=sleep?ease((p-.4)/.6):0;
  const seatY=sleep?.18:target.y;
- return {x:mix(start.x,target.x,t),z:mix(start.z,target.z,t),y:mix(start.y,seatY,t)+.08*Math.sin(Math.PI*t)+(target.y-seatY)*r,yaw:start.yaw+shortestAngle(start.yaw,target.yaw)*t,pitch:r?-Math.PI/2*r:0,sit:t*(1-r),sleep:r};
+ return {x:mix(start.x,target.x,t),z:mix(start.z,target.z,t),y:mix(start.y,seatY,t)+.08*Math.sin(Math.PI*t)+(target.y-seatY)*r,yaw:start.yaw+shortestAngle(start.yaw,target.yaw)*t,pitch:r?(-Math.PI/2+.125)*r:0,sit:t*(1-r),sleep:r};
 }
 export function createObjectInteraction({context,onStart,onExit,onStatus,report}){
  let playSurface='软垫',job=null,phase='none',start,target,approachPoint,index=0,time=0,progress=0,leaveFrom=1,queue=Promise.resolve(),kind='sit',lastFrame=null;

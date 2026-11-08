@@ -2120,6 +2120,178 @@
         "x": 3.53,
         "z": 6.33,
         "yaw": -1.5707963267948966
+      },
+      {
+        "id": "evening-bed-table",
+        "kind": "coffee_table",
+        "x": 5.95,
+        "z": 2.82,
+        "yaw": 1.5707963267948966,
+        "asset_id": "oak-coffee-table-stylized-v2"
+      },
+      {
+        "id": "evening-paperback",
+        "kind": "books",
+        "x": 5.997,
+        "z": 2.6599999999999997,
+        "yaw": 1.4307963267948964,
+        "asset_id": "evening-paperback-v1",
+        "on": {
+          "id": "evening-bed-table",
+          "surface": "top",
+          "x": 0.16,
+          "z": 0.047,
+          "yaw": -0.14
+        }
+      },
+      {
+        "id": "evening-lamp",
+        "kind": "lamp",
+        "x": 5.855,
+        "z": 3.05,
+        "yaw": 1.5707963267948966,
+        "asset_id": "family-shelf-lamp-v1",
+        "on": {
+          "id": "evening-bed-table",
+          "surface": "top",
+          "x": -0.23,
+          "z": -0.095,
+          "yaw": 0
+        },
+        "properties": {
+          "on": true,
+          "brightness": 0.48
+        }
+      },
+      {
+        "id": "evening-mug",
+        "kind": "desktop",
+        "x": 6.065,
+        "z": 2.9699999999999998,
+        "yaw": 1.8107963267948965,
+        "asset_id": "urban-ceramic-mug-v1",
+        "on": {
+          "id": "evening-bed-table",
+          "surface": "top",
+          "x": -0.15,
+          "z": 0.115,
+          "yaw": 0.24
+        }
+      },
+      {
+        "id": "evening-frame",
+        "kind": "desktop",
+        "x": 4.8500000000000005,
+        "z": 2.6599999999999997,
+        "yaw": 0.05,
+        "asset_id": "family-entry-memory-v1",
+        "on": {
+          "id": "bedroom-cabinet",
+          "surface": "top",
+          "x": -0.18,
+          "z": -0.03,
+          "yaw": 0.05
+        }
+      },
+      {
+        "id": "evening-leaves",
+        "kind": "plant",
+        "x": 5.33,
+        "z": 2.7119999999999993,
+        "yaw": -0.12,
+        "asset_id": "urban-desk-plant-v1",
+        "on": {
+          "id": "bedroom-cabinet",
+          "surface": "top",
+          "x": 0.3,
+          "z": 0.022,
+          "yaw": -0.12
+        }
+      },
+      {
+        "id": "evening-print",
+        "kind": "wall_art",
+        "x": 7.25,
+        "z": 2.216,
+        "yaw": 0,
+        "asset_id": "urban-botanical-frame-v1"
+      },
+      {
+        "id": "evening-shelf",
+        "kind": "wall_shelf",
+        "x": 5.08,
+        "z": 2.37,
+        "yaw": 0,
+        "asset_id": "urban-floating-shelf-v1"
+      },
+      {
+        "id": "evening-shelf-books",
+        "kind": "books",
+        "x": 4.976,
+        "z": 2.38,
+        "yaw": 0,
+        "asset_id": "family-code-books-v1",
+        "on": {
+          "id": "evening-shelf",
+          "surface": "top",
+          "x": -0.104,
+          "z": 0.01,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "evening-shelf-plant",
+        "kind": "plant",
+        "x": 5.2700000000000005,
+        "z": 2.4,
+        "yaw": 0,
+        "asset_id": "urban-desk-plant-v1",
+        "on": {
+          "id": "evening-shelf",
+          "surface": "top",
+          "x": 0.19,
+          "z": 0.03,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "evening-armchair",
+        "kind": "armchair",
+        "x": 8.2,
+        "z": 5.87,
+        "yaw": -2.56,
+        "asset_id": "linen-armchair-v1"
+      },
+      {
+        "id": "evening-rug",
+        "kind": "rug",
+        "x": 7.43,
+        "z": 5.65,
+        "yaw": -0.04,
+        "asset_id": "urban-blue-rug-v1"
+      },
+      {
+        "id": "evening-hall-hook",
+        "kind": "wall_art",
+        "x": 1.7,
+        "z": 3.4195,
+        "yaw": 0,
+        "asset_id": "family-outing-hooks-v1"
+      },
+      {
+        "id": "evening-brushes",
+        "kind": "desktop",
+        "x": 0.958,
+        "z": 6.26,
+        "yaw": 1.5807963267948966,
+        "asset_id": "evening-wash-kit-v1",
+        "on": {
+          "id": "bath-basin",
+          "surface": "ledge",
+          "x": 0.11,
+          "z": 0,
+          "yaw": 0.01
+        }
       }
     ],
     "spawn": {

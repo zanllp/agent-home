@@ -2,8 +2,8 @@
   "note": "Byte sizes and SHA256 of shipped assets, including documented local model refinements.",
   "assets": {
     "house3d/assets/dafeiyu-contact.glb": {
-      "bytes": 5655500,
-      "sha256": "78fd10ff01ca9e37c98a12f1c37369d4b3e3819e3d9859c92040a0ec4a1315ab"
+      "bytes": 5634724,
+      "sha256": "4a347b12540333140750a22b7c0c7a5f0664c0b46c03e4a9f36692e62a9d218f"
     },
     "house3d/assets/materials/honey-oak-floor-v1.png": {
       "bytes": 1773528,
@@ -42,8 +42,8 @@
       "sha256": "060167d3ac1e86c0af3df4305c53e97dcbf3f850cc1c3195c9e3333158acf83a"
     },
     "house3d/assets/furniture/whale-bed-v1.glb": {
-      "bytes": 1271308,
-      "sha256": "dccd464268c060d9bdc3ec7377f533c5366ca5748ac40b0d5cb36277df3d80b6"
+      "bytes": 1271792,
+      "sha256": "aae8b1c9e4a6dbc656a51542dae8e8df44df04b63d0350b727a0a340ab135545"
     },
     "house3d/assets/furniture/urban-floating-shelf-v1.glb": {
       "bytes": 39556,
@@ -554,6 +554,16 @@
       "bytes": 19836,
       "sha256": "9537c12b2e0beb912bdf2dc9c665571681a9e7306bec0cea0e998038fa40711a",
       "source": "Original local geometry: tools/export-annex-furniture.mjs"
+    },
+    "house3d/assets/furniture/evening-paperback-v1.glb": {
+      "bytes": 20904,
+      "sha256": "0061e8690105553e6921ccc9b286e20bd924bf632a1102a1836f7eacd771877d",
+      "source": "Original local geometry: tools/export-evening-props.mjs"
+    },
+    "house3d/assets/furniture/evening-wash-kit-v1.glb": {
+      "bytes": 9996,
+      "sha256": "c714dc2a8e54c43a6346535acb1282ec66e957f1d19274776537858881cf15eb",
+      "source": "Original local geometry: tools/export-evening-props.mjs"
     }
   }
 }

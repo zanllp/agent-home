@@ -1,0 +1,153 @@
+{
+  "dry_run": true,
+  "operations": [
+    {
+      "op": "add",
+      "id": "evening-bed-table",
+      "asset_id": "oak-coffee-table-stylized-v2",
+      "x": 5.95,
+      "z": 2.82,
+      "yaw": 1.5707963267948966
+    },
+    {
+      "op": "add",
+      "id": "evening-paperback",
+      "asset_id": "evening-paperback-v1",
+      "on": {
+        "id": "evening-bed-table",
+        "surface": "top",
+        "x": 0.16,
+        "z": 0.047,
+        "yaw": -0.14
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-lamp",
+      "asset_id": "family-shelf-lamp-v1",
+      "on": {
+        "id": "evening-bed-table",
+        "surface": "top",
+        "x": -0.23,
+        "z": -0.095,
+        "yaw": 0
+      },
+      "properties": {
+        "on": true,
+        "brightness": 0.48
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-mug",
+      "asset_id": "urban-ceramic-mug-v1",
+      "on": {
+        "id": "evening-bed-table",
+        "surface": "top",
+        "x": -0.15,
+        "z": 0.115,
+        "yaw": 0.24
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-frame",
+      "asset_id": "family-entry-memory-v1",
+      "on": {
+        "id": "bedroom-cabinet",
+        "surface": "top",
+        "x": -0.18,
+        "z": -0.03,
+        "yaw": 0.05
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-leaves",
+      "asset_id": "urban-desk-plant-v1",
+      "on": {
+        "id": "bedroom-cabinet",
+        "surface": "top",
+        "x": 0.3,
+        "z": 0.022,
+        "yaw": -0.12
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-print",
+      "asset_id": "urban-botanical-frame-v1",
+      "x": 7.25,
+      "z": 2.216,
+      "yaw": 0
+    },
+    {
+      "op": "add",
+      "id": "evening-shelf",
+      "asset_id": "urban-floating-shelf-v1",
+      "x": 5.08,
+      "z": 2.37,
+      "yaw": 0
+    },
+    {
+      "op": "add",
+      "id": "evening-shelf-books",
+      "asset_id": "family-code-books-v1",
+      "on": {
+        "id": "evening-shelf",
+        "surface": "top",
+        "x": -0.104,
+        "z": 0.01,
+        "yaw": 0
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-shelf-plant",
+      "asset_id": "urban-desk-plant-v1",
+      "on": {
+        "id": "evening-shelf",
+        "surface": "top",
+        "x": 0.19,
+        "z": 0.03,
+        "yaw": 0
+      }
+    },
+    {
+      "op": "add",
+      "id": "evening-armchair",
+      "asset_id": "linen-armchair-v1",
+      "x": 8.2,
+      "z": 5.87,
+      "yaw": -2.56
+    },
+    {
+      "op": "add",
+      "id": "evening-rug",
+      "asset_id": "urban-blue-rug-v1",
+      "x": 7.43,
+      "z": 5.65,
+      "yaw": -0.04
+    },
+    {
+      "op": "add",
+      "id": "evening-hall-hook",
+      "asset_id": "family-outing-hooks-v1",
+      "x": 1.7,
+      "z": 3.4195,
+      "yaw": 0
+    },
+    {
+      "op": "add",
+      "id": "evening-brushes",
+      "asset_id": "evening-wash-kit-v1",
+      "on": {
+        "id": "bath-basin",
+        "surface": "ledge",
+        "x": 0.11,
+        "z": 0,
+        "yaw": 0.01
+      }
+    }
+  ]
+}

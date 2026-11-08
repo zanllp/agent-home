@@ -1041,6 +1041,12 @@ function connectHome(state, ctx, start) {
   add("bath-basin", "apartment-basin-v1", bath.minX + 0.34, bath.z - 0.78, void 0, Math.PI / 2);
   add("bath-shower", "apartment-shower-v1", bath.minX + 0.6, bath.z + 0.86, void 0, Math.PI / 2);
   add("bath-toilet", "apartment-toilet-v1", bath.x + 1.13, bath.z - 0.82, void 0, -Math.PI / 2);
+  const furnished = ctx.presets["connected-home"], base = apartment(furnished.room);
+  for (const id of ["parent", "hall", "bath"]) {
+    const origin = base.zones.find((z) => z.id === id), destination = zone(id);
+    const items = furnished.objects.filter((o) => o.id.startsWith("evening-") && zoneAt(base, o)?.id === id);
+    insert(items, destination.x - origin.x, destination.z - origin.z, true, "evening");
+  }
   for (const pot of objects.filter((o) => o.asset_id === "home-rice-cooker-v1" && o.properties?.keep_full === void 0)) pot.properties = { ...pot.properties, keep_full: true, servings: 4 };
   state.objects = objects;
   state.room = room;
@@ -1237,6 +1243,8 @@ function transition(input, command, ctx, { check_geometry = true, check_busy = t
       obj.properties ??= { covered: true };
       obj.properties.covered = action === "cover";
     } else {
+      if (action === "sleep" && obj.properties?.covered === false && !state.objects.some((o) => o.properties?.quilt_from === obj.id))
+        obj.properties = { ...obj.properties, covered: true };
       const old = state.interaction || {};
       state.interaction = {
         id: command.id || "interaction-" + (state.revision + 1),

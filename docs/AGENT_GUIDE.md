@@ -79,6 +79,7 @@ node agent.mjs interact '{"target_id":"child-chair","action":"read"}'
 - `walk_to` 接收 x/z 或 target_id，自动规划整条路线，无需分段。对象模式要求新鲜、可见、未暂停的站立身体反馈；用该位置选择可达终点，返回 job.target 和 target_id。桌面物品按其地面支撑家具选边缘位置。指定坐标则保持精确目标，不静默换终点；`move_character` 是直接定位，不是走路。
 - 动作一般经过 requested → approaching → entering → active；走到目的地会 completed。
 - `read`/`sleep` 的 active 表示姿态保持中，不是自动结束。用 `interact` 的 `leave` 安全起身；也可用 `cancel_action` 携带当前 job_id 取消匹配动作。
+- 睡着后会自然地在仰睡和侧睡之间翻身，不必重复发 `sleep`。暂停会停在当前姿势；翻身不会改变睡眠任务，也不会替你掀被或盖被。
 - 确认同一个 job_id、phase、error，并检查 `fresh`、`body_job_id` 和 `body.pose`；`body_job_id` 是身体快照对应的任务，不是当前期望任务。它必须与本次 job.id 一致；新鲜反馈未到时不能宣布已完成。
 - `observe_home` 的 `since` 接上次 cursor 读取增量事件，不要反复把历史完成事件当新消息。
 - `fresh:false`、无在线执行者或 paused 时，应报告等待/不可执行，而不是编造成功。
@@ -205,10 +206,12 @@ node agent.mjs connect_rooms '{"dry_run":false}'
 ```
 第一步仅预览。第二步会保存连通布局；请勿用 `apply_preset` 代替，它会替换布局。原房间内的物件 ID、属性和支撑关系保留；若从儿童房出发，物件和角色一起平移到儿童房的新世界坐标。客厅通向走廊，走廊分别通儿童房、家长卧室和浴室，客厅的阳台保留独立推拉门。家具不能堵门；可用 `list_objects` 找实际 ID，再用 `walk_to` 接近目标，并核对同一 job 的到达反馈。
 
-阳台晾架的 `air_quilt` 会把一条闲置的睡被挂上，优先取鲸鱼床的，`properties.quilt_from` 记录它来自哪张床。晾着时不能盖这条被子；`bring_in_quilt` 收回。床的固定床罩不会消失，也不会模拟“晒干了”或自动判断天气。可以先读 `/api/outdoors` 决定要不要晒。画好的最近一张绘本会展示在家庭书桌的画板上。
+阳台晾架的 `air_quilt` 会把一条闲置的睡被挂上，优先取鲸鱼床的，`properties.quilt_from` 记录它来自哪张床。晾着时不能盖这条被子；`bring_in_quilt` 收回。床上留床单，睡被不会同时出现在床和晾架上。新一轮睡觉时，有被子就默认盖好；躺下后可以用 `uncover` 把它折到床尾，或用 `cover` 重新盖上。不会模拟“晒干了”或自动判断天气。可以先读 `/api/outdoors` 决定要不要晒。画好的最近一张绘本会展示在家庭书桌的画板上。
 
 连通布局里饭锅默认常满；已有单房存档可用 `update_object` 给锅设置 `properties.keep_full: true`。对碗 `eat_rice` 后可再 `serve_rice`；不启用常满时也可对锅 `refill_rice`。这些是即时物品状态，不冒充吃饭动画。电视支持重复调用 `turn_on` 或 `turn_off`，关机后屏幕变暗并停止绘制节目。
 
 想看她在房间之间小跑，用 `set_camera {"preset":"companion"}`（画布上叫「家长跟拍」）。相机以约 1.6 米眼高跟着她，不随她转头旋转；根据墙面和家具包围盒检查头、躯干、脚的视线，受挡时换一个角度，空间太窄则取遮挡最少的位置。跟拍时可以拖动、平移或缩放镜头。松手后保留这个角度 30 秒，再平滑回到所选机位；再次调整会重新计时，直接选择机位则立即切换。这个操作只影响自己的观看窗口。走跑走模式在长而通畅的路段最高约 1.65 米/秒，转弯、靠近家具和抵达前收步；「慢慢走」保持原速。
 
 只有「房间全景」「房间俯视」「全屋留影」会剖开近侧墙壁。家庭直播、人物镜头和角色视角截图均保留实墙及阳台栏杆，能透过真实门窗看到另一间房，但不会为了看到角色而隐藏墙壁；固定直播机位不保证总能看到在隔壁活动的她。
+
+连通小家的饲养员卧室有阅读角；`evening-paperback` 是摊开的书和折起的眼镜，`evening-lamp` 可独立开关。走廊挂架和浴室镜前的牙刷套件也都是独立物品。较早的标准连通存档可以在角色空闲时预演 `node agent.mjs update_layout @docs/examples/connected-evening.json`，通过后再将副本的 `dry_run` 改为 `false` 应用。自定义过户型或摆放时先核对位置和 ID，不需要重新套用预设。
