@@ -250,7 +250,20 @@
     "source": "Tripo H3.1 + quad retopology, original isolated built-in image_gen reference; task 8245dded-b261-44a5-a609-092c97d40e37",
     "limitations": [
       "Closed decorative drawers; not separately rigged."
-    ]
+    ],
+    "surfaces": {
+      "top": {
+        "center": [
+          0,
+          0
+        ],
+        "size": [
+          0.36,
+          0.27
+        ],
+        "height": 0.412
+      }
+    }
   },
   "oak-workdesk-v1": {
     "label": "浅木小书桌",
@@ -2751,5 +2764,113 @@
     ],
     "runtime_refinement": "Local Three.js study lamp with longer arms, independent adjustable light and original placement footprint; original GLB retained.",
     "task_light": true
+  },
+  "apartment-bed-v1": {
+    "label": "雾蓝棉被双人床",
+    "kind": "bed",
+    "style": "maple-family",
+    "model": "/models/furniture/apartment-bed-v1.glb",
+    "size": [
+      1.74,
+      2.125
+    ],
+    "height": 0.96,
+    "painted": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "recolorable": false,
+    "source": "Original procedural household asset",
+    "interactions": {
+      "sleep": {
+        "root": [
+          0,
+          0.6,
+          0.65
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            0,
+            0,
+            1.8
+          ],
+          [
+            -1.52,
+            0,
+            0.1
+          ],
+          [
+            1.52,
+            0,
+            0.1
+          ]
+        ],
+        "surface_height": 0.53
+      }
+    }
+  },
+  "apartment-basin-v1": {
+    "label": "白瓷台盆和橡木浴室柜",
+    "kind": "sideboard",
+    "style": "maple-family",
+    "model": "/models/furniture/apartment-basin-v1.glb",
+    "size": [
+      0.94,
+      0.54
+    ],
+    "height": 1.765,
+    "painted": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "recolorable": false,
+    "source": "Original procedural household asset"
+  },
+  "apartment-shower-v1": {
+    "label": "青瓷淋浴角和挂巾",
+    "kind": "appliance",
+    "style": "maple-family",
+    "model": "/models/furniture/apartment-shower-v1.glb",
+    "size": [
+      1.05,
+      1.04
+    ],
+    "height": 2.039,
+    "painted": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "recolorable": false,
+    "source": "Original procedural household asset"
+  },
+  "apartment-toilet-v1": {
+    "label": "奶油白坐便器",
+    "kind": "appliance",
+    "style": "maple-family",
+    "model": "/models/furniture/apartment-toilet-v1.glb",
+    "size": [
+      0.45,
+      0.675
+    ],
+    "height": 0.796,
+    "painted": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "recolorable": false,
+    "source": "Original procedural household asset"
+  },
+  "apartment-step-v1": {
+    "label": "枫木两级踏凳",
+    "kind": "chair",
+    "style": "maple-family",
+    "model": "/models/furniture/apartment-step-v1.glb",
+    "size": [
+      0.44,
+      0.42
+    ],
+    "height": 0.321,
+    "painted": false,
+    "source_type": "native_geometry",
+    "native_materials": true,
+    "recolorable": false,
+    "source": "Original procedural household asset"
   }
 }

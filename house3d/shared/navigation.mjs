@@ -2,18 +2,35 @@ import {createSpace,spaceBounds} from './space.mjs';
 // Shared by the visible walker and object-destination planning. No state writes.
 export function createNavigation(objects,catalog,{radius=.57,step=.1,assets={},room={}}={}){
  const size={width:room.width??6,depth:room.depth??5},bounds={x:size.width/2-.15-radius,z:size.depth/2-.15-radius};
- const space=room.balcony?createSpace(room,objects):null,extent=spaceBounds(room);
- const obstacles=objects.filter(o=>o.kind!=='rug'&&!o.on&&(!room.balcony||o.id!==room.balcony.door_id)).map(o=>({x:o.x,z:o.z,yaw:o.yaw,w:(assets[o.asset_id]||catalog[o.kind]).size[0]/2,d:(assets[o.asset_id]||catalog[o.kind]).size[1]/2}));
+ const space=room.balcony||room.floorplan?createSpace(room,objects):null,extent=spaceBounds(room);
+ const obstacles=objects.filter(o=>o.kind!=='rug'&&!o.on&&(!room.balcony||o.id!==room.balcony.door_id)).map(o=>({x:o.x,z:o.z,c:Math.cos(o.yaw),s:Math.sin(o.yaw),w:(assets[o.asset_id]||catalog[o.kind]).size[0]/2,d:(assets[o.asset_id]||catalog[o.kind]).size[1]/2}));
  function free(p){
   if(!Number.isFinite(p.x)||!Number.isFinite(p.z)||(space?!space.free(p,radius):Math.abs(p.x)>bounds.x||Math.abs(p.z)>bounds.z))return false;
-  return !obstacles.some(o=>{const dx=p.x-o.x,dz=p.z-o.z,c=Math.cos(o.yaw),s=Math.sin(o.yaw);const x=Math.abs(dx*c-dz*s),z=Math.abs(dx*s+dz*c);return Math.hypot(Math.max(0,x-o.w),Math.max(0,z-o.d))<radius});
+  return !obstacles.some(o=>{const dx=p.x-o.x,dz=p.z-o.z,c=o.c,s=o.s;const x=Math.abs(dx*c-dz*s),z=Math.abs(dx*s+dz*c);return Math.hypot(Math.max(0,x-o.w),Math.max(0,z-o.d))<radius});
  }
  function line(a,b){const d=Math.hypot(b.x-a.x,b.z-a.z),n=Math.max(1,Math.ceil(d/.025));for(let i=0;i<=n;i++)if(!free({x:a.x+(b.x-a.x)*i/n,z:a.z+(b.z-a.z)*i/n}))return false;return true}
  const minX=space?extent.minX:-bounds.x,minZ=space?extent.minZ:-bounds.z,maxX=space?extent.maxX:bounds.x,maxZ=space?extent.maxZ:bounds.z;
  const nx=Math.floor((maxX-minX)/step)+1,nz=Math.floor((maxZ-minZ)/step)+1;
  const point=i=>({x:minX+(i%nx)*step,z:minZ+Math.floor(i/nx)*step});
  const nodes=Array.from({length:nx*nz},(_,i)=>point(i));const valid=nodes.map(free);
- function nearest(p){let best=-1,d=Infinity;nodes.forEach((v,i)=>{if(!valid[i])return;const n=Math.hypot(p.x-v.x,p.z-v.z);if(n<d&&line(p,v)){d=n;best=i}});return best}
+ // Start at the local grid cell. Scanning every cell in a multi-room floorplan
+ // and tracing back to every improving candidate used to dominate path queries.
+ function nearest(p){
+  const ix=Math.min(nx-1,Math.max(0,Math.round((p.x-minX)/step))),iz=Math.min(nz-1,Math.max(0,Math.round((p.z-minZ)/step)));
+  let best=-1,d=Infinity;
+  function visit(x,z){
+   if(x<0||z<0||x>=nx||z>=nz)return;
+   const i=z*nx+x;if(!valid[i])return;
+   const q=nodes[i],distance=Math.hypot(p.x-q.x,p.z-q.z);
+   if(distance<d&&line(p,q)){d=distance;best=i}
+  }
+  for(let ring=0;ring<Math.max(nx,nz);ring++){
+   for(let x=ix-ring;x<=ix+ring;x++){visit(x,iz-ring);if(ring)visit(x,iz+ring)}
+   for(let z=iz-ring+1;z<iz+ring;z++){visit(ix-ring,z);visit(ix+ring,z)}
+   if(d<=(ring+.5)*step)return best;
+  }
+  return best;
+ }
  function path(a,b){
   if(!free(a)||!free(b))return null;if(line(a,b))return [{...a},{...b}];
   const start=nearest(a),end=nearest(b);if(start<0||end<0)return null;
@@ -27,6 +44,6 @@ export function createNavigation(objects,catalog,{radius=.57,step=.1,assets={},r
    }
   }return null;
  }
- function clearance(p){return Math.min(space?space.clearance(p)-radius:bounds.x-Math.abs(p.x),space?Infinity:bounds.z-Math.abs(p.z),...obstacles.map(o=>{const dx=p.x-o.x,dz=p.z-o.z,c=Math.cos(o.yaw),s=Math.sin(o.yaw);return Math.hypot(Math.max(0,Math.abs(dx*c-dz*s)-o.w),Math.max(0,Math.abs(dx*s+dz*c)-o.d))-radius}))}
+ function clearance(p){return Math.min(space?space.clearance(p)-radius:bounds.x-Math.abs(p.x),space?Infinity:bounds.z-Math.abs(p.z),...obstacles.map(o=>{const dx=p.x-o.x,dz=p.z-o.z,c=o.c,s=o.s;return Math.hypot(Math.max(0,Math.abs(dx*c-dz*s)-o.w),Math.max(0,Math.abs(dx*s+dz*c)-o.d))-radius}))}
  return {free,line,path,clearance,nodes:nodes.filter((_,i)=>valid[i]),bounds,radius};
 }

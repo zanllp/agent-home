@@ -1,3 +1,4 @@
+import {outdoorService} from './outdoors.mjs';
 import { launchRunner, browserBinary } from "./browser-runner.js";
 import { LiveRoom } from "./live-room.js";
 import { performanceLog } from "./perf-log.js";
@@ -21,6 +22,7 @@ const db = process.env.HOUSE_DB || resolve(root, "data/house.sqlite");
 const metrics = performanceLog(
   process.env.HOUSE_LOG_DIR || resolve(dirname(db), "logs")
 );
+const outdoors=outdoorService({weather:process.env.HOUSE_WEATHER,daylight:process.env.HOUSE_DAYLIGHT});
 const live = new LiveRoom(enabled, metrics.log);
 let runner: ReturnType<typeof launchRunner> | undefined;
 const jobs = new Map<string, number>();
@@ -51,6 +53,7 @@ const server = createServer(async (req, res) => {
       live.stream(res);
       return;
     }
+    if(req.method==='GET'&&path==='/api/outdoors'){reply({status:200,body:await outdoors()});return}
     const chunks: Buffer[] = [];
     let length = 0;
     for await (const chunk of req) {

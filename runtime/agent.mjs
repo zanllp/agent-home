@@ -41,6 +41,7 @@ try {
   const reads = {
     get_state: "/api/state",
     get_catalog: "/api/catalog",
+    get_outdoors: "/api/outdoors",
     get_tools: "/api/tools",
     get_presets: "/api/presets"
   };

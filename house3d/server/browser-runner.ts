@@ -72,6 +72,8 @@ export function launchRunner(
     child.once("error", (e) => {
       reason = e.message;
     });
+    // A Chromium helper may retain the inherited stderr pipe after the browser exits.
+    child.once("exit", () => child.stderr.destroy());
     child.once("close", (code, signal) => {
       try {
         rmSync(profile, { recursive: true, force: true, maxRetries: 3 });

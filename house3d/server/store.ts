@@ -98,8 +98,8 @@ export class Store {
     );
     const size = dimensions(state.room),extent=spaceBounds(state.room),
       limits: Data = {
-        x: state.room?.balcony?Math.max(Math.abs(extent.minX),Math.abs(extent.maxX))+.2:size.width / 2 + 0.2,
-        z: state.room?.balcony?Math.max(Math.abs(extent.minZ),Math.abs(extent.maxZ))+.2:size.depth / 2 + 0.2,
+        x: (state.room?.balcony||state.room?.floorplan)?Math.max(Math.abs(extent.minX),Math.abs(extent.maxX))+.2:size.width / 2 + 0.2,
+        z: (state.room?.balcony||state.room?.floorplan)?Math.max(Math.abs(extent.minZ),Math.abs(extent.maxZ))+.2:size.depth / 2 + 0.2,
         y: size.height + 0.2,
         yaw: 10,
       };
@@ -110,7 +110,7 @@ export class Store {
           Math.abs(a[k]) <= limits[k],
         "Invalid body coordinate",
       );
-    if(state.room?.balcony)requireValue(regionAt(state.room,a)!==null,"Body is outside interior/balcony");
+    if(state.room?.balcony||state.room?.floorplan)requireValue(regionAt(state.room,a)!==null,"Body is outside interior/balcony");
     requireValue(
       ["stand", "sit", "sleep", "read", "play", "draw", "transition"].includes(a.pose) &&
         typeof a.moving === "boolean",

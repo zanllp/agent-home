@@ -1,0 +1,132 @@
+{
+  "scenario": "family-home / home camera / default 960x720 headless viewer",
+  "sampled_on": "2026-11-08",
+  "machine": [
+    "darwin",
+    "arm64",
+    "Apple M3 Pro"
+  ],
+  "scope": "Reference before adding furnished annexes. Only compare timings on the same hardware, driver and drawing buffer.",
+  "samples": {
+    "idle": [
+      {
+        "at": "2026-11-08T12:46:44.632Z",
+        "event": "browser",
+        "session": "aaeb1a80-de5e-41ce-a177-2fdf3d82f38e",
+        "role": "viewer",
+        "window_ms": 15000.399999976158,
+        "ticks": 336,
+        "active_ticks": 0,
+        "frames": 172,
+        "shadow_frames": 0,
+        "calls": 182492,
+        "triangles": 144126368,
+        "frame_p95_ms": 50,
+        "submit_ms": 1327.8999997377396,
+        "gpu_sample_ms": 231.562534,
+        "gpu_samples": 14,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ],
+    "draw": [
+      {
+        "at": "2026-11-08T12:47:14.631Z",
+        "event": "browser",
+        "session": "aaeb1a80-de5e-41ce-a177-2fdf3d82f38e",
+        "role": "viewer",
+        "window_ms": 14999.200000047684,
+        "ticks": 330,
+        "active_ticks": 330,
+        "frames": 330,
+        "shadow_frames": 165,
+        "calls": 506880,
+        "triangles": 402927195,
+        "frame_p95_ms": 50,
+        "submit_ms": 1884.599999666214,
+        "gpu_sample_ms": 395.774702,
+        "gpu_samples": 15,
+        "buffer_width": 960,
+        "buffer_height": 633
+      },
+      {
+        "at": "2026-11-08T12:47:29.631Z",
+        "event": "browser",
+        "session": "aaeb1a80-de5e-41ce-a177-2fdf3d82f38e",
+        "role": "viewer",
+        "window_ms": 15000.299999952316,
+        "ticks": 332,
+        "active_ticks": 332,
+        "frames": 332,
+        "shadow_frames": 166,
+        "calls": 509952,
+        "triangles": 405369178,
+        "frame_p95_ms": 50,
+        "submit_ms": 1810.699999332428,
+        "gpu_sample_ms": 393.04211799999996,
+        "gpu_samples": 15,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ],
+    "runner": [
+      {
+        "at": "2026-11-08T12:47:22.568Z",
+        "event": "browser",
+        "session": "1ebb5e86-e58c-4d52-99de-642496751ad2",
+        "role": "runner",
+        "window_ms": 14999.100000023842,
+        "ticks": 440,
+        "active_ticks": 440,
+        "frames": 0,
+        "shadow_frames": 0,
+        "calls": 0,
+        "triangles": 0,
+        "frame_p95_ms": 34.700000047683716,
+        "buffer_width": 960,
+        "buffer_height": 633
+      },
+      {
+        "at": "2026-11-08T12:47:37.569Z",
+        "event": "browser",
+        "session": "1ebb5e86-e58c-4d52-99de-642496751ad2",
+        "role": "runner",
+        "window_ms": 15001.100000023842,
+        "ticks": 440,
+        "active_ticks": 440,
+        "frames": 0,
+        "shadow_frames": 0,
+        "calls": 0,
+        "triangles": 0,
+        "frame_p95_ms": 34.80000001192093,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ],
+    "paused": [
+      {
+        "at": "2026-11-08T12:47:59.633Z",
+        "event": "browser",
+        "session": "aaeb1a80-de5e-41ce-a177-2fdf3d82f38e",
+        "role": "viewer",
+        "window_ms": 14999.300000011921,
+        "ticks": 329,
+        "active_ticks": 0,
+        "frames": 0,
+        "shadow_frames": 0,
+        "calls": 0,
+        "triangles": 0,
+        "frame_p95_ms": 50,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ]
+  },
+  "errors": [],
+  "limits": {
+    "callsPerFrame": 2050,
+    "trianglesPerFrame": 1500000,
+    "shadowRatio": 0.67,
+    "idleFps": 15
+  }
+}

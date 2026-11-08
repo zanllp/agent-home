@@ -29,6 +29,7 @@ const roots = [
   "UPSTREAM.md",
   "docs/AGENT_GUIDE.md",
   "docs/RUNNER.md",
+  "docs/OUTDOORS.md",
   "docs/examples/family-supper.json",
   "docs/BALCONY.md",
   "docs/DESKS.md",

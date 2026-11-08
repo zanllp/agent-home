@@ -41,8 +41,22 @@ function seatOverlay(parent,item,surface,target){
     float band=1.-smoothstep(.03,.13,abs(p.y-y));float a=texture2D(map,uv).a*band*intensity;if(a<.002)discard;gl_FragColor=vec4(.09,.065,.045,a);}`,
   transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1,toneMapped:false});
  const group=new T.Group();group.name='Upholstery-contact-'+item.id;
- parent.traverse(o=>{if(!o.isMesh)return;const m=new T.Mesh(o.geometry,mat);m.matrixAutoUpdate=false;m.matrix.copy(o.matrixWorld);m.renderOrder=1;group.add(m)});
- return {mesh:group,target,uniform:mat.uniforms.intensity,dispose(){mat.dispose()}};
+ // The shader always discards outside its seat band. Index only triangles that
+ // intersect it; do not submit the whole sofa a second time for a cushion shadow.
+ const overlayGeometries=[];
+ parent.traverse(o=>{
+  if(!o.isMesh)return;
+  const src=o.geometry,pos=src.attributes.position,idx=src.index,local=new T.Matrix4().multiplyMatrices(origin,o.matrixWorld).elements;
+  const heights=new Float32Array(pos.count);
+  for(let i=0;i<pos.count;i++)heights[i]=local[1]*pos.getX(i)+local[5]*pos.getY(i)+local[9]*pos.getZ(i)+local[13];
+  const indices=[],n=idx?.count??pos.count;
+  for(let i=0;i<n;i+=3){const a=idx?idx.getX(i):i,b=idx?idx.getX(i+1):i+1,c=idx?idx.getX(i+2):i+2;
+   if(Math.max(heights[a],heights[b],heights[c])>=surface.height-.131&&Math.min(heights[a],heights[b],heights[c])<=surface.height+.131)indices.push(a,b,c)}
+  if(!indices.length)return;
+  const geo=new T.BufferGeometry();geo.setAttribute('position',pos.clone());geo.setIndex(indices);overlayGeometries.push(geo);
+  const m=new T.Mesh(geo,mat);m.matrixAutoUpdate=false;m.matrix.copy(o.matrixWorld);m.renderOrder=1;group.add(m)
+ });
+ return {mesh:group,target,uniform:mat.uniforms.intensity,dispose(){overlayGeometries.forEach(g=>g.dispose());mat.dispose()}};
 }
 // Captured only when the layout changes. Floor and tabletop contact are independent of direct sun.
 export function createContactShadows(renderer,scene){

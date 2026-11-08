@@ -72,3 +72,16 @@ export function finishLinenRail(root){
  t.repeat.set(6,8);t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;t.generateMipmaps=true;t.anisotropy=4;t.needsUpdate=true;
  for(const o of fabric){o.material.map=t;o.material.roughness=.98;o.material.needsUpdate=true}
 }
+
+// One folded quilt mesh covers the towels without changing the rack footprint.
+export function hangingQuilt(height){
+ const g=new T.PlaneGeometry(.84,1,32,40),p=g.attributes.position,cols=[],blue=new T.Color('#8ca9c6'),cream=new T.Color('#f1e3c8');
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),v=p.getY(i)+.5,angle=v*Math.PI,drop=Math.abs(Math.cos(angle)),fold=Math.sin(x*28+.8*v);
+  p.setXYZ(i,x,height+.015-.64*drop+.008*fold*drop,.095*Math.cos(angle)+.014*fold*drop);
+  const color=(drop>.80&&drop<.88)||Math.abs(x)>.39?cream:blue;
+  cols.push(...color.clone().multiplyScalar(.95+.05*fold).toArray());
+ }
+ g.setAttribute('color',new T.Float32BufferAttribute(cols,3));g.computeVertexNormals();
+ const m=new T.Mesh(g,new T.MeshStandardMaterial({side:T.DoubleSide,roughness:.96,vertexColors:true}));m.name='Quilt-on-balcony';m.castShadow=m.receiveShadow=true;return m;
+}

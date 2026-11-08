@@ -86,6 +86,8 @@ export class LiveRoom {
         "capture_ms",
         "sync_errors",
         "stall_ms",
+        "buffer_width",
+        "buffer_height",
       ]) {
         if (typeof b[k] === "number" && Number.isFinite(b[k]) && b[k] >= 0)
           data[k] = b[k];

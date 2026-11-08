@@ -1,0 +1,132 @@
+{
+  "scenario": "connected-home / home camera / default 960x720 headless viewer",
+  "machine": [
+    "darwin",
+    "arm64",
+    "Apple M3 Pro"
+  ],
+  "samples": {
+    "idle": [
+      {
+        "at": "2026-11-08T13:10:25.537Z",
+        "event": "browser",
+        "session": "49fb3db4-3ff3-46ed-a336-c4d949c4de3d",
+        "role": "viewer",
+        "window_ms": 15002.5,
+        "ticks": 333,
+        "active_ticks": 0,
+        "frames": 160,
+        "shadow_frames": 0,
+        "calls": 184320,
+        "triangles": 162436320,
+        "frame_p95_ms": 50,
+        "submit_ms": 1549.1000000238419,
+        "gpu_sample_ms": 242.555909,
+        "gpu_samples": 15,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ],
+    "draw": [
+      {
+        "at": "2026-11-08T13:10:55.534Z",
+        "event": "browser",
+        "session": "49fb3db4-3ff3-46ed-a336-c4d949c4de3d",
+        "role": "viewer",
+        "window_ms": 15000,
+        "ticks": 329,
+        "active_ticks": 329,
+        "frames": 329,
+        "shadow_frames": 126,
+        "calls": 507710,
+        "triangles": 455425369,
+        "frame_p95_ms": 50,
+        "submit_ms": 1950.2999997735023,
+        "gpu_sample_ms": 369.95241100000004,
+        "gpu_samples": 15,
+        "buffer_width": 960,
+        "buffer_height": 633
+      },
+      {
+        "at": "2026-11-08T13:11:10.533Z",
+        "event": "browser",
+        "session": "49fb3db4-3ff3-46ed-a336-c4d949c4de3d",
+        "role": "viewer",
+        "window_ms": 14998.899999976158,
+        "ticks": 330,
+        "active_ticks": 330,
+        "frames": 330,
+        "shadow_frames": 126,
+        "calls": 508866,
+        "triangles": 456440736,
+        "frame_p95_ms": 50,
+        "submit_ms": 2122.399999976158,
+        "gpu_sample_ms": 338.687449,
+        "gpu_samples": 15,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ],
+    "runner": [
+      {
+        "at": "2026-11-08T13:11:05.253Z",
+        "event": "browser",
+        "session": "0b80e863-4c21-4de7-8bb9-5bcb34fd1cf3",
+        "role": "runner",
+        "window_ms": 14999.700000047684,
+        "ticks": 439,
+        "active_ticks": 439,
+        "frames": 0,
+        "shadow_frames": 0,
+        "calls": 0,
+        "triangles": 0,
+        "frame_p95_ms": 34.700000047683716,
+        "buffer_width": 960,
+        "buffer_height": 633
+      },
+      {
+        "at": "2026-11-08T13:11:20.254Z",
+        "event": "browser",
+        "session": "0b80e863-4c21-4de7-8bb9-5bcb34fd1cf3",
+        "role": "runner",
+        "window_ms": 15000.599999964237,
+        "ticks": 439,
+        "active_ticks": 439,
+        "frames": 0,
+        "shadow_frames": 0,
+        "calls": 0,
+        "triangles": 0,
+        "frame_p95_ms": 34.80000001192093,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ],
+    "paused": [
+      {
+        "at": "2026-11-08T13:11:40.536Z",
+        "event": "browser",
+        "session": "49fb3db4-3ff3-46ed-a336-c4d949c4de3d",
+        "role": "viewer",
+        "window_ms": 14999.699999988079,
+        "ticks": 332,
+        "active_ticks": 0,
+        "frames": 0,
+        "shadow_frames": 0,
+        "calls": 0,
+        "triangles": 0,
+        "frame_p95_ms": 50,
+        "buffer_width": 960,
+        "buffer_height": 633
+      }
+    ]
+  },
+  "errors": [],
+  "limits": {
+    "callsPerFrame": 2050,
+    "trianglesPerFrame": 1500000,
+    "shadowRatio": 0.67,
+    "idleFps": 15
+  },
+  "sampled_on": "2026-11-08",
+  "scope": "96-object connected apartment, whole-home camera. Compare timings only on equivalent local hardware, driver and drawing buffer."
+}

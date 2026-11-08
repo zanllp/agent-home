@@ -183,3 +183,17 @@ node agent.mjs update_layout @docs/examples/family-supper.json
 示例只预演，适用于未改位置的家庭餐区。检查 `can_apply`、每把椅子的 `reachable` 和通往阳台的路线；通过后再原样提交该批操作并显式设 `dry_run:false`。使用 `interact` 对 `family-guest-chair` 请求 `sit`，再用 `observe_home` 看对应 job 和身体姿态。饭后先 `leave`，再预演移除这把椅子即可腾回名额，不必重置房间。
 
 启动、WSL 跨端观看、停用 Runner 和监控字段见 [Runner 与性能日志](RUNNER.md)。
+
+### 把两个房间接起来
+在命名的 `family-home` 或标准尺寸的 `childroom` 存档，站定并离开家具交互后：
+```sh
+node agent.mjs connect_rooms '{}'
+node agent.mjs connect_rooms '{"dry_run":false}'
+```
+第一步仅预览。第二步会保存连通布局；请勿用 `apply_preset` 代替，它会替换布局。原房间内的物件 ID、属性和支撑关系保留；若从儿童房出发，物件和角色一起平移到儿童房的新世界坐标。客厅通向走廊，走廊分别通儿童房、家长卧室和浴室，客厅的阳台保留独立推拉门。家具不能堵门；可用 `list_objects` 找实际 ID，再用 `walk_to` 接近目标，并核对同一 job 的到达反馈。
+
+阳台晾架的 `air_quilt` 会把一条闲置的睡被挂上，优先取鲸鱼床的，`properties.quilt_from` 记录它来自哪张床。晾着时不能盖这条被子；`bring_in_quilt` 收回。床的固定床罩不会消失，也不会模拟“晒干了”或自动判断天气。可以先读 `/api/outdoors` 决定要不要晒。画好的最近一张绘本会展示在家庭书桌的画板上。
+
+连通布局里饭锅默认常满；已有单房存档可用 `update_object` 给锅设置 `properties.keep_full: true`。对碗 `eat_rice` 后可再 `serve_rice`；不启用常满时也可对锅 `refill_rice`。这些是即时物品状态，不冒充吃饭动画。电视支持重复调用 `turn_on` 或 `turn_off`，关机后屏幕变暗并停止绘制节目。
+
+想看她在房间之间小跑，用 `set_camera {"preset":"companion"}`（画布上叫「家长跟拍」）。相机以约 1.6 米眼高跟着她，不随她转头旋转；根据墙面和家具包围盒检查头、躯干、脚的视线，受挡时换一个角度，空间太窄则取遮挡最少的位置。走跑走模式在长而通畅的路段最高约 1.65 米/秒，转弯、靠近家具和抵达前收步；「慢慢走」保持原速。

@@ -1,3 +1,5 @@
+import {airingBed} from '../shared/airing.mjs';
+import {connectHome} from './connect-home.js';
 import {planObjectDestination} from '../shared/object-destination.mjs';
 import {drawable, validateDrawing, drawingWidth, drawingHeight} from './crayon.mjs';
 import {createSpace,spaceBounds} from '../shared/space.mjs';
@@ -54,13 +56,18 @@ export function transition(
       "move_character",
       "set_activity",
       "apply_preset",
+      "connect_rooms",
     ].includes(op)
   )
     throw Error(
       "Finish the current object interaction with interact/leave before moving furniture or the character",
     );
   const mutate = (s: State, c: Data, o: Data = {}) => transition(s, c, ctx, o);
-  if (op === "draw_crayon") {
+  if(op==='connect_rooms'){
+    requireValue(typeof (args.dry_run??true)==='boolean'&&args.dry_run!==null,'dry_run must be boolean');
+    connectHome(state,ctx,navigation_start);
+    mutate(state,{tool:'move_character',arguments:{x:state.character.x,z:state.character.z}},{check_busy:false});
+  }else if (op === "draw_crayon") {
     validateDrawing(args.title,args.marks);
     const sessionBook = busy(state) && state.interaction?.pose==="draw" ? state.interaction.related_id : null;
     const target = 'target_id' in args ? args.target_id : sessionBook;
@@ -89,6 +96,7 @@ export function transition(
     state.room = { ...room, wallpapers: papers };
   } else if (op === "update_room") {
     const resizing = Object.keys(args).some((k) => k in LIMITS||k==='balcony');
+    if(resizing&&state.room?.floorplan&&check_geometry)throw Error("Connected room partitions cannot be resized while furnished");
     if (resizing && check_busy && busy(state))
       throw Error("Finish the interaction before resizing the room");
     requireValue(
@@ -154,8 +162,8 @@ export function transition(
     }
     const b = boundaries(state.room),extent=spaceBounds(state.room),
       point = planned?.point ?? {
-        x: number(args.x, state.room?.balcony?extent.minX:-b.body_x,state.room?.balcony?extent.maxX:b.body_x),
-        z: number(args.z, state.room?.balcony?extent.minZ:-b.body_z,state.room?.balcony?extent.maxZ:b.body_z),
+        x: number(args.x, (state.room?.balcony||state.room?.floorplan)?extent.minX:-b.body_x,(state.room?.balcony||state.room?.floorplan)?extent.maxX:b.body_x),
+        z: number(args.z, (state.room?.balcony||state.room?.floorplan)?extent.minZ:-b.body_z,(state.room?.balcony||state.room?.floorplan)?extent.maxZ:b.body_z),
       };
     mutate(state, { tool: "move_character", arguments: point });
     state.interaction = {
@@ -192,12 +200,18 @@ export function transition(
     );
     if(action==="serve_rice"){
       const pot=riceSource(obj,state)!;
-      pot.properties={...pot.properties,servings:(pot.properties?.servings??4)-1};
+      pot.properties={...pot.properties,servings:pot.properties?.keep_full?4:(pot.properties?.servings??4)-1};
       obj.properties={...obj.properties,filled:true};
+    } else if(action==="air_quilt"){
+      obj.properties={...obj.properties,quilt_from:airingBed(state,obj)!.id};
+    } else if(action==="bring_in_quilt"){
+      delete obj.properties!.quilt_from;
+    } else if(action==="eat_rice"){obj.properties={...obj.properties,filled:false};
+    } else if(action==="refill_rice"){obj.properties={...obj.properties,servings:4};
     } else if (action==="tidy" || action==="unpack") {
       obj.properties = {...obj.properties, packed: action==="tidy"};
     } else if (["turn_on", "turn_off"].includes(action)) {
-      obj.properties ??= { on: true, brightness: 0.7 };
+      obj.properties ??= obj.kind==="tv"?{on:true}:{ on: true, brightness: 0.7 };
       obj.properties.on = action === "turn_on";
     } else if (["cover", "uncover"].includes(action)) {
       obj.properties ??= { covered: true };
@@ -238,7 +252,7 @@ export function transition(
     if ("properties" in args) {
       const p = args.properties,
         allowed =
-          obj.id===state.room?.balcony?.door_id? ["open"] : obj.kind === "lamp"
+          obj.id===state.room?.balcony?.door_id? ["open"] : obj.kind==="tv"?["on"]:obj.asset_id==="home-rice-cooker-v1"?["keep_full"]:obj.kind === "lamp"
             ? ["on", "brightness"]
             : ctx.assets[obj.asset_id || ""]?.interactions?.sleep
               ? ["covered"]
@@ -248,6 +262,7 @@ export function transition(
         "Unsupported object properties",
       );
       if('open' in p){requireValue(typeof p.open==='boolean',"open must be boolean");requireValue(!check_busy||!busy(state),"Finish the current action before changing the balcony door")}
+      if ("keep_full" in p)requireValue(typeof p.keep_full==="boolean","keep_full must be boolean");
       if ("covered" in p)
         requireValue(typeof p.covered === "boolean", "covered must be boolean");
       if ("on" in p)
@@ -255,17 +270,17 @@ export function transition(
       if ("brightness" in p) number(p.brightness, 0, 1);
       obj.properties = {
         ...(obj.id===state.room?.balcony?.door_id?{open:obj.properties?.open??true}:obj.properties ??
-          (obj.kind === "lamp"
+          (obj.kind==="tv"?{on:true}:obj.asset_id==="home-rice-cooker-v1"?{servings:4}:obj.kind === "lamp"
             ? { on: true, brightness: 0.7 }
             : { covered: true })),
-        ...p,
+        ...p,...(p.keep_full===true?{servings:4}:{}),
       };
     }
     if(obj.id===state.room?.balcony?.door_id&&check_geometry)validateLayout(state,ctx);
   } else if (op === "apply_layout") {
     requireValue(
-      Array.isArray(args.objects) && args.objects.length <= 80,
-      "Expected at most 80 furniture items",
+      Array.isArray(args.objects) && args.objects.length <= (state.room?.floorplan?128:80),
+      state.room?.floorplan?"Expected at most 128 furniture items":"Expected at most 80 furniture items",
     );
     let trial: State = { ...clone(state), objects: [] };
     for (const item of args.objects) {
@@ -280,7 +295,7 @@ export function transition(
     state.objects = trial.objects;
   } else if (op === "set_camera") {
     requireValue(
-      ["home", "album", "broadcast", "portrait", "front", "face", "side", "back", "top"].includes(
+      ["home", "album", "broadcast", "companion", "portrait", "front", "face", "side", "back", "top"].includes(
         args.preset,
       ),
       "Unknown camera preset",
@@ -309,7 +324,7 @@ export function transition(
     let obj = state.objects.find((o) => o.id === id);
     if (op === "place_furniture") {
       requireValue(!obj, "Furniture id already exists");
-      requireValue(state.objects.length < 80, "Room item limit reached");
+      requireValue(state.objects.length < (state.room?.floorplan?128:80), "Room item limit reached");
       requireValue(
         typeof args.kind === "string" &&
           (Object.hasOwn(ctx.catalog, args.kind) ||
@@ -351,8 +366,8 @@ export function transition(
         if (k in args)
           obj![k] = number(
             args[k],
-            k === "yaw" ? -Math.PI * 2 : state.room?.balcony? Math.min(-6,spaceBounds(state.room)[k==='x'?'minX':'minZ']):-6,
-            k === "yaw" ? Math.PI * 2 : state.room?.balcony? Math.max(6,spaceBounds(state.room)[k==='x'?'maxX':'maxZ']):6,
+            k === "yaw" ? -Math.PI * 2 : (state.room?.balcony||state.room?.floorplan)? Math.min(-6,spaceBounds(state.room)[k==='x'?'minX':'minZ']):-6,
+            k === "yaw" ? Math.PI * 2 : (state.room?.balcony||state.room?.floorplan)? Math.max(6,spaceBounds(state.room)[k==='x'?'maxX':'maxZ']):6,
           );
       if ("color" in args) {
         requireValue(
@@ -391,6 +406,7 @@ export function transition(
     const preset = ctx.presets[args.preset_id],
       rev = state.revision;
     let trial: State = { ...clone(state), objects: [] };
+    if(trial.room){delete trial.room.floorplan;delete trial.room.child_finish}
     trial = mutate(
       trial,
       {
@@ -441,9 +457,9 @@ export function transition(
     state.character.activity = args.activity;
   } else if (op === "move_character") {
     const b = boundaries(state.room),extent=spaceBounds(state.room),
-      x = number(args.x, state.room?.balcony?extent.minX:-b.body_x,state.room?.balcony?extent.maxX:b.body_x),
-      z = number(args.z, state.room?.balcony?extent.minZ:-b.body_z,state.room?.balcony?extent.maxZ:b.body_z);
-    if(state.room?.balcony)requireValue(createSpace(state.room,state.objects).free({x,z}),"Target is outside walkable space or blocked by wall/railing/closed door");
+      x = number(args.x, (state.room?.balcony||state.room?.floorplan)?extent.minX:-b.body_x,(state.room?.balcony||state.room?.floorplan)?extent.maxX:b.body_x),
+      z = number(args.z, (state.room?.balcony||state.room?.floorplan)?extent.minZ:-b.body_z,(state.room?.balcony||state.room?.floorplan)?extent.maxZ:b.body_z);
+    if(state.room?.balcony||state.room?.floorplan)requireValue(createSpace(state.room,state.objects).free({x,z}),"Target is outside walkable space or blocked by wall/railing/closed door");
     for (const obj of state.objects) {
       if (obj.kind === "rug" || obj.on||obj.id===state.room?.balcony?.door_id) continue;
       const [w, d] = definition(obj, ctx).size,

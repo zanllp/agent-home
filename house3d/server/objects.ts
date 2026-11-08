@@ -1,3 +1,4 @@
+import {airingBed} from '../shared/airing.mjs';
 import {drawable} from './crayon.mjs';
 import {regionAt} from '../shared/space.mjs';
 import { type State, type Item, type Context, type Data } from "./types.js";
@@ -115,6 +116,14 @@ export function actionsFor(obj: Item, ctx: Context, state: State) {
     result.push({id:"serve_rice",label:"盛一碗白饭",available:!full && !!source,
       reason:full?"碗里已经有饭":source?null:"把碗放到还有饭的电饭锅旁，同一个台面上"});
   }
+  if(obj.asset_id==="home-rice-bowl-v1")result.push({id:"eat_rice",label:"吃完碗里的饭",available:obj.properties?.filled===true,reason:obj.properties?.filled?null:"碗里还没有饭"});
+  if(obj.asset_id==="home-rice-cooker-v1")result.push({id:"refill_rice",label:"添满白饭",available:(obj.properties?.servings??4)<4,reason:(obj.properties?.servings??4)<4?null:"锅里已经满了"});
+  if(obj.kind==="tv")result.push({id:"turn_on",label:"打开电视",available:true},{id:"turn_off",label:"关电视",available:true});
+  if(obj.kind==="drying_rack"){
+    if(obj.properties?.quilt_from)result.push({id:"bring_in_quilt",label:"收回晾着的被子",available:true});
+    else {const outdoors=regionAt(state.room,obj)==="balcony",bed=airingBed(state,obj);
+      result.push({id:"air_quilt",label:"晒一晒被子",available:outdoors&&!!bed&&!busy(state),reason:!outdoors?"先把晾架放在阳台":!bed?"没有空闲的被子":busy(state)?"先结束当前互动":null})}
+  }
   if (obj.kind === "toy_set" && def.interactions?.play) {
     const packed = obj.properties?.packed === true;
     const available = !busy(state) || (job.target_id===obj.id && job.pose==="play" && job.phase==="active");
@@ -150,7 +159,7 @@ export function actionsFor(obj: Item, ctx: Context, state: State) {
     result.push({
       id: covered ? "uncover" : "cover",
       label: covered ? "掀开被子" : "盖好被子",
-      available: true,
+      available: !state.objects.some(o=>o.properties?.quilt_from===obj.id),
     });
   }
   if (obj.kind === "lamp")
@@ -186,7 +195,7 @@ export function objectList(
         ? { ...obj.on, base_height: heightOf(obj, state.objects, ctx) }
         : null,
       writable_properties:
-        obj.id===state.room?.balcony?.door_id?{open:{type:"boolean"}}:obj.kind === "lamp"
+        obj.id===state.room?.balcony?.door_id?{open:{type:"boolean"}}:obj.kind==="tv"?{on:{type:"boolean"}}:obj.asset_id==="home-rice-cooker-v1"?{keep_full:{type:"boolean"}}:obj.kind === "lamp"
           ? {
               on: { type: "boolean" },
               brightness: { type: "number", minimum: 0, maximum: 1 },
@@ -196,8 +205,8 @@ export function objectList(
             : {},
       actions,
       properties:
-        obj.asset_id==="home-rice-cooker-v1"?{servings:4,...obj.properties}:obj.asset_id==="home-rice-bowl-v1"?{filled:false,...obj.properties}:obj.properties ??
-        (obj.kind==="toy_set"?{packed:false}:obj.id===state.room?.balcony?.door_id?{open:true}:obj.kind === "lamp"
+        obj.asset_id==="home-rice-cooker-v1"?{servings:4,keep_full:false,...obj.properties}:obj.asset_id==="home-rice-bowl-v1"?{filled:false,...obj.properties}:obj.properties ??
+        (obj.kind==="tv"?{on:true}:obj.kind==="toy_set"?{packed:false}:obj.id===state.room?.balcony?.door_id?{open:true}:obj.kind === "lamp"
           ? { on: true, brightness: 0.7 }
           : obj.kind === "bed"
             ? { covered: true }

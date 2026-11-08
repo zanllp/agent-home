@@ -1,3 +1,4 @@
+import {apartment,zoneAt} from '../shared/apartment.mjs';
 import {fitOverlayQuad} from './overlay-quad.js';
 import {spaceBounds,balconyGeometry,regionAt} from '../shared/space.mjs';
 import {roomDimensions} from './room-size.js';
@@ -19,6 +20,7 @@ export function createSelfMap(){
   hidden=hide;mesh.visible=!hide;const key=JSON.stringify(open?[width,height,open,hidden,ready,body,objects,route,paused,room]:[width,height,open,hidden]);if(key===previous)return;const now=performance.now();if(previous&&now-drawnAt<100)return;previous=key;drawnAt=now;c.clearRect(0,0,width,height);if(hidden){texture.needsUpdate=true;return}
   layout=selfMapLayout(width,height,room);fitOverlayQuad(mesh,width,height,open?null:layout.toggle);const dimensions=roomDimensions(room);const {toggle,panel,map}=layout;round(toggle,open?'#dce9dc':'rgba(255,253,247,.95)');text(open?'收起位置':'位置',toggle.x+toggle.w/2,toggle.y+18,true,'#405747','center');
   if(open){round(panel,'rgba(255,253,247,.97)');text('位置与朝向',panel.x+16,panel.y+19,true);if(room.balcony){const b=balconyGeometry(room),d=roomDimensions(room),a=mapPoint({x:-d.width/2,z:-d.depth/2},map,room),z=mapPoint({x:d.width/2,z:d.depth/2},map,room),p=mapPoint({x:b.minX,z:b.minZ},map,room),q=mapPoint({x:b.maxX,z:b.maxZ},map,room);c.fillStyle='#eee9dc';c.fillRect(a.x,a.y,z.x-a.x,z.y-a.y);c.fillStyle='#dce8df';c.fillRect(p.x,p.y,q.x-p.x,q.y-p.y);text('阳台',(p.x+q.x)/2,p.y+9,false,'#6f8a7b','center')}else round(map,'#eee9dc');
+   const plan=apartment(room);if(plan){for(const z of plan.zones.slice(1)){const a=mapPoint({x:z.minX,z:z.minZ},map,room),b=mapPoint({x:z.maxX,z:z.maxZ},map,room);c.fillStyle=z.id==='bath'?'#d9e7e6':'#eee9dc';c.fillRect(a.x,a.y,b.x-a.x,b.y-a.y);c.strokeStyle='#c1bbad';c.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y)}}
    text('后墙',map.x+map.w/2,map.y-10,false,'#8a9588','center');text('前墙',map.x+map.w/2,map.y+map.h+11,false,'#8a9588','center');text('左',map.x-12,map.y+map.h/2,false,'#8a9588','center');text('右',map.x+map.w+12,map.y+map.h/2,false,'#8a9588','center');
    c.save();c.beginPath();c.rect(map.x,map.y,map.w,map.h);c.clip();
    for(const obj of objects){if(obj.on)continue;const def=assets[obj.asset_id]||catalog[obj.kind];if(!def)continue;const p=mapPoint(obj,map,room),scale=map.w/(spaceBounds(room).maxX-spaceBounds(room).minX);c.save();c.translate(p.x,p.y);c.rotate(-obj.yaw);c.fillStyle=obj.kind==='rug'?'#e4e7d9':obj.kind==='bed'||obj.kind==='sofa'?'#c5d7df':'#d4c3a8';c.fillRect(-def.size[0]*scale/2,-def.size[1]*scale/2,def.size[0]*scale,def.size[1]*scale);c.restore();if(obj.kind!=='rug')text(names[obj.kind]||'物品',p.x,p.y,false,'#7a8071','center')}
@@ -26,7 +28,7 @@ export function createSelfMap(){
     const f=heading(body.yaw).forward;c.strokeStyle='#fffdf7';c.lineWidth=2;c.fillStyle='#407c70';c.beginPath();c.arc(p.x,p.y,5,0,Math.PI*2);c.fill();c.stroke();c.beginPath();c.moveTo(p.x+f.x*17,p.y+f.z*17);c.lineTo(p.x+f.x*6-f.z*5,p.y+f.z*6+f.x*5);c.lineTo(p.x+f.x*6+f.z*5,p.y+f.z*6-f.x*5);c.closePath();c.fill();c.stroke();
    }c.restore();
    const bottom=map.y+map.h+32;
-   if(ready&&body){const direction=heading(body.yaw);text(`X ${n(body.x)}  Y ${n(body.y)}  Z ${n(body.z)} 米`,panel.x+16,bottom);text(`面向${direction.label} · ${direction.degrees}°`,panel.x+16,bottom+22,true);const pose=body.moving?'走动':{stand:'站着',sit:'坐着',sleep:'躺着',read:'看书',draw:'画画',play:'玩机器人',transition:'调整姿势'}[body.pose];text(`${paused?'已暂停 · ':''}${pose} · ${regionAt(room,body)==='balcony'?'阳台':'室内'}`,panel.x+16,bottom+44,false,'#8a9588')}
+   if(ready&&body){const direction=heading(body.yaw);text(`X ${n(body.x)}  Y ${n(body.y)}  Z ${n(body.z)} 米`,panel.x+16,bottom);text(`面向${direction.label} · ${direction.degrees}°`,panel.x+16,bottom+22,true);const pose=body.moving?'走动':{stand:'站着',sit:'坐着',sleep:'躺着',read:'看书',draw:'画画',play:'玩机器人',transition:'调整姿势'}[body.pose];text(`${paused?'已暂停 · ':''}${pose} · ${regionAt(room,body)==='balcony'?'阳台':zoneAt(plan,body)?.label||'室内'}`,panel.x+16,bottom+44,false,'#8a9588')}
    else text('等待角色的实时位置…',panel.x+16,bottom)
   }texture.needsUpdate=true;
  }

@@ -6,10 +6,12 @@ import {createPreviewRoom,baseHeight} from './wander-room.js';
 import {createNavigation,createWalker,groundHeightAt} from './wander-navigation.js';
 import {createSecondaryMotion} from './wander-motion.js';
 import {createSelfMap} from './self-map.js';
-import {createCanvasHud} from './wander-hud.js';
+import {createCanvasHud,toolbarChoices,selectable,selectedChoice} from './wander-hud.js';
 import {roomDimensions} from './room-size.js';
 import {createInteriorLighting} from './interior-lighting.js';
-import {cameraPose,cameraZoom,broadcastPose,broadcastFov,homePose,homeFov,albumPose,albumFov,drawingViewPose,rugPlayViewPose} from './camera-presets.js';
+import {cameraPose,cameraZoom,broadcastPose,broadcastFov,homePose,homeFov,albumPose,albumFov,companionPose,companionObstruction,drawingViewPose,rugPlayViewPose} from './camera-presets.js';
+import {apartment,zoneAt} from '../shared/apartment.mjs';
+import {spaceSegments,balconyGeometry} from '../shared/space.mjs';
 import {changedControls,navigationKey} from './wander-state.js';
 import {createObjectInteraction} from './object-interaction.js';
 import {createObjectPanel} from './object-panel.js';
@@ -32,11 +34,12 @@ const continuousBaseline=statsMode==='continuous';
 const renderStats=statsMode!==null?{frames:0,shadowFrames:0,bodyFrames:0,calls:0,triangles:0,submitMs:0,mode:continuousBaseline?'continuous':'demand',startedAt:performance.now()}:null;
 function finishRenderStats(start){if(!renderStats)return;renderStats.submitMs+=performance.now()-start;renderStats.calls+=renderer.info.render.calls;renderStats.triangles+=renderer.info.render.triangles}
 let statsAt=0,trackingUntil=0;
-let bodyDirty=true;
+let bodyDirty=true,outdoorState=null,outdoorTimer;
 function invalidateBody(){if(renderer)renderer.shadowMap.needsUpdate=true;bodyDirty=true;renderDemand.invalidate()}
 
-const ui={ready:false,error:'',auto:true,paused:false,brisk:true,sound:false,status:'正在穿好小鞋子…',cameraMode:'home',light:'day',notice:''};
+const ui={ready:false,error:'',auto:true,paused:false,brisk:true,sound:false,status:'正在穿好小鞋子…',cameraMode:'home',menuId:null,menuHover:null,light:'day',notice:''};
 const mount=document.getElementById('app');
+ let companion,companionLayout,companionBoxes,companionPlan,companionBalcony;
  let activityCamera,drawingPose,floorPlay,playTime=0;
  let scene,renderer,camera,controls,resize,raf,walker,mixer,walk,run,rest,avatar,scale=1,weight=0,last=0,disposed=false,marker,nav,pointer,audio,lastSteps=0,tapTimer=0,room,motion,rugs=[],hud,motionTime=0,turnVelocity=0,syncTimer,layoutKey='',navKey='',roomRevision=-1,furnitureAssets={},lighting,noticeUntil=0,captureNotBefore=0,objectPanel,interaction,sitAction,sleepAction,characterModel,roomObjects=[],objectData={objects:[]},napQuilt,sleepFace,readAction,readingBook,controller=false,selfMap,roomCatalog={},roomSpec=roomDimensions();
  const cleanView=mode=>mode==='broadcast'||mode==='album';
@@ -69,6 +72,24 @@ const mount=document.getElementById('app');
   if(mode==='album')return albumPose(roomSpec,camera.aspect);
   if(mode==='broadcast')return broadcastPose(roomSpec,camera.aspect);
   let p=avatar?.position||{x:0,z:.5};const yaw=avatar?.rotation.y||0;
+  if(mode==='companion'){
+   if(companionLayout!==layoutKey){
+    companionBoxes=spaceSegments(roomSpec,roomObjects).map(([a,b])=>({x:(a.x+b.x)/2,z:(a.z+b.z)/2,yaw:0,base:0,height:roomSpec.height||2.6,size:[Math.abs(a.x-b.x)+.09,Math.abs(a.z-b.z)+.09]}));
+    for(const o of roomObjects){
+     const asset=furnitureAssets[o.asset_id]||roomCatalog[o.kind];
+     if(!asset?.size||o.kind==='rug'||asset.wall_opening)continue;
+     companionBoxes.push({x:o.x,z:o.z,yaw:o.yaw||0,base:baseHeight(o,roomObjects,furnitureAssets),size:asset.size,height:asset.height});
+    }
+    companion=null;companionLayout=layoutKey;companionPlan=apartment(roomSpec);companionBalcony=balconyGeometry(roomSpec);
+   }
+   if(!companion||Math.hypot(companion.x-p.x,companion.z-p.z,companion.y-p.y)>.055){
+    const living={minX:-roomSpec.width/2,maxX:roomSpec.width/2,minZ:-roomSpec.depth/2,maxZ:roomSpec.depth/2};
+    const zone=zoneAt(companionPlan,p)||(p.x>=living.minX&&p.x<=living.maxX&&p.z>=living.minZ&&p.z<=living.maxZ?living:companionBalcony);
+    const pose=companionPose(p,companionBoxes,companion,zone);
+    companion={...pose,x:p.x,y:p.y||0,z:p.z};
+   }
+   return companion;
+  }
   if((interaction?.frame?.sleep||0)>.5&&!['home','top','broadcast','album'].includes(mode)){const distance=mode==='face'?1.0:.65,x=p.x-distance*Math.sin(yaw),z=p.z-distance*Math.cos(yaw);return {position:mode==='side'?[x+2.8,1.5,z]:mode==='face'?[x+.12,1.7,z+.34]:[x+1.8,2.5,z+2.1],target:[x,mode==='face'?.82:.67,z]}}
   const drawing=(mode==='front'||mode==='side')&&interaction?.frame?.draw>.01;
   const playing=(mode==='front'||mode==='portrait')&&interaction?.frame?.play>.01;
@@ -87,7 +108,7 @@ const mount=document.getElementById('app');
   return cameraPose(mode,{x:p.x,z:p.z,yaw});
  }
  function view(mode,instant=false){
-  renderDemand.invalidate();trackingUntil=performance.now()+3000;ui.cameraMode=mode;if(!camera)return;camera.near=.05;camera.fov=mode==='broadcast'?broadcastFov:mode==='home'?homeFov:mode==='album'?albumFov:36;if(controls)controls.enabled=!cleanView(mode);
+  ui.menuId=null;ui.menuHover=null;renderDemand.invalidate();trackingUntil=performance.now()+3000;ui.cameraMode=mode;if(!camera)return;camera.near=.05;camera.fov=mode==='broadcast'?broadcastFov:mode==='home'?homeFov:mode==='album'?albumFov:mode==='companion'?52:36;if(controls)controls.enabled=!cleanView(mode);
   if(instant||['home','top','broadcast','album'].includes(mode)){const pose=trackingPose(mode);camera.position.set(...pose.position);controls.target.set(...pose.target);const dist=camera.position.distanceTo(controls.target);if(mode==='album')camera.near=Math.max(.05,dist*.08);controls.maxDistance=Math.max(15,dist*1.3);camera.far=Math.max(40,controls.maxDistance+20)}
   camera.zoom=cameraZoom(mode,camera.aspect);camera.updateProjectionMatrix();controls.update();
  }
@@ -117,7 +138,8 @@ const mount=document.getElementById('app');
  function groundHeight(x,z){return groundHeightAt(x,z,rugs,furnitureAssets)}
  function applyBody(dt,remote){bodyDirty=false;remoteDirty=false;
    drawingPose.restore();floorPlay.restore();const contact=remote?remote.contact:interaction.tick(dt);
-   sleepFace.update(contact?.sleep||0);const bedObject=roomObjects.find(o=>o.id===interaction?.targetId);napQuilt.update(bedObject?.properties?.covered===false?0:contact?.sleep||0,bedObject);
+   sleepFace.update(contact?.sleep||0);const bedObject=roomObjects.find(o=>o.id===interaction?.targetId);napQuilt.update(bedObject?.properties?.covered===false||bedObject&&roomObjects.some(o=>o.properties?.quilt_from===bedObject.id)?0:contact?.sleep||0,bedObject);
+   characterModel.parent.position.y=0;
    if(contact){
     motion?.restore();walk.setEffectiveWeight(0);run.setEffectiveWeight(0);rest.setEffectiveWeight(1-contact.sit-contact.sleep);sitAction.setEffectiveWeight(contact.sit*(1-(contact.read||contact.play||contact.draw||0)));readAction.setEffectiveWeight(contact.sit*(contact.read||contact.play||contact.draw||0));readAction.time=.5;sleepAction.setEffectiveWeight(contact.sleep);sitAction.time=sleepAction.time=.5;mixer.update(0);
     avatar.position.set(contact.x,contact.y,contact.z);avatar.rotation.set(contact.pitch,contact.yaw,0,'YXZ');
@@ -129,7 +151,8 @@ const mount=document.getElementById('app');
    // Distance, not elapsed wall time, drives the gait and footfall cadence.
    motion?.restore();
    walk.time=1/24+(s.phase%1);run.time=1/24+(s.phase%1)*.75;rest.time=1/24;mixer.update(0);
-   motion?.apply({phase:s.phase,time:motionTime,weight,turn:turnVelocity});
+   characterModel.parent.position.y=.025*weight*s.runBlend*Math.sin(s.phase*Math.PI*2)**2;
+   motion?.apply({phase:s.phase,time:motionTime,weight,runBlend:s.runBlend,turn:turnVelocity});
    if(s.steps>lastSteps){tap();lastSteps=s.steps}tapTimer+=dt;
    if(tapTimer>.4&&!interaction?.busy){ui.status=s.mode==='walk'?(s.runBlend>.4?'哒哒哒，小跑过去':ui.brisk?'啪嗒啪嗒，去看看':'慢慢走，看看家里'):s.mode==='turn'?'转个身，换个方向':'停一停，看看周围';tapTimer=0}
    if(!s.route.length)marker.visible=false;
@@ -165,21 +188,29 @@ const mount=document.getElementById('app');
   if(animateBody)trackingUntil=now+3000;
   const cameraTracking=ui.ready&&now<trackingUntil&&!['home','top','broadcast','album'].includes(ui.cameraMode);
   if(cameraTracking){
-   const pose=trackingPose(ui.cameraMode);camera.position.lerp(new T.Vector3(...pose.position),1-Math.exp(-dt*3));controls.target.lerp(new T.Vector3(...pose.target),1-Math.exp(-dt*5));
+   const mode=ui.cameraMode,pose=trackingPose(mode);
+   camera.position.lerp(new T.Vector3(...pose.position),1-Math.exp(-dt*(mode==='companion'?8:3)));
+   if(mode==='companion'&&companionObstruction(avatar.position,camera.position.toArray(),companionBoxes)>pose.loss){
+    camera.position.set(...pose.position);controls.target.set(...pose.target);
+   }
+   controls.target.lerp(new T.Vector3(...pose.target),1-Math.exp(-dt*(mode==='companion'?10:5)));
   }
   ui.objectPhase=interaction?.phase;ui.objectPose=interaction?.busy?interaction.pose:null;if(cameraTracking)controls.update();room?.updateView(camera.position);const screenChanged=ui.ready&&!ui.paused?room.tickScreens(elapsed,camera):false;if(cleanView(ui.cameraMode)&&marker)marker.visible=false;
+  if(ui.menuId&&!selectable(ui.menuId,ui)){ui.menuId=null;ui.menuHover=null}
   const decision=renderDemand.frame({camera:[...camera.matrixWorld.elements,...camera.projectionMatrix.elements],key:JSON.stringify([ui,objectPanel?.open,objectPanel?.pending,selfMap?.open]),bodyChanged:animateBody,screenChanged});
   if(continuousBaseline){decision.render=true;decision.shadows=true}
   if(renderStats){renderStats.frames+=Number(decision.render);renderStats.bodyFrames+=Number(animateBody);if(now-statsAt>=1000){renderer.domElement.dataset.renderStats=JSON.stringify({...renderStats,elapsedMs:now-renderStats.startedAt});statsAt=now}}
   if(!decision.render)return;
   const renderStart=performance.now();renderer.info.reset();
-  // Keep full-rate geometry and animation. Reuse the previous shadow for at most one gait frame.
-  const shadowDue=continuousBaseline||!animateBody||bodyDirty||ui.cameraMode!==lastCameraMode||now-lastShadow>=65;
+  // The full-apartment camera sees a very small moving silhouette. Refresh its
+  // shadow at 10 Hz; keep the character and the closer cameras at full detail.
+  const shadowInterval=roomSpec.floorplan&&['album','home','top'].includes(ui.cameraMode)?100:65;
+  const shadowDue=continuousBaseline||!animateBody||bodyDirty||ui.cameraMode!==lastCameraMode||now-lastShadow>=shadowInterval;
   decision.shadows&&=shadowDue;lastCameraMode=ui.cameraMode;
   const refreshShadow=decision.shadows||renderer.shadowMap.needsUpdate;if(refreshShadow){lastShadow=now;if(renderStats)renderStats.shadowFrames++}perf?.begin(now);
   renderer.shadowMap.needsUpdate ||= decision.shadows;renderer.render(scene,camera);
   if(cleanView(ui.cameraMode)){renderer.domElement.setAttribute('aria-label',(ui.cameraMode==='album'?'全屋留影。':'小家直播。')+'轻点画面或按 Esc 返回。');finishRenderStats(renderStart);perf?.end(renderStart,refreshShadow);return}
-  hud.update(ui);hud.render(renderer);selfMap.update({ready:ui.ready&&(controller||!!remote),body:ui.ready?bodySnapshot(avatar,walker,interaction,ui.paused):null,objects:roomObjects,assets:furnitureAssets,catalog:roomCatalog,room:roomSpec,route:walker?.state.route||[],paused:ui.paused,hidden:objectPanel?.open});selfMap.render(renderer);objectPanel?.update(objectData);objectPanel?.render(renderer);renderer.domElement.setAttribute('aria-label',`大肥鱼的小家。${ui.notice||(ui.paused?'已暂停':ui.status)}。${ui.auto?'自主逛逛':'手动休息'}，${ui.brisk?'走跑走':'慢慢走'}，${{home:'全景',broadcast:'直播',follow:'跟随',front:'正面',face:'看脸',portrait:'斜侧',side:'侧面',back:'背面',top:'俯视'}[ui.cameraMode]}，${ui.sound?'有声':'静音'}。空格暂停，A切换逛逛，F切换快慢，V切换镜头，M切换声音，I查看物品，P查看位置。`);finishRenderStats(renderStart);perf?.end(renderStart,refreshShadow);
+  hud.update(ui);hud.render(renderer);selfMap.update({ready:ui.ready&&(controller||!!remote),body:ui.ready?bodySnapshot(avatar,walker,interaction,ui.paused):null,objects:roomObjects,assets:furnitureAssets,catalog:roomCatalog,room:roomSpec,route:walker?.state.route||[],paused:ui.paused,hidden:objectPanel?.open});selfMap.render(renderer);objectPanel?.update(objectData);objectPanel?.render(renderer);renderer.domElement.setAttribute('aria-label',`大肥鱼的小家。${ui.notice||(ui.paused?'已暂停':ui.status)}。${ui.auto?'自主逛逛':'手动休息'}，${ui.brisk?'走跑走':'慢慢走'}，${{home:'全景',broadcast:'直播',companion:'家长跟拍',follow:'跟随',front:'正面',face:'看脸',portrait:'斜侧',side:'侧面',back:'背面',top:'俯视'}[ui.cameraMode]}，${ui.sound?'有声':'静音'}。空格暂停，A切换逛逛，F切换快慢，V打开镜头列表，M切换声音，I查看物品，P查看位置。`);finishRenderStats(renderStart);perf?.end(renderStart,refreshShadow);
  }
 async function init(){try{
   const runtime=await (await fetch('/api/runtime')).json();spectator=runtime.runner&&!isRunner;
@@ -214,31 +245,60 @@ async function init(){try{
     subscribe();document.addEventListener('visibilitychange',subscribe);window.addEventListener('pagehide',()=>document.removeEventListener('visibilitychange',subscribe),{once:true});
 
   }
-  function activate(id){
+  function menu(id=null,hover=null){ui.menuId=id;ui.menuHover=hover}
+  function choose(id,value){
+   menu();if(!selectable(id,ui))return;
+   if(id==='camera'){view(value,true);return}
+   if(value===selectedChoice(id,ui))return;
+   if(id==='sound'){toggleSound().catch(()=>{ui.sound=false;ui.status='暂时无法播放声音'});return}
+   if(spectator){
+    if(id==='auto')command('set_activity',{activity:value==='wander'?'walk':'idle'}).catch(failNotice);
+    else post('/api/runtime/control',id==='pause'?{paused:value==='paused'}:{brisk:value==='brisk'}).then(r=>{if(!r.ok)throw Error('Runner 尚未就绪')}).catch(failNotice);
+   }else if(id==='auto')setAuto(value==='wander');
+   else if(id==='pause')ui.paused=value==='paused';
+   else if(id==='speed')setBrisk(value==='brisk');
+  }
+  function activate(id,shortcut=false){
    invalidateBody();
    if(!ui.ready)return;
+   if(selectable(id,ui)){
+    if(!shortcut||id==='camera')menu(id,selectedChoice(id,ui));
+    else choose(id,toolbarChoices[id].find(([v])=>v!==selectedChoice(id,ui))[0]);
+    return;
+   }
+   menu();
    if(id==='album'){view('album',true);return}
    if(id==='items'){selfMap.close();objectPanel.activate('toggle');return}
    if(id==='self-map'){if(objectPanel.open)objectPanel.activate('toggle');selfMap.toggle();return}
-   if(id==='auto'&&interaction.phase==='leaving')return;
-   if(id==='auto'&&interaction.busy){objectCommand(interaction.targetId,'leave');return}
-   if(spectator&&['auto','pause','speed'].includes(id)){
-    if(id==='auto')command('set_activity',{activity:ui.auto?'idle':'walk'}).catch(failNotice);
-    else post('/api/runtime/control',id==='pause'?{paused:!ui.paused}:{brisk:!ui.brisk}).then(r=>{if(!r.ok)throw Error('Runner 尚未就绪')}).catch(failNotice);
-    return;
-   }
-   if(id==='auto')setAuto(!ui.auto);
-   if(id==='pause')ui.paused=!ui.paused;
-   if(id==='speed')setBrisk(!ui.brisk);
-   if(id==='camera')view({home:'broadcast',broadcast:'follow',follow:'front',front:'home'}[ui.cameraMode]||'home');
-   if(id==='sound')toggleSound().catch(()=>{ui.sound=false;ui.status='暂时无法播放声音'});
+   if(id==='auto'&&interaction.busy&&interaction.phase!=='leaving')objectCommand(interaction.targetId,'leave');
   }
   const canvas=renderer.domElement;
-  canvas.addEventListener('pointerdown',e=>{invalidateBody();canvas.focus({preventScroll:true});if(cleanView(ui.cameraMode)){pointer={x:e.clientX,y:e.clientY};return}const r=canvas.getBoundingClientRect(),panelHit=objectPanel.hit(e.clientX-r.left,e.clientY-r.top);pointer=null;if(panelHit){e.stopImmediatePropagation();e.preventDefault();if(panelHit.enabled){if(panelHit.id.startsWith('action:')){const [,target,action]=panelHit.id.split(':');objectCommand(decodeURIComponent(target),action)}else objectPanel.activate(panelHit.id)}return}const mapHit=selfMap.hit(e.clientX-r.left,e.clientY-r.top);if(mapHit){e.stopImmediatePropagation();e.preventDefault();if(mapHit==='self-map-toggle')activate('self-map');return}const id=hud.hit(e.clientX-r.left,e.clientY-r.top);if(id){e.stopImmediatePropagation();e.preventDefault();activate(id);return}pointer={x:e.clientX,y:e.clientY}},true);
+  canvas.addEventListener('pointerdown',e=>{invalidateBody();canvas.focus({preventScroll:true});if(cleanView(ui.cameraMode)){pointer={x:e.clientX,y:e.clientY};return}const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;pointer=null;
+   if(ui.menuId){const id=hud.hit(x,y),hit=hud.menuHit(ui.menuId,x,y);
+    e.stopImmediatePropagation();e.preventDefault();
+    if(hit?.startsWith('choice:'))choose(ui.menuId,hit.slice(7));
+    else if(id)activate(id);else if(!hit)menu();
+    return;
+   }
+   const panelHit=objectPanel.hit(x,y);if(panelHit){e.stopImmediatePropagation();e.preventDefault();if(panelHit.enabled){if(panelHit.id.startsWith('action:')){const [,target,action]=panelHit.id.split(':');objectCommand(decodeURIComponent(target),action)}else objectPanel.activate(panelHit.id)}return}const mapHit=selfMap.hit(e.clientX-r.left,e.clientY-r.top);if(mapHit){e.stopImmediatePropagation();e.preventDefault();if(mapHit==='self-map-toggle')activate('self-map');return}const id=hud.hit(e.clientX-r.left,e.clientY-r.top);if(id){e.stopImmediatePropagation();e.preventDefault();activate(id);return}pointer={x:e.clientX,y:e.clientY}},true);
   canvas.addEventListener('pointerup',e=>{if(cleanView(ui.cameraMode)){if(pointer&&Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y)<5)view('home',true);pointer=null;return}const r=canvas.getBoundingClientRect();if(objectPanel.hit(e.clientX-r.left,e.clientY-r.top)||selfMap.hit(e.clientX-r.left,e.clientY-r.top)||hud.hit(e.clientX-r.left,e.clientY-r.top)){e.stopImmediatePropagation();pointer=null;return}pick(e);pointer=null},true);
   canvas.addEventListener('pointercancel',()=>{pointer=null});
-  canvas.addEventListener('pointermove',e=>{if(cleanView(ui.cameraMode)){canvas.style.cursor='default';return}const r=canvas.getBoundingClientRect();canvas.style.cursor=(hud.hit(e.clientX-r.left,e.clientY-r.top)||selfMap.hit(e.clientX-r.left,e.clientY-r.top)||objectPanel.hit(e.clientX-r.left,e.clientY-r.top))?'pointer':'grab'});
-  canvas.addEventListener('keydown',e=>{if(cleanView(ui.cameraMode)){if(['Escape','KeyV','KeyG'].includes(e.code)){e.preventDefault();view('home',true)}return}const id={Space:'pause',KeyA:'auto',KeyF:'speed',KeyV:'camera',KeyM:'sound',KeyI:'items',KeyP:'self-map',KeyG:'album'}[e.code];if(id){e.preventDefault();activate(id)}});
+  canvas.addEventListener('pointermove',e=>{if(cleanView(ui.cameraMode)){canvas.style.cursor='default';return}const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,id=hud.hit(x,y);
+   if(e.pointerType!=='touch'&&!e.buttons&&ui.ready&&!objectPanel.open&&!selfMap.open){
+    const entry=ui.menuId&&hud.menuHit(ui.menuId,x,y);
+    menu(selectable(id,ui)?id:entry?ui.menuId:null,entry?.startsWith('choice:')?entry.slice(7):null);
+   }
+   canvas.style.cursor=(id||ui.menuId||selfMap.hit(x,y)||objectPanel.hit(x,y))?'pointer':'grab'});
+  canvas.addEventListener('pointerleave',()=>menu());
+  canvas.addEventListener('keydown',e=>{
+   if(ui.menuId){
+    const choices=toolbarChoices[ui.menuId],current=ui.menuHover||selectedChoice(ui.menuId,ui),i=choices.findIndex(([id])=>id===current),cols=ui.menuId==='camera'?2:1;
+    const d={ArrowUp:-cols,ArrowDown:cols,ArrowLeft:-1,ArrowRight:1}[e.code];
+    if(d){menu(ui.menuId,choices[Math.max(0,Math.min(choices.length-1,i+d))][0]);e.preventDefault();return}
+    if(e.code==='Enter'){choose(ui.menuId,current);e.preventDefault();return}
+    if(e.code==='Escape'||(e.code==='KeyV'&&ui.menuId==='camera')){menu();e.preventDefault();return}
+   }
+   if(cleanView(ui.cameraMode)){if(['Escape','KeyV','KeyG'].includes(e.code)){e.preventDefault();view('home',true)}return}const id={Space:'pause',KeyA:'auto',KeyF:'speed',KeyV:'camera',KeyM:'sound',KeyI:'items',KeyP:'self-map',KeyG:'album'}[e.code];if(id){e.preventDefault();activate(id,true)}});
   consumeControls(null,state);let received=state;
   // Poll state only while viewed; no rendering service or model call is needed.
   async function syncRoom(){
@@ -251,7 +311,7 @@ async function init(){try{
       const shapeChanged=navigationKey(next.objects,next.room)!==navKey;
       const nextNav=shapeChanged?createNavigation(next.objects,catalog.furniture,{assets:catalog.assets,room:next.room}):nav;
       if(!nextNav.nodes.length)throw Error('家具太满了，留一块走路的地方吧');
-      await room.update(next.objects,catalog.assets,next.room);invalidateBody();lighting.update(next.objects,catalog.assets,next.room);if(disposed)return;
+      await room.update(next.objects,catalog.assets,next.room);if(outdoorState)room.setOutdoors(outdoorState);invalidateBody();lighting.update(next.objects,catalog.assets,next.room);if(disposed)return;
       if(shapeChanged){const old=walker.state;let position={x:old.x,z:old.z,yaw:old.yaw};
       if(!nextNav.free(position))position={...nextNav.nodes.reduce((a,b)=>Math.hypot(a.x-old.x,a.z-old.z)<Math.hypot(b.x-old.x,b.z-old.z)?a:b),yaw:old.yaw};
       nav=nextNav;walker=createWalker(nav,position);walker.setBrisk(ui.brisk);walker.setAutonomous(ui.auto);lastSteps=0;marker.visible=false;}
@@ -270,8 +330,9 @@ async function init(){try{
    }catch(e){perf?.add('sync_errors');ui.error='布置暂时没能更新，请稍后重试';console.warn(e)}
    if(!disposed)syncTimer=setTimeout(syncRoom,1200);
   }
-  syncTimer=setTimeout(syncRoom,1200);
+  async function syncOutdoors(){try{if(isRunner||!document.hidden){const res=await fetch('/api/outdoors');if(res.ok&&!disposed){const value=await res.json();if(!disposed&&(value.weather!==outdoorState?.weather||value.daylight!==outdoorState?.daylight)){outdoorState=value;room.setOutdoors(value);lighting.setOutdoors(value);renderDemand.invalidate();renderer.shadowMap.needsUpdate=true}}}}catch(e){console.warn('窗外天气暂时无法更新',e)}if(!disposed)outdoorTimer=setTimeout(syncOutdoors,60000)}
+  void syncOutdoors();syncTimer=setTimeout(syncRoom,1200);
   invalidateBody();ui.ready=true;ui.status='点空地走过去，拖动转一转';
  }catch(e){ui.error=e.message;hud?.update(ui);if(isRunner)post('/api/runtime/fault',{message:e.message}).catch(()=>{})}}
-window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(syncTimer);cancelAnimationFrame(raf);if(isRunner)clearTimeout(raf);feed?.close();perf?.dispose();resize?.disconnect();controls?.dispose();audio?.close();hud?.dispose();selfMap?.dispose();objectPanel?.dispose();napQuilt?.dispose();sleepFace?.dispose();readingBook?.dispose();drawingPose?.dispose();floorPlay?.dispose();room?.dispose();lighting?.dispose();scene?.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[]))m.dispose()});renderer?.dispose()},{once:true});
+window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(outdoorTimer);clearTimeout(syncTimer);cancelAnimationFrame(raf);if(isRunner)clearTimeout(raf);feed?.close();perf?.dispose();resize?.disconnect();controls?.dispose();audio?.close();hud?.dispose();selfMap?.dispose();objectPanel?.dispose();napQuilt?.dispose();sleepFace?.dispose();readingBook?.dispose();drawingPose?.dispose();floorPlay?.dispose();room?.dispose();lighting?.dispose();scene?.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[]))m.dispose()});renderer?.dispose()},{once:true});
 init();

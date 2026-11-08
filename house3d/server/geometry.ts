@@ -1,3 +1,5 @@
+import {validHangingQuilt} from '../shared/airing.mjs';
+import {mountedInRoom,blocksDoor} from '../shared/apartment.mjs';
 import {fitsFootprint,balconyGeometry,balconyLocal} from '../shared/space.mjs';
 import {
   type Item,
@@ -270,15 +272,12 @@ export function validateLayout(
       "Furniture extends outside room: " + obj.id,
     );
     if (def.placement === "wall") {
-      const angle = Math.atan2(Math.sin(obj.yaw), Math.cos(obj.yaw));
-      requireValue(
-        (Math.abs(angle) < 0.001 &&
-          Math.abs(obj.z - (-limits.furniture_z + d / 2)) < 0.025) ||
-          (Math.abs(angle - Math.PI / 2) < 0.001 &&
-            Math.abs(obj.x - (-limits.furniture_x + w / 2)) < 0.025),
+      requireValue(mountedInRoom(state.room,obj,w,d),
         "Wall fixture must face into the room on the back or left wall",
       );
     }
+    requireValue(validHangingQuilt(state.room,state.objects,obj),'Bring the quilt in before moving the rack indoors or removing its bed');
+    if(!obj.on&&obj.kind!=="rug")requireValue(!blocksDoor(state.room,obj,w,d),"Furniture blocks a room doorway: "+obj.id);
     if (obj.kind === "rug") continue;
     const occupied=occupiedSections(obj,ctx,y,w,d);
     for (const [other,sections] of solids) {

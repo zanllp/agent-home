@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {apartment} from '../shared/apartment.mjs';
 import {roomDimensions,wallSides} from './room-size.js';
 import {wallCells} from './room-lighting.js';
 import {createWallContact,wallContacts} from './wall-contact.js';
@@ -9,6 +10,7 @@ import WALLPAPERS from '../wallpapers.json' with {type:'json'};
 export const WALL_SIDES=wallSides();
 export function exteriorWall(side,position){return (position[side.axis]-(side.axis==='x'?side.x:side.z))*side.sign>.03}
 function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().loadAsync(url),room={}}={}){
+ const passage=apartment(room)?.doors.find(d=>d.a==='living');
  const sides=wallSides(room),ceiling=roomDimensions(room).height;
  const joinMeshes=new Map(),joinPaint=new T.MeshStandardMaterial({color:'#d1c6b6',roughness:.94});
  const classicDetails=[],accents=[],groups=new Map(),wallMeshes=new Map(),shadowMeshes=new Map(),paperLayers=new Map(),applied=new Map(),baseTextures=new Map(),tiles=new Map(),geometries=[];
@@ -16,7 +18,7 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
  const noiseData=new Uint8Array(64*64*4);let seed=31;for(let i=0;i<noiseData.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const v=120+(seed>>>28);noiseData.set([v,v,v,255],i)}const plaster=new T.DataTexture(noiseData,64,64);plaster.wrapS=plaster.wrapT=T.RepeatWrapping;plaster.repeat.set(5,3);plaster.needsUpdate=true;paint.bumpMap=panel.bumpMap=plaster;paint.bumpScale=panel.bumpScale=.003;
  const socket=new T.MeshStandardMaterial({color:'#e8e7de',roughness:.55}),socketInset=new T.MeshStandardMaterial({color:'#777f79',roughness:.8});
  const shadowMaterial=new T.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:T.DoubleSide});let disposed=false,openings=[],style='classic',geometryKey='';
- function box(group,size,pos,material){const geometry=new RoundedBoxGeometry(...size,2,Math.min(.01,Math.min(...size)/4));geometries.push(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(...pos);mesh.receiveShadow=true;group.add(mesh);return mesh}
+ function box(group,size,pos,material){const geometry=Math.min(...size)<.025?new T.BoxGeometry(...size):new RoundedBoxGeometry(...size,1,Math.min(.01,Math.min(...size)/4));geometries.push(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(...pos);mesh.receiveShadow=true;group.add(mesh);return mesh}
  // The owner looks through the ceiling; sunlight must not.
  const lid=new T.Mesh(new T.PlaneGeometry(roomDimensions(room).width,roomDimensions(room).depth),shadowMaterial);
  lid.name='ceiling-shadow';lid.rotation.x=-Math.PI/2;lid.position.y=ceiling;lid.castShadow=true;lid.visible=false;parent.add(lid);
@@ -33,6 +35,12 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
   // Shadow casters remain when a cutaway wall is hidden for the owner's camera.
   const caster=new T.Mesh(wallMeshes.get(side.id).geometry,shadowMaterial);caster.position.set(side.x,ceiling/2,side.z);caster.rotation.y=side.yaw;caster.name='wall-shadow-'+side.id;caster.castShadow=true;parent.add(caster);shadowMeshes.set(side.id,caster);
   const paper=new T.Mesh(new T.PlaneGeometry(side.width,1.56),new T.MeshStandardMaterial({roughness:1}));paper.name='wallpaper';paper.position.set(0,1.52,.028);paper.visible=false;paper.receiveShadow=true;g.add(paper);paperLayers.set(side.id,paper);
+  if(passage&&side.id==='front'){
+   const center=-passage.center,half=passage.width/2;
+   for(const [lo,hi] of [[-side.width/2,center-half],[center+half,side.width/2]])box(g,[hi-lo,.11,.08],[(lo+hi)/2,.055,.055],trim);
+   for(const x of [center-half-.025,center+half+.025])box(g,[.05,2.10,.10],[x,1.05,.03],trim);
+   box(g,[passage.width+.10,.06,.10],[center,2.13,.03],trim);continue;
+  }
   box(g,[side.width,.11,.08],[0,.055,.055],trim);classicDetails.push(box(g,[side.width,.045,.07],[0,.72,.052],trim));box(g,[side.width,.065,.12],[0,ceiling-.05,.035],trim);box(g,[side.width,.025,.08],[0,ceiling-.11,.05],panel);
   const n=Math.round(side.width/.75),step=side.width/n;
   for(let i=0;i<n;i++){const x=-side.width/2+(i+.5)*step;classicDetails.push(box(g,[step-.035,.54,.035],[x,.40,.04],panel));for(const dx of [-step/2+.025,step/2-.025])classicDetails.push(box(g,[.018,.54,.025],[x+dx,.40,.065],trim))}
@@ -97,7 +105,7 @@ function createRoomWallShell(parent,{loadTexture=url=>new T.TextureLoader().load
   openings=objects.flatMap(o=>{
    const asset=assets[o.asset_id],hole=asset?.wall_opening;if(!hole)return [];
    const side=Math.abs(o.yaw)<.001?'back':'left';return [{side,x:side==='back'?o.x:-o.z,width:hole.width,height:o.id===room.balcony?.door_id?2.22:hole.height,bottom:o.id===room.balcony?.door_id?0:(asset.elevation||0)+(hole.bottom||0)}];
-  });lid.visible=openings.length>0;rebuild();updateAccents();updateContacts(objects,assets);mounted=[objects,assets];setPlates(objects,assets);
+  });if(passage)openings.push({side:'front',x:-passage.center,width:passage.width,height:2.10,bottom:0});lid.visible=openings.length>0;rebuild();updateAccents();updateContacts(objects,assets);mounted=[objects,assets];setPlates(objects,assets);
  }
  async function setPaper(side,id){
   const height=style==='urban'?ceiling-.16:ceiling-.84,key=id+':'+style;if(applied.get(side.id)===key)return;

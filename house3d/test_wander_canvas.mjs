@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as T from 'three';
-import {hudLayout,createCanvasHud} from './web/wander-hud.js';
+import {hudLayout,createCanvasHud,menuLayout,menuHit,toolbarChoices,selectable,selectedChoice} from './web/wander-hud.js';
 import {createSecondaryMotion} from './web/wander-motion.js';
 
 test('HUD can receive the first frame before ResizeObserver supplies a size',()=>{
@@ -17,6 +17,25 @@ test('canvas HUD targets remain inside desktop and narrow viewports',()=>{
   const boxes=hudLayout(width,height);assert.equal(boxes.length,5);
   for(const r of boxes){assert.ok(r.x>=0&&r.x+r.w<=width);assert.ok(r.y>=0&&r.y+r.h<=height);assert.ok(r.w>=54&&r.h>=44)}
  }
+});
+
+test('each toolbar list touches its trigger and every visible option has a matching hit target',()=>{
+ for(const [w,h] of [[320,568],[250,210],[1512,800]])for(const button of hudLayout(w,h)){
+  const r=menuLayout(w,h,button.id);
+  assert.equal(r.y+r.h,button.y);assert.ok(r.x>=0&&r.x+r.w<=w&&r.y>=0);
+  for(const [i,[value]] of toolbarChoices[button.id].entries()){
+   const x=r.x+(6+(i%r.cols+.5)*106)*r.w/r.tw,y=r.y+(6+(Math.floor(i/r.cols)+.5)*34)*r.h/r.th;
+   assert.equal(menuHit(r,x,y),'choice:'+value);
+  }
+  assert.equal(menuHit(r,r.x-1,r.y),null);
+ }
+});
+
+test('context actions stay direct while normal controls expose their current selection',()=>{
+ const s={auto:false,paused:true,brisk:true,cameraMode:'side',sound:false};
+ assert.deepEqual(Object.keys(toolbarChoices).map(id=>selectedChoice(id,s)),['rest','paused','brisk','side','off']);
+ assert.ok(selectable('auto',s));assert.ok(!selectable('auto',{...s,objectPose:'sleep'}));
+ assert.ok(!selectable('auto',{...s,objectPhase:'approaching'}));assert.ok(!selectable('items',s));
 });
 
 test('wander entry contains no DOM sidebar or buttons and has one visible renderer',()=>{

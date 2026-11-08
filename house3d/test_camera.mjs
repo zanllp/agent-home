@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PerspectiveCamera,Vector3} from 'three';
 import {balconyGeometry} from './shared/space.mjs';
-import {CAMERA_PRESETS,cameraPose,cameraZoom,homePose,homeFov,drawingViewPose} from './web/camera-presets.js';
+import {CAMERA_PRESETS,cameraPose,cameraZoom,homePose,homeFov,companionPose,companionObstruction,drawingViewPose} from './web/camera-presets.js';
 test('every listed camera has a finite pose',()=>{for(const [id] of CAMERA_PRESETS){const p=cameraPose(id,{x:1,z:-1,yaw:0});assert.equal(p.position.length,3);assert.ok([...p.position,...p.target].every(Number.isFinite));assert.notDeepEqual(p.position,p.target)}});
 test('front camera aligns with positive local Z',()=>{const p=cameraPose('front',{x:1,z:2,yaw:0});assert.equal(p.position[0],1);assert.equal(p.position[2],5.1);assert.deepEqual(p.target,[1,.72,2])});
 test('front view follows character turning',()=>{const p=cameraPose('front',{x:1,z:2,yaw:Math.PI/2});assert.ok(Math.abs(p.position[0]-4.1)<1e-8);assert.ok(Math.abs(p.position[2]-2)<1e-8)});
@@ -54,4 +54,16 @@ test('floor play reframes the hands and spread even when the default front angle
    assert.ok(Math.abs(q.x)<1&&Math.abs(q.y)<1,'head, toys and booklet stay in the shot');
   }
  }
+});
+
+test('companion keeps a full-length adult-eye shot and changes shoulder for opaque obstacles',()=>{
+ const child={x:0,y:0,z:0},first=companionPose(child,[]);
+ const obstacle={x:first.position[0]*.5,z:first.position[2]*.5,yaw:.35,base:0,height:2,size:[.9,.7]};
+ assert.equal(companionObstruction(child,first.position,[obstacle]),7);
+ const clear=companionPose(child,[obstacle],first);
+ assert.equal(clear.loss,0);assert.equal(clear.position[1],1.6);
+ const next=companionPose({...child,yaw:Math.PI},[obstacle],clear);
+ assert.deepEqual(next,clear);
+ const radius=Math.hypot(clear.position[0],clear.position[2]),pitch=Math.atan2(1.6-.65,radius);
+ for(const y of [0,1.3])assert.ok(Math.abs(Math.atan2(1.6-y,radius)-pitch)<26*Math.PI/180);
 });

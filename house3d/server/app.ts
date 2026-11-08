@@ -1,3 +1,4 @@
+import {apartment} from '../shared/apartment.mjs';
 import {interactionList} from './interactions.js';
 import {crayonPng} from './crayon.mjs';
 import {balconyGeometry,balconyDoor,spaceBounds} from '../shared/space.mjs';
@@ -109,6 +110,7 @@ export class HouseApp {
         wallpapers: ctx.wallpapers,
         room: {
           ...(current.room?.balcony?{balcony:{...current.room.balcony,bounds:{min_x:balconyGeometry(current.room)!.minX,max_x:balconyGeometry(current.room)!.maxX,min_z:balconyGeometry(current.room)!.minZ,max_z:balconyGeometry(current.room)!.maxZ},door:balconyDoor(current.room,current.objects),coordinate_basis:'Shared world X/Z in metres; door opening connects interior and balcony'}}:{}),
+          ...(current.room?.floorplan?{floorplan:current.room.floorplan,...apartment(current.room),world_bounds:spaceBounds(current.room),bounds_note:"size and symmetric bounds describe the living room; zones and doors are world metres"}:{}),
           styles: ["classic", "urban"],
           size: [size.width, size.depth],
           height: size.height,
@@ -125,7 +127,7 @@ export class HouseApp {
           path: "/wander.html",
           activities: ["idle", "walk"],
           sit: true,
-          object_actions: ["sit", "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw",...(ctx.assets["home-rice-bowl-v1"]?["serve_rice"]:[])]:[]), "leave"],
+          object_actions: ["sit", "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw",...(ctx.assets["home-rice-bowl-v1"]?["serve_rice",...(ctx.definitions.connect_rooms?["eat_rice","refill_rice","air_quilt","bring_in_quilt","turn_on","turn_off"]:[])]:[])]:[]), "leave"],
           interaction_requires_target: true,
           adapter: "Local HTTP only; no DSH connection",
         },
@@ -217,6 +219,7 @@ export class HouseApp {
           ],
           get_presets: { method: "GET", path: "/api/presets" },
           apply_preset: ["preset_id", "dry_run"],
+          ...(ctx.definitions.connect_rooms?{connect_rooms:["dry_run"],get_outdoors:{method:"GET",path:"/api/outdoors"}}:{}),
           set_wallpaper: ["wall_id", "wallpaper_id"],
           list_objects: { method: "GET", path: "/api/objects" },
           list_interactions: { method: "GET", path: "/api/interactions" },
@@ -428,6 +431,7 @@ export class HouseApp {
         } else {
           const snapshot = store.snapshot();
           const navigation_start = snapshot?.visible && !snapshot.paused && now-snapshot.received_at<6 && snapshot.body.pose === "stand" ? snapshot.body : null;
+          if(body.tool==='connect_rooms'&&snapshot?.visible&&now-snapshot.received_at<6)requireValue(!snapshot.body.moving&&snapshot.body.pose==='stand','Stand still before connecting rooms');
           next = transition(old, body, ctx, {navigation_start});
           const changesDoor = body.tool === 'update_object' && body.arguments?.id === old.room?.balcony?.door_id && 'open' in (body.arguments?.properties ?? {});
           if((old.room?.balcony||next.room?.balcony)&&(changesDoor||['place_furniture','update_furniture','remove_furniture','apply_layout'].includes(body.tool))){
@@ -436,7 +440,7 @@ export class HouseApp {
               transition(next,{tool:'move_character',arguments:{x:snap.body.x,z:snap.body.z}},ctx,{check_busy:false});
             }
           }
-          if (["apply_preset", "update_room"].includes(body.tool)) {
+          if (["apply_preset", "update_room","connect_rooms"].includes(body.tool)) {
             if (
               body.tool === "update_room" &&
               Object.keys(body.arguments || {}).some((k) => k in LIMITS||k==='balcony')
@@ -458,17 +462,17 @@ export class HouseApp {
                 );
               }
             }
-            if (body.arguments?.dry_run ?? body.tool === "apply_preset")
+            if (body.arguments?.dry_run ?? body.tool !== "update_room")
               return json({ ok: true, applied: false, preview: next });
           }
         }
       } catch (e) {
         const args = body.arguments,
-          defaultPreview = ["update_layout", "apply_preset"].includes(
+          defaultPreview = ["update_layout", "apply_preset","connect_rooms"].includes(
             body.tool,
           ),
           preview =
-            ["update_layout", "apply_preset", "update_room"].includes(
+            ["update_layout", "apply_preset","connect_rooms", "update_room"].includes(
               body.tool,
             ) &&
             (record(args)
@@ -497,7 +501,7 @@ export class HouseApp {
         store.db.prepare("INSERT INTO drawings(revision,png) VALUES(?,?)").run(next.revision,crayonPng(body.arguments.marks,row && Buffer.from(row.png)));
         result.artwork = next.last_drawing;
       }
-      if (["apply_preset", "update_room"].includes(body.tool))
+      if (["apply_preset", "update_room","connect_rooms"].includes(body.tool))
         result.applied = true;
       if (report) Object.assign(result, { applied: true, layout: report });
       store.save(next);

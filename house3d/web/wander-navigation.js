@@ -12,19 +12,20 @@ export function createWalker(nav,start,{random=Math.random}={}){
   if(!state.route.length){state.speed=0;state.runBlend=0;state.mode='rest';state.wait-=dt;if(autonomous&&state.wait<=0)pick();return state}
   let p=state.route[0],dx=p.x-state.x,dz=p.z-state.z,d=Math.hypot(dx,dz);
   if(d<.003){state.route.shift();if(!state.route.length){state.wait=1.8+random()*3.2;destination=null}return state}
-  const angle=Math.atan2(dx,dz),error=shortestAngle(state.yaw,angle),turn=Math.sign(error)*Math.min(Math.abs(error),dt*2.5);state.yaw+=turn;
-  const walking=.12/.62*scale*(brisk?1.4:1),running=.16/(.44*.75)*scale;
+  const angle=Math.atan2(dx,dz),error=shortestAngle(state.yaw,angle),turn=Math.sign(error)*Math.min(Math.abs(error),dt*(brisk?4.5:2.5));state.yaw+=turn;
+  // Speeds are in room metres/second, independent of the imported rig's units.
+  const walking=brisk ? .67 : .12/.62*scale,running=1.65,accel=brisk?2.85:.65;
   const ahead={x:state.x+dx/d*.45,z:state.z+dz/d*.45};
-  const canRun=brisk&&tripLength>=2.2&&travelled>.45&&remaining>.85&&d>.85&&Math.abs(error)<.15&&nav.clearance(state)>.10&&nav.clearance(ahead)>.15;
-  const max=canRun?running:walking,target=Math.abs(error)>.35?0:Math.min(max,Math.sqrt(2*.65*remaining));
-  state.speed+=Math.sign(target-state.speed)*Math.min(Math.abs(target-state.speed),dt*.65);
-  const blend=Math.max(0,Math.min(1,(state.speed-walking)/(running-walking)));
+  const canRun=brisk&&tripLength>=1.6&&travelled>.30&&remaining>.72&&d>.46&&Math.abs(error)<.24&&nav.clearance(state)>.06&&nav.clearance(ahead)>.09;
+  const max=canRun?running:walking,target=Math.abs(error)>.35?0:Math.min(max,Math.sqrt(2*accel*remaining));
+  state.speed+=Math.sign(target-state.speed)*Math.min(Math.abs(target-state.speed),dt*accel);
+  const blend=!brisk?0:Math.max(0,Math.min(1,(state.speed-walking)/(running-walking)));
   state.runBlend+=(blend-state.runBlend)*Math.min(1,dt*8);
   // Move exactly along a validated segment, never step across a shortcut/corner.
   const advance=Math.min(d,state.speed*dt),next={x:state.x+dx/d*advance,z:state.z+dz/d*advance};
   if(!nav.line(state,next)){state.route=[];state.wait=1;state.speed=0;return state}
   state.x=next.x;state.z=next.z;state.mode=state.speed>.002?'walk':'turn';
-  travelled+=advance;state.phase+=advance/((.12/.62*(1-state.runBlend)+.16/.44*state.runBlend)*scale);const half=Math.floor(state.phase*2);if(half>lastHalf)state.steps+=half-lastHalf;lastHalf=half;
+  travelled+=advance;state.phase+=advance/((brisk ? .41 : .12/.62*scale)*(1-state.runBlend)+.87*state.runBlend);const half=Math.floor(state.phase*2);if(half>lastHalf)state.steps+=half-lastHalf;lastHalf=half;
   return state;
  }
  return {state,update,go,get destination(){return destination},setAutonomous(v){autonomous=v;if(!v)state.wait=Infinity;else if(!Number.isFinite(state.wait))state.wait=1},setBrisk(v){brisk=v},stop(){state.route=[];state.speed=0;state.wait=2;destination=null}};

@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-sqlite --test tests/*.test.mjs house3d/test_*.mjs",
     "check:release": "node tools/check-release.mjs",
-    "package": "node tools/package.mjs"
+    "package": "node tools/package.mjs",
+    "test:perf": "node --experimental-strip-types tools/perf-baseline.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

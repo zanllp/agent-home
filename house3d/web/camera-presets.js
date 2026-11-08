@@ -1,7 +1,8 @@
+import {apartment} from '../shared/apartment.mjs';
 import {balconyGeometry} from '../shared/space.mjs';
 export const CAMERA_PRESETS = [
   ['home', '房间全景'], ['album','全屋留影'], ['broadcast','家庭直播'], ['front', '人物正面'], ['face', '脸部特写'],
-  ['portrait', '斜侧近景'], ['side', '人物侧面'], ['back', '人物背面'], ['top', '房间俯视'],
+  ['companion','家长跟拍'], ['portrait', '斜侧近景'], ['side', '人物侧面'], ['back', '人物背面'], ['top', '房间俯视'],
 ];
 const CHARACTER_VIEWS = {
   front: { offset: [0, .85, 3.1], targetY: .72 },
@@ -11,6 +12,7 @@ const CHARACTER_VIEWS = {
   back: { offset: [0, .85, -2.8], targetY: .72 },
 };
 export function cameraPose(preset, character) {
+  if (preset === 'companion') return companionPose(character,[]);
   if (preset === 'broadcast') return broadcastPose();
   if (preset === 'home') return homePose();
   if (preset === 'album') return albumPose();
@@ -39,6 +41,7 @@ export function homePose(room={},aspect=1.6,viewportHeight=800){
  if(balcony)for(const u of [-balcony.width/2,balcony.width/2]){
   const {x,z}=balcony.point(u,balcony.depth);points.push([x,-.1,z],[x,1.1,z]);
  }
+ addAnnexCorners(points,room,h);
  return fitRoom(points,aspect,homeFov,45,24,.96,.94,1-Math.min(.34,156/viewportHeight));
 }
 // Long lens with no HUD reservation: keep the two inhabited walls and the front
@@ -47,7 +50,11 @@ export const albumFov=8;
 export function albumPose(room={},aspect=1.6){
  const w=(room.width||6)/2,d=(room.depth||5)/2,h=room.height||2.4;
  const points=[[-w,-.14,-d],[-w,-.14,d],[w,-.14,-d],[w,-.14,d],[-w,h,-d],[-w,h,d],[w,h,-d]];
+ addAnnexCorners(points,room,h);
  return fitRoom(points,aspect,albumFov,47,20,.974,.984,.98);
+}
+function addAnnexCorners(points,room,h){
+ for(const z of apartment(room)?.zones.slice(1)||[])for(const x of [z.minX,z.maxX])for(const depth of [z.minZ,z.maxZ])points.push([x,-.14,depth],[x,h,depth]);
 }
 function fitRoom(points,aspect,fov,azimuth,elevation,side,top,bottom){
  const az=azimuth*Math.PI/180,pitch=elevation*Math.PI/180,sa=Math.sin(az),ca=Math.cos(az),sp=Math.sin(pitch),cp=Math.cos(pitch);
@@ -114,4 +121,27 @@ export function broadcastPose(room={},aspect=1.6){
  const dx=-w*(aspect<1?.63:.55),dz=-d*.66,length=Math.hypot(dx,dz);
  const pitch=19*Math.PI/180;
  return {position,target:[position[0]+dx/length*3,position[1]-Math.tan(pitch)*3,position[2]+dz/length*3]};
+}
+
+// Keep a world-space shoulder rather than orbiting every time the child turns.
+// Try the last shoulder first. A doorway or a tall chair can force a new one.
+export function companionPose(p,boxes,previous,zone){
+ const floor=p.y||0,target=[p.x,floor+.65,p.z];
+ const angle=previous?.angle??.92;
+ let best,score=Infinity;
+ for(const radius of [2.15,1.7,1.38])for(const step of [0,1,-1,2,-2,3,-3,4,-4,5,-5,6]){
+  const a=angle+step*Math.PI/6,position=[p.x+radius*Math.sin(a),1.6,p.z+radius*Math.cos(a)];
+  const outside=zone&&(position[0]<zone.minX+.16||position[0]>zone.maxX-.16||position[2]<zone.minZ+.16||position[2]>zone.maxZ-.16);
+  const loss=companionObstruction(p,position,boxes)+(outside ? .5 : 0);
+  if(loss<score){best={position,target,angle:a,loss};score=loss;if(!loss)return best}
+ }
+ return best;
+}
+export function companionObstruction(p,eye,boxes){
+ let loss=0;
+ for(const [height,weight] of [[1.12,4],[.7,2],[.10,1]]){
+  const end=[p.x,(p.y||0)+height,p.z];
+  if(boxes.some(b=>crossesFurniture(eye,end,b)))loss+=weight;
+ }
+ return loss;
 }

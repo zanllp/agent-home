@@ -1,3 +1,5 @@
+import {validHangingQuilt} from '../shared/airing.mjs';
+import {mountedInRoom,blocksDoor} from '../shared/apartment.mjs';
 import {fitsFootprint,createSpace,spaceBounds,balconyGeometry,balconyDoor} from '../shared/space.mjs';
 import {
   type State,
@@ -66,15 +68,7 @@ export function geometryIssues(objects: Item[], ctx: Context, room?: Data) {
         suggestion: "向室内移动，或从目录选择更小的款式。",
       });
     if (def.placement === "wall") {
-      const a = Math.atan2(Math.sin(obj.yaw), Math.cos(obj.yaw));
-      if (
-        !(
-          (Math.abs(a) < 0.001 &&
-            Math.abs(obj.z - (-boundsRoom.furniture_z + d / 2)) < 0.025) ||
-          (Math.abs(a - Math.PI / 2) < 0.001 &&
-            Math.abs(obj.x - (-boundsRoom.furniture_x + w / 2)) < 0.025)
-        )
-      )
+      if(!mountedInRoom(room,obj,w,d))
         issues.push({
           code: "wall_mount",
           ids: [obj.id],
@@ -83,6 +77,8 @@ export function geometryIssues(objects: Item[], ctx: Context, room?: Data) {
             "按 get_catalog.room 当前内边界贴墙；后墙 yaw=0，左墙 yaw=π/2。",
         });
     }
+    if(!validHangingQuilt(room,objects,obj))issues.push({code:'quilt_outside',ids:[obj.id],message:'晾架上的被子需要先收回。',suggestion:'对晾架调用 bring_in_quilt，再移动晾架或移除这张床。'});
+    if(!obj.on&&obj.kind!=="rug"&&blocksDoor(room,obj,w,d))issues.push({code:'door_blocked',ids:[obj.id],message:'家具占用了房门通道。',suggestion:'门两侧留出通行空间。'});
     if (obj.kind === "rug") continue;
     const occupied=occupiedSections(obj,ctx,y,w,d);
     for (const [other,sections] of boxes) {
@@ -115,7 +111,7 @@ export function navigationReport(
         c: Math.cos(obj.yaw),
         s: Math.sin(obj.yaw),
       }));
-  const space=room?.balcony?createSpace(room,objects):null,extent=spaceBounds(room);
+  const space=room?.balcony||room?.floorplan?createSpace(room,objects):null,extent=spaceBounds(room);
   function free(p: Data, radius = 0.57, ignore?: string) {
     if (
       space?!space.free(p,radius):(Math.abs(p.x) > b.furniture_x - 0.1 - radius ||

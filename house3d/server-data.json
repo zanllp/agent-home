@@ -141,12 +141,47 @@
     "draw_crayon": [
       "Draw one finished static crayon PNG now. Choose the strokes yourself in back-to-front order. Coordinates 0–100, origin top left. Optionally display on an open workbook or picture book; otherwise the first such book is used if present. Returns artwork.url; no viewer or animation required.",
       {
-        "title": {"type":"string","minLength":1,"maxLength":32},
-        "target_id": {"type":"string","description":"Optional object id of an open workbook or picture book (e.g. workbook)."},
-        "base_url": {"type":"string","description":"Optional artwork.url of the current page. Add marks to it and return a NEW static PNG; omit for a fresh page."},
-        "marks": {"type":"array","minItems":1,"maxItems":32,"description":"Each mark is [op,color,...numbers]. line: 2–10 xy pairs; oval: cx,cy,rx,ry inside page; wash: left,top,right,bottom. Simple motifs sun, flower, house: centerX,centerY,halfWidth,halfHeight (inside page). Colors: ink,mint,green,blue,ochre,coral. Example: [[\"oval\",\"ochre\",75,20,8,8],[\"line\",\"green\",0,80,50,65,100,80]].","items":{"type":"array","minItems":6,"maxItems":22,"items":{"anyOf":[{"type":"string"},{"type":"number","minimum":0,"maximum":100}]}}}
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "target_id": {
+          "type": "string",
+          "description": "Optional object id of an open workbook or picture book (e.g. workbook)."
+        },
+        "base_url": {
+          "type": "string",
+          "description": "Optional artwork.url of the current page. Add marks to it and return a NEW static PNG; omit for a fresh page."
+        },
+        "marks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "description": "Each mark is [op,color,...numbers]. line: 2–10 xy pairs; oval: cx,cy,rx,ry inside page; wash: left,top,right,bottom. Simple motifs sun, flower, house: centerX,centerY,halfWidth,halfHeight (inside page). Colors: ink,mint,green,blue,ochre,coral. Example: [[\"oval\",\"ochre\",75,20,8,8],[\"line\",\"green\",0,80,50,65,100,80]].",
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 22,
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              ]
+            }
+          }
+        }
       },
-      ["title","marks"]
+      [
+        "title",
+        "marks"
+      ]
     ],
     "update_layout": [
       "Batch add/update/remove selected catalog assets. dry_run defaults true: read-only report of all bounds/overlap errors and approximate interaction reachability warnings. false applies the whole batch once, only if can_apply; preserves room/character. Re-preview after revision or body changes.",
@@ -525,8 +560,14 @@
     "list_interactions": [
       "List executable object actions with unavailable reasons, current route checks and ready-to-call command.tool/arguments. Call interact once for walk_then_pose; do not send waypoint moves first. state_update actions change properties only, without walking/manipulation animation. Routes are rechecked at execution. Requires a visible unpaused viewer for body actions.",
       {
-        "category": {"type":"string","description":"Optional object category"},
-        "capability": {"type":"string","description":"Optional action id such as draw or sleep"}
+        "category": {
+          "type": "string",
+          "description": "Optional object category"
+        },
+        "capability": {
+          "type": "string",
+          "description": "Optional action id such as draw or sleep"
+        }
       },
       []
     ],
@@ -569,7 +610,11 @@
             "draw",
             "tidy",
             "unpack",
-            "serve_rice"
+            "serve_rice",
+            "eat_rice",
+            "refill_rice",
+            "air_quilt",
+            "bring_in_quilt"
           ]
         }
       },
@@ -656,7 +701,7 @@
       ]
     ],
     "set_camera": [
-      "Choose room, album (clean whole-home composition), broadcast (fixed family live shot), frontal full body, face closeup, three-quarter, side, back or overhead view.",
+      "Choose room, album (clean whole-home composition), broadcast (fixed family live shot), obstacle-aware adult companion, frontal full body, face closeup, three-quarter, side, back or overhead view.",
       {
         "preset": {
           "type": "string",
@@ -665,6 +710,7 @@
             "home",
             "album",
             "broadcast",
+            "companion",
             "portrait",
             "front",
             "face",
@@ -906,7 +952,7 @@
         "objects": {
           "type": "array",
           "description": "Complete desired furniture layout",
-          "maxItems": 80,
+          "maxItems": 128,
           "items": {
             "type": "object",
             "properties": {
@@ -1026,6 +1072,16 @@
             "spectator",
             "character"
           ]
+        }
+      },
+      []
+    ],
+    "get_outdoors": ["Read Beijing Chaoyang daylight, local weather and data freshness.", {}, []],
+    "connect_rooms": [
+      "Join the saved family-home or childroom to the rest of the apartment, preserving existing items. Preview by default.",
+      {
+        "dry_run": {
+          "type": "boolean"
         }
       },
       []

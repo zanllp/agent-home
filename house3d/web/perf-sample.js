@@ -68,6 +68,10 @@ export function perfSampler(renderer, post) {
     times.sort((a, b) => a - b);
     post({
       window_ms: now - at,
+      buffer_width: gl.drawingBufferWidth,
+      buffer_height: gl.drawingBufferHeight,
+      active_ticks: 0,
+      ticks: 0,
       frames: 0,
       calls: 0,
       triangles: 0,

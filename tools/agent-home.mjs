@@ -18,6 +18,7 @@ import { resolve } from "node:path";
 
 const BASE = new URL(process.env.AGENT_HOME_URL || "http://127.0.0.1:19130");
 const READS = {
+  outdoors: "/api/outdoors",
   schemas: "/api/tool-schemas",
   state: "/api/state",
   observe: "/api/observe",
@@ -30,6 +31,7 @@ const READS = {
 };
 // 模型可能按 schema 里的工具名来调只读工具，这里做个别名
 const READ_ALIAS = {
+  get_outdoors: "outdoors",
   get_state: "state",
   observe_home: "observe",
   get_catalog: "catalog",

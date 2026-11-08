@@ -19,9 +19,9 @@ test('ten simulated minutes of wandering stay free and include rest and turns',(
  assert.ok(travel>50);assert.ok(rest>100);assert.ok(turn>100);assert.ok(w.state.steps>200);
 });
 test('gait phase is distance driven and speed changes do not teleport',()=>{
- const w=createWalker(nav,{x:0,z:.5},{random});w.setAutonomous(false);assert.ok(w.go({x:0,z:1.5}));let travel=0,p={...w.state};
- for(let i=0;i<160;i++){w.setBrisk(i>40);const s=w.update(1/30,1.3),delta=Math.hypot(s.x-p.x,s.z-p.z);assert.ok(delta<.015);travel+=delta;p={...s}}
- assert.ok(Math.abs(w.state.phase-travel/(.12/.62*1.3))<1e-8);w.stop();p={...w.state};for(let i=0;i<90;i++)w.update(1/30,1.3);assert.equal(w.state.x,p.x);assert.equal(w.state.z,p.z);
+ const w=createWalker(nav,{x:0,z:.5},{random});w.setAutonomous(false);assert.ok(w.go({x:0,z:1.5}));let expectedPhase=0,p={...w.state};
+ for(let i=0;i<160;i++){w.setBrisk(i>40);const s=w.update(1/30,1.3),delta=Math.hypot(s.x-p.x,s.z-p.z);assert.ok(delta<=(i>40?.67:.12/.62*1.3)/30+1e-8);expectedPhase+=delta/(i>40?.41:.12/.62*1.3);p={...s}}
+ assert.ok(Math.abs(w.state.phase-expectedPhase)<1e-8);w.stop();p={...w.state};for(let i=0;i<90;i++)w.update(1/30,1.3);assert.equal(w.state.x,p.x);assert.equal(w.state.z,p.z);
 });
 test('viewer sends only explicit object commands, bounded progress and requested PNGs',()=>{
  const s=readFileSync(new URL('./web/wander.js',import.meta.url),'utf8');const direct=[...s.matchAll(/(?:fetch|ownerFetch)\((['`])([^'`]+)\1,\{method:'POST'/g)].map(m=>m[2]);
@@ -34,7 +34,7 @@ test('viewer sends only explicit object commands, bounded progress and requested
 test('long clear trip walks, runs, then returns to walking before arrival',()=>{
  const room=createNavigation([],{}),w=createWalker(room,{x:-1.7,z:0,yaw:Math.PI/2});w.setAutonomous(false);w.setBrisk(true);assert.ok(w.go({x:1.7,z:0}));
  let ran=false,walkedAfter=false,walkedFirst=false;
- for(let i=0;i<900;i++){const s=w.update(1/30,1.3);assert.ok(room.free(s));if(s.x< -1.3&&s.speed>.05&&s.runBlend<.1)walkedFirst=true;if(s.runBlend>.7)ran=true;if(ran&&s.x>1.1&&s.runBlend<.15&&s.speed>.05)walkedAfter=true}
+ for(let i=0;i<900;i++){const s=w.update(1/30,1.3);assert.ok(room.free(s));if(s.x< -1.3&&s.speed>.05&&s.runBlend<.1)walkedFirst=true;if(s.runBlend>.7&&s.speed>1.45)ran=true;if(ran&&s.x>1.1&&s.runBlend<.15&&s.speed>.05)walkedAfter=true}
  assert.ok(walkedFirst);assert.ok(ran);assert.ok(walkedAfter);assert.ok(Math.abs(w.state.x-1.7)<.004);
 });
 test('short trips and slow setting never start running',()=>{
@@ -43,5 +43,5 @@ test('short trips and slow setting never start running',()=>{
 
 test('fast autonomous trips stay outside furniture and slow down near it',()=>{
  const w=createWalker(nav,{x:0,z:.5},{random});w.setBrisk(true);
- for(let i=0;i<18000;i++){const s=w.update(1/30,1.3);assert.ok(nav.free(s));assert.ok(s.speed<.65);assert.ok(s.runBlend>=0&&s.runBlend<=1)}
+ for(let i=0;i<18000;i++){const s=w.update(1/30,1.3);assert.ok(nav.free(s));assert.ok(s.speed<=1.65);assert.ok(s.runBlend>=0&&s.runBlend<=1)}
 });

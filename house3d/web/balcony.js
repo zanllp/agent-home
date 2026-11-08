@@ -1,3 +1,4 @@
+import {createOutdoorScene} from './outdoor-scene.js';
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -33,11 +34,11 @@ export function createBalcony(room,view,door,openingWidth=2.42){
  if(view){
   const geometry=view.geometry.clone();geometry.computeBoundingBox();const size=geometry.boundingBox.getSize(new T.Vector3()),center=geometry.boundingBox.getCenter(new T.Vector3());geometry.translate(-center.x,-center.y,-center.z);geometry.scale((b.width+4)*2/size.x,8/size.y,1);
   const mat=new T.MeshBasicMaterial({map:view.material.map,toneMapped:false,side:T.DoubleSide,stencilWrite:true,stencilRef:200,stencilFunc:T.EqualStencilFunc,stencilFail:T.KeepStencilOp,stencilZFail:T.KeepStencilOp,stencilZPass:T.KeepStencilOp});
-  const city=new T.Mesh(geometry,mat);city.name='Distant-city-only';city.position.set(0,1.8,-b.depth-2);city.renderOrder=12;root.add(city);
+  const city=new T.Mesh(geometry,mat);city.name='Distant-city-only';city.position.set(0,1.8,-b.depth-2);city.renderOrder=12;root.add(city);root.userData.outdoors=createOutdoorScene(city,tiles);
   const mask=new T.Mesh(new T.PlaneGeometry(b.width,2.4),new T.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:T.DoubleSide,stencilWrite:true,stencilRef:200,stencilFunc:T.AlwaysStencilFunc,stencilFail:T.KeepStencilOp,stencilZFail:T.KeepStencilOp,stencilZPass:T.ReplaceStencilOp}));mask.name='Balcony-city-aperture';mask.position.set(0,1.2,-b.depth-.01);mask.renderOrder=10;root.add(mask);
   const inner=mask.clone();inner.geometry=new T.PlaneGeometry(openingWidth,2.17);inner.name='Balcony-door-aperture';const q=door?balconyLocal(room,door):{u:0,v:-.14};inner.position.set(q.u,1.11,-q.v-.035);root.add(inner);
   root.userData.updateView=position=>{const q=balconyLocal(room,position),outside=q.v>0;city.visible=q.v<b.depth-.03;mask.visible=outside;inner.visible=!outside;for(const mesh of root.children){const edge=mesh.userData.cutawayEdge;if(edge)mesh.visible=!(edge==='left'&&q.u< -b.width/2+.03||edge==='right'&&q.u>b.width/2-.03||edge==='outer'&&q.v>b.depth-.03)}};
  }
  return root;
 }
-export function disposeBalcony(root){if(!root)return;const geometries=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of [].concat(o.material||[]))materials.add(m)});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose())}
+export function disposeBalcony(root){if(!root)return;root.userData.outdoors?.dispose();const geometries=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of [].concat(o.material||[]))materials.add(m)});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose())}

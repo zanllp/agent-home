@@ -67,6 +67,7 @@ test("missing explicit Chromium executable fails clearly without a download", ()
     env: {
       ...process.env,
       HOUSE_RUNNER: "1",
+      HOUSE_WEATHER: "off",
       HOUSE_CHROME: "/no-such-browser/agent-home-chrome",
     },
     encoding: "utf8",
@@ -89,6 +90,7 @@ test(
         env: {
           ...process.env,
           HOUSE_RUNNER: "1",
+          HOUSE_WEATHER: "off",
           HOUSE_PORT: String(port),
           HOUSE_DB: join(dir, "s.sqlite"),
         },

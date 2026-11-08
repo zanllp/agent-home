@@ -1,3 +1,4 @@
+import {apartment,zoneAt} from '../shared/apartment.mjs';
 import {rugBelow} from '../shared/rug.mjs';
 import {regionAt,balconyGeometry,wallBlocksSight} from '../shared/space.mjs';
 import {
@@ -169,11 +170,12 @@ export function observe(
         ]
       : [];
   const balcony=balconyGeometry(state.room);
-  const walls = (balcony&&regionAt(state.room,body)==='balcony'?[{id:'balcony-railing',label:'阳台护栏',axis:balcony.wall==='left'?'x':'z',position:balcony.wall==='left'?balcony.minX:balcony.minZ}]:wallsFor(state.room))
+  const zone=zoneAt(apartment(state.room),body);
+  const walls = (balcony&&regionAt(state.room,body)==='balcony'?[{id:'balcony-railing',label:'阳台护栏',axis:balcony.wall==='left'?'x':'z',position:balcony.wall==='left'?balcony.minX:balcony.minZ}]:zone?wallsFor(zone).map(w=>({...w,position:w.position+zone[w.axis]})):wallsFor(state.room))
     .map((w) => ({
       id: w.id,
       label: w.label,
-      wallpaper_id: state.room?.wallpapers?.[w.id] ?? "plain",
+      wallpaper_id:(zone?.id==="child"?state.room?.child_finish?.wallpapers:!zone||zone.id==="living"?state.room?.wallpapers:null)?.[w.id]??"plain",
       distance_m: round(Math.abs(body[w.axis] - w.position), 2),
     }))
     .sort((a, b) => a.distance_m - b.distance_m);
@@ -187,7 +189,7 @@ export function observe(
           ? "正在走动。"
           : pose === "transition"
             ? "正在调整姿势。"
-            : state.room?.balcony&&regionAt(state.room,body)==='balcony'?"站在阳台上。":"站在房间里。";
+            : state.room?.balcony&&regionAt(state.room,body)==='balcony'?"站在阳台上。":zone?"站在"+zone.label+"里。":"站在房间里。";
   if (snapshot!.paused) status = "动作已暂停。" + status;
   if (visible.length)
     status +=

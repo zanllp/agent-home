@@ -1,3 +1,4 @@
+import {createAnnexRooms} from './annex-rooms.js';
 import {createOakFloor} from './oak-floor.js';
 import {createArmThrow} from './arm-throw.js';
 import {playRugTexture} from './rug-finish.js';
@@ -9,7 +10,7 @@ import {finishClockFace} from './clock-face.js';
 import {finishEntryDoor,finishEntryLanding} from './entry-finish.js';
 import {finishWallAC} from './wall-ac.js';
 import {finishWorkstation} from './workstation-finish.js';
-import {finishLinenRail} from './drying-rack.js';
+import {finishLinenRail,hangingQuilt} from './drying-rack.js';
 import {finishMapleSeating,finishCabinetWood,finishBookSpines,finishStorageBin,finishMediaGrille} from './library-finish.js';
 import {packFloorToys} from './floor-toys.js';
 import {finishMapleTable} from './maple-finish.js';
@@ -37,6 +38,7 @@ export function createPreviewRoom(scene,{renderer,batchStatic=true,onChange=()=>
  const contacts=renderer?createContactShadows(renderer,scene):null;let lightPreset='day';
  RectAreaLightUniformsLib.init();const windowFill=new T.RectAreaLight('#edf4ff',1.2,2.4,2.1);windowFill.visible=false;const bounce=new T.RectAreaLight('#ffdbac',.65,2,2);bounce.visible=false;scene.add(windowFill,bounce);
  const cache=new Map(),loader=new GLTFLoader();const screenPlayers=new Set(),visibleScreens=createScreenVisibility();let screenMeshes=[];let balconyRoot=null,roomSpec={};
+ const offScreen=new T.MeshStandardMaterial({color:'#141819',roughness:.29,metalness:.12});
  const printImages=new Map();let clocks=[],clockMinute=-1;
  const loadPrint=url=>{if(!printImages.has(url))printImages.set(url,new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>{printImages.delete(url);reject(Error('无法读取绘本印刷图'))};image.src=url}));return printImages.get(url)};
 
@@ -65,6 +67,8 @@ export function createPreviewRoom(scene,{renderer,batchStatic=true,onChange=()=>
  function buildItem(item,parent,model,asset,baseY=asset?.elevation||0,stencilRef=1,drawingImage,exhibit){const g=new T.Group(),c=item.color;g.userData.id=item.id;g.userData.rugPlay=!!asset?.assembly_guide;g.userData.isRug=item.kind==='rug';if(asset?.placement==='wall')g.userData.wall=Math.abs(item.yaw)<.001?'back':'left';g.position.set(item.x,baseY,item.z);g.rotation.y=item.yaw;
  if(item.id===roomSpec.balcony?.door_id)g.position.y=0;
  if(model){const instance=model.clone(true);
+ if(item.kind==='drying_rack'&&item.properties?.quilt_from){const quilt=hangingQuilt(asset.height);instance.add(quilt);g.userData.disposeQuilt=()=>{quilt.geometry.dispose();quilt.material.dispose()}}
+ if(item.kind==='tv'&&item.properties?.on===false){const face=instance.getObjectByName('Detailed-screen-television');if(face)face.material=offScreen}
  if(item.asset_id==='home-rice-cooker-v1'||item.asset_id==='home-rice-bowl-v1'){
   const grains=instance.getObjectByName('Steamed-rice');
   if(grains){if(item.asset_id==='home-rice-bowl-v1')grains.visible=item.properties?.filled===true;
@@ -84,7 +88,7 @@ export function createPreviewRoom(scene,{renderer,batchStatic=true,onChange=()=>
  if(item.kind==='plant'){cylinder(g,.16,.3,[0,.15,0],'#c99a7c');for(let n=0;n<7;n++){const o=new T.Mesh(new T.SphereGeometry(.16,12,8),material(c));o.scale.set(.48,1.7,.7);o.position.set(Math.sin(n*2)*.13,.4+(n%3)*.13,Math.cos(n*2)*.12);o.rotation.z=Math.sin(n)*.5;g.add(o)}}
  parent.add(g);return g}
 
- const plinth=box(scene,[6,.12,5],[0,-.08,0],'#b99573');let sizeKey='';
+ const plinth=box(scene,[6,.12,5],[0,-.08,0],'#b99573');let sizeKey='',annexKey='',annex=null;
  const floorMap=new T.TextureLoader().load('/models/materials/honey-oak-floor-v1.png',onChange);floorMap.colorSpace=T.SRGBColorSpace;floorMap.wrapS=floorMap.wrapT=T.RepeatWrapping;floorMap.repeat.set(2,2.5);floorMap.anisotropy=8;
  const floor=createOakFloor(floorMap);scene.add(floor.mesh);
 
@@ -102,8 +106,11 @@ export function createPreviewRoom(scene,{renderer,batchStatic=true,onChange=()=>
    loaded.set(o.id,await assetModel(asset));
    if(/^\/api\/drawings\/\d+\.png$/.test(o.artwork?.url))art.set(o.id,await loadPrint(o.artwork.url));
   }));
-  enclosure.setOpenings(objects,assets);
-  const window=objects.find(o=>assets[o.asset_id]?.wall_opening);
+  const shellKey=JSON.stringify([key,objects.filter(o=>assets[o.asset_id]?.wall_opening).map(o=>[o.asset_id,o.x,o.z,o.yaw])]);
+  if(shellKey!==annexKey){annexKey=shellKey;annex?.dispose();annex=createAnnexRooms(walls,room,objects,assets,floorMap,onChange)}
+  const mainObjects=annex?objects.filter(o=>annex.zone(o)?.id==='living'):objects;
+  enclosure.setOpenings(mainObjects,assets);
+  const window=mainObjects.find(o=>assets[o.asset_id]?.wall_opening);
   windowFill.visible=bounce.visible=!!window;
   if(window){
    const a=assets[window.asset_id],hole=a.wall_opening,s=Math.sin(window.yaw),c=Math.cos(window.yaw);
@@ -122,7 +129,7 @@ export function createPreviewRoom(scene,{renderer,batchStatic=true,onChange=()=>
   for(const old of fixtures.children){old.userData.disposeArtwork?.();old.traverse(o=>{if(o.userData.runtimeDetail)disposeWindowDetail(o)})}fixtures.clear();while(nextFixtures.children.length)fixtures.add(nextFixtures.children[0]);
   legacyWindow.userData.enabled=!objects.some(o=>o.kind==='window'&&assets[o.asset_id]?.placement==='wall');
   for(const old of [...furniture.children]){
-   old.userData.disposeArtwork?.();old.userData.disposeShade?.();
+   old.userData.disposeArtwork?.();old.userData.disposeShade?.();old.userData.disposeQuilt?.();
    old.traverse(o=>{if(old.userData.procedural)o.geometry?.dispose();if(old.userData.procedural||o.isSprite)for(const m of [].concat(o.material||[]))m.dispose()});
    furniture.remove(old);
   }
@@ -134,5 +141,5 @@ export function createPreviewRoom(scene,{renderer,batchStatic=true,onChange=()=>
   for(const [key,promise] of cache)if(!keep.has(key)){cache.delete(key);promise.then(disposeModel,()=>{})}
 
  }
- return {furniture,walls,update,tickScreens(dt,camera){const visible=camera?visibleScreens(screenMeshes,camera):null;let changed=false;for(const tick of screenPlayers)changed=tick(dt,!visible||visible.has(tick.texture))||changed;if(clocks.length){const minute=Math.floor(Date.now()/60000);if(clockMinute!==minute){changed=true;if(renderer)renderer.shadowMap.needsUpdate=true;clockMinute=minute;const now=new Date(minute*60000),m=now.getMinutes();for(const [hour,hand] of clocks){hour.rotation.z=-(now.getHours()%12+m/60)*Math.PI/6;hand.rotation.z=-m*Math.PI/30}}}return changed},setLighting(preset){lightPreset=preset;const p=LIGHTING[preset]||LIGHTING.day;windowFill.intensity=p.window;bounce.intensity=p.bounce;bounce.color.set(preset==='night'?'#ccd5dd':'#ffdbac');windowFill.color.set(preset==='evening'?'#ffe1bd':'#e1edff');contacts?.setLighting(preset)},setFinish(value){floor.update({...roomSpec,...value});return enclosure.setFinish(value)},updateView(position,options){balconyRoot?.userData.updateView?.(position);const hidden=enclosure.updateView(position,options);for(const fixture of fixtures.children)fixture.visible=!hidden.has(fixture.userData.wall);legacyWindow.visible=legacyWindow.userData.enabled&&!hidden.has('back')},dispose(){for(const old of furniture.children){old.userData.disposeArtwork?.();old.userData.disposeShade?.()}contacts?.dispose();disposeBalcony(balconyRoot);if(balconyRoot)scene.remove(balconyRoot);for(const old of fixtures.children)old.userData.disposeArtwork?.();fixtures.traverse(o=>{if(o.userData.runtimeDetail)disposeWindowDetail(o)});scene.remove(windowFill,bounce);enclosure.dispose();for(const promise of cache.values())promise.then(disposeModel,()=>{});cache.clear();floor.dispose();glowTexture.dispose()}};
+ return {furniture,walls,update,setOutdoors(outdoors){balconyRoot?.userData.outdoors?.set(outdoors)},tickScreens(dt,camera){const visible=camera?visibleScreens(screenMeshes,camera):null;let changed=!!balconyRoot?.userData.outdoors?.tick(dt);for(const tick of screenPlayers)changed=tick(dt,!visible||visible.has(tick.texture))||changed;if(clocks.length){const minute=Math.floor(Date.now()/60000);if(clockMinute!==minute){changed=true;if(renderer)renderer.shadowMap.needsUpdate=true;clockMinute=minute;const now=new Date(minute*60000),m=now.getMinutes();for(const [hour,hand] of clocks){hour.rotation.z=-(now.getHours()%12+m/60)*Math.PI/6;hand.rotation.z=-m*Math.PI/30}}}return changed},setLighting(preset){lightPreset=preset;const p=LIGHTING[preset]||LIGHTING.day;windowFill.intensity=p.window;bounce.intensity=p.bounce;bounce.color.set(preset==='night'?'#ccd5dd':'#ffdbac');windowFill.color.set(preset==='evening'?'#ffe1bd':'#e1edff');contacts?.setLighting(preset)},setFinish(value){floor.update({...roomSpec,...value});return enclosure.setFinish(value)},updateView(position,options){balconyRoot?.userData.updateView?.(position);const hidden=enclosure.updateView(position,options);annex?.updateView(position,options);for(const fixture of fixtures.children){const zone=annex?.zone(fixture.position);fixture.visible=zone&&zone.id!=='living'?annex.fixtureVisible(position,zone,fixture.userData.wall,options):!hidden.has(fixture.userData.wall)}legacyWindow.visible=legacyWindow.userData.enabled&&!hidden.has('back')},dispose(){for(const old of furniture.children){old.userData.disposeArtwork?.();old.userData.disposeShade?.();old.userData.disposeQuilt?.()}contacts?.dispose();annex?.dispose();disposeBalcony(balconyRoot);if(balconyRoot)scene.remove(balconyRoot);for(const old of fixtures.children)old.userData.disposeArtwork?.();fixtures.traverse(o=>{if(o.userData.runtimeDetail)disposeWindowDetail(o)});scene.remove(windowFill,bounce);enclosure.dispose();for(const promise of cache.values())promise.then(disposeModel,()=>{});cache.clear();offScreen.dispose();floor.dispose();glowTexture.dispose()}};
 }

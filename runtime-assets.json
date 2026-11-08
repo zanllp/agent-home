@@ -529,6 +529,31 @@
       "bytes": 81248,
       "sha256": "fc16abb7d62ddedba8c57733e106f3b5908995db0fe4ce5ce55c170c9c1f1b98",
       "source": "Original local geometry: tools/maple-chair.mjs"
+    },
+    "house3d/assets/furniture/apartment-bed-v1.glb": {
+      "bytes": 18524,
+      "sha256": "21d6863bcde395bb776ea17542084e998b0d7c06b940d65c15415dc34ce6d2d9",
+      "source": "Original local geometry: tools/export-annex-furniture.mjs"
+    },
+    "house3d/assets/furniture/apartment-basin-v1.glb": {
+      "bytes": 31936,
+      "sha256": "3eb0e04b443319c604a900be19e3418d239dbc15060978b951f712d37017be09",
+      "source": "Original local geometry: tools/export-annex-furniture.mjs"
+    },
+    "house3d/assets/furniture/apartment-shower-v1.glb": {
+      "bytes": 20072,
+      "sha256": "6bf49725939e036faf5e5016b1f1d8791da5fbe6ac101b4b3042ea8d12029f6b",
+      "source": "Original local geometry: tools/export-annex-furniture.mjs"
+    },
+    "house3d/assets/furniture/apartment-toilet-v1.glb": {
+      "bytes": 24644,
+      "sha256": "2db791d66946bd6d91c5634b786130a4a967231b4196066ae855c0ae917577b6",
+      "source": "Original local geometry: tools/export-annex-furniture.mjs"
+    },
+    "house3d/assets/furniture/apartment-step-v1.glb": {
+      "bytes": 12488,
+      "sha256": "f606f7dd10fd13fd1ff61852ea5f9fb42e884dafb9340acbca0636cbe394a59c",
+      "source": "Original local geometry: tools/export-annex-furniture.mjs"
     }
   }
 }
