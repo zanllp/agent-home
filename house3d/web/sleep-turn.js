@@ -2,6 +2,7 @@
 export function sleepTurnClock(random=Math.random){
  let job=null,last=null,elapsed=0,hold=0,from=0,value=0;
  return {sample(now,interaction,paused){
+  if(interaction?.frame?.sofa)return value=0;
   if(interaction?.pose==='sleep'&&interaction.phase==='leaving')return value;
   if(interaction?.pose!=='sleep'||interaction.phase!=='active'){
    job=null;last=null;return value=0;

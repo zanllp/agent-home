@@ -97,10 +97,10 @@ export function observe(
       ...body,
       y:
         body.y +
-        (eyesClosed ? 0.22 : pose === "play" ? 0.57 : ["sit", "read","draw"].includes(pose) ? 0.78 : 0.9),
+        (["sleep","lie"].includes(pose) ? 0.22 : pose === "play" ? 0.57 : ["sit", "read","draw"].includes(pose) ? 0.78 : 0.9),
     },
     visible: Data[] = [];
-  for (const obj of objectList(state, ctx).objects) {
+  for (const obj of objectList(state, ctx,undefined,undefined,now).objects) {
     const def = definition(obj, ctx) || {},
       dx = obj.x - body.x,
       dz = obj.z - body.z,
@@ -126,6 +126,7 @@ export function observe(
       direction,
       actions: obj.actions,
       support: obj.support,
+      ...(obj.care?{care:obj.care}:{}),
     };
     const point = {
       x: obj.x,
@@ -163,8 +164,8 @@ export function observe(
       ? [
           {
             object_id: seat.id,
-            kind: pose === "sleep" ? "lying_support" : "seated_support",
-            description: pose === "sleep" ? "身体躺在床面上" : pose === "play" ? "盘腿坐在"+playSurface+"上" : "坐在座面上",
+            kind: ["sleep","lie"].includes(pose) ? "lying_support" : "seated_support",
+            description: ["sleep","lie"].includes(pose) ? (support?.kind==="sofa" ? "身体躺在沙发上" : "身体躺在床面上") : pose === "play" ? "盘腿坐在"+playSurface+"上" : "坐在座面上",
             basis: "confirmed active contact pose",
           },
         ]
@@ -180,8 +181,8 @@ export function observe(
     }))
     .sort((a, b) => a.distance_m - b.distance_m);
   let status = eyesClosed
-    ? "闭着眼睛，躺在床上。"
-    : pose === "draw" ? "坐在椅子上，低头用蜡笔画画。" : pose === "play" ? ("坐在"+playSurface+"上，"+(support?.properties?.packed ? "玩具已经收好了。" : "摆弄拼装机器人。")) : pose === "read"
+    ? (support?.kind==="sofa" ? (support.properties?.covered ? "盖着毯子，在沙发上眯一会儿。" : "闭着眼睛，在沙发上眯一会儿。") : "闭着眼睛，躺在床上。")
+    : pose === "water" ? "拿着小水壶，慢慢给土浇水。" : pose === "lie" ? "侧躺在沙发上，眼睛睁着。" : pose === "draw" ? "坐在椅子上，低头用蜡笔画画。" : pose === "play" ? ("坐在"+playSurface+"上，"+(support?.properties?.packed ? "玩具已经收好了。" : "摆弄拼装机器人。")) : pose === "read"
       ? "坐好，正在看书。"
       : pose === "sit"
         ? "坐在座位上。"
@@ -213,8 +214,8 @@ export function observe(
       .sort((a, b) => a.distance_m - b.distance_m),
     touch,
     hands: {
-      holding: pose==="draw" && active ? "crayon" : pose === "read" && active ? "storybook" : pose === "play" && active && !support?.properties?.packed ? "toy_robot" : null,
-      basis: pose==="draw" && active ? "active drawing prop" : pose === "read" && active ? "active reading prop" : pose === "play" && active && !support?.properties?.packed ? "active toy prop" : "no held prop",
+      holding: job.pose==="water"&&job.carrying ? "watering_can" : pose==="draw" && active ? "crayon" : pose === "read" && active ? "storybook" : pose === "play" && active && !support?.properties?.packed ? "toy_robot" : null,
+      basis: job.pose==="water"&&job.carrying ? "carrying the placed watering can" : pose==="draw" && active ? "active drawing prop" : pose === "read" && active ? "active reading prop" : pose === "play" && active && !support?.properties?.packed ? "active toy prop" : "no held prop",
     },
     walls,
     light: state.light,

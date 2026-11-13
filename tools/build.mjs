@@ -13,6 +13,7 @@ await bundle({
   format: "esm",
   bundle: true,
   sourcemap: false,
+  minify: true,
 });
 await bundle({
   entryPoints: [resolve(root, "house3d/server/cli.ts")],
@@ -22,6 +23,7 @@ await bundle({
   format: "esm",
   bundle: true,
   sourcemap: false,
+  minify: true,
 });
 await bundle({
   entryPoints: [resolve(root, "house3d/server/app.ts")],
@@ -31,6 +33,7 @@ await bundle({
   format: "esm",
   bundle: true,
   sourcemap: false,
+  minify: true,
 });
 process.chdir(resolve(root, "house3d"));
 await viteBuild({

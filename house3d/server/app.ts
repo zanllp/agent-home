@@ -61,7 +61,7 @@ export class HouseApp {
     readonly now = () => Date.now() / 1000,
     readonly uuid = () => randomUUID().replaceAll("-", ""),
   ) {
-    this.store = new Store(dbPath, ctx.defaultState);
+    this.store = new Store(dbPath, ctx.defaultState, this.now, !!ctx.assets["home-watering-can-v1"]);
   }
   handle(input: Input): Reply {
     const { method, headers } = input,
@@ -127,7 +127,7 @@ export class HouseApp {
           path: "/wander.html",
           activities: ["idle", "walk"],
           sit: true,
-          object_actions: ["sit", "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw",...(ctx.assets["home-rice-bowl-v1"]?["serve_rice",...(ctx.definitions.connect_rooms?["eat_rice","refill_rice","air_quilt","bring_in_quilt","turn_on","turn_off"]:[])]:[])]:[]), "leave"],
+          object_actions: ["sit", ...(ctx.assets["home-watering-can-v1"]?["water"]:[]), ...(Object.values(ctx.assets).some(a=>a.interactions?.lie)?["lie"]:[]), "sleep", "read", ...(Object.values(ctx.assets).some(a=>a.interactions?.play)?["play","tidy","unpack","draw",...(ctx.assets["home-rice-bowl-v1"]?["serve_rice",...(ctx.definitions.connect_rooms?["eat_rice","cook_rice","air_quilt","bring_in_quilt","turn_on","turn_off"]:[])]:[])]:[]), "leave"],
           interaction_requires_target: true,
           adapter: "Local HTTP only; no DSH connection",
         },
@@ -163,6 +163,7 @@ export class HouseApp {
           ctx,
           url.searchParams.get("category"),
           url.searchParams.get("capability"),
+          now,
         ),
       );
     if (get && path === "/api/observe") {
@@ -410,7 +411,7 @@ export class HouseApp {
             old,
             body.arguments === undefined ? {} : body.arguments,
             ctx,
-            (s, c, o) => transition(s, c, ctx, o),
+            (s, c, o) => transition(s, c, ctx, {...o,now}),
             store.snapshot(),
             now,
           );
@@ -432,7 +433,7 @@ export class HouseApp {
           const snapshot = store.snapshot();
           const navigation_start = snapshot?.visible && !snapshot.paused && now-snapshot.received_at<6 && snapshot.body.pose === "stand" ? snapshot.body : null;
           if(body.tool==='connect_rooms'&&snapshot?.visible&&now-snapshot.received_at<6)requireValue(!snapshot.body.moving&&snapshot.body.pose==='stand','Stand still before connecting rooms');
-          next = transition(old, body, ctx, {navigation_start});
+          next = transition(old, body, ctx, {navigation_start,now});
           const changesDoor = body.tool === 'update_object' && body.arguments?.id === old.room?.balcony?.door_id && 'open' in (body.arguments?.properties ?? {});
           if((old.room?.balcony||next.room?.balcony)&&(changesDoor||['place_furniture','update_furniture','remove_furniture','apply_layout'].includes(body.tool))){
             const snap=store.snapshot();if(snap?.visible&&now-snap.received_at<6){
@@ -520,6 +521,7 @@ export class HouseApp {
         "error",
         "viewer_session",
         "position",
+        "carrying",
       ])
     )
       return json({ error: "Invalid progress" }, 400);
@@ -540,26 +542,29 @@ export class HouseApp {
         requested:
           job.action === "leave"
             ? ["leaving", "completed", "failed"]
-            : ["approaching", "failed"],
+            : job.from_pose ? ["entering", "failed"] : ["approaching", "failed"],
         approaching:
           job.pose === "walk"
             ? ["completed", "failed"]
             : ["entering", "failed"],
         entering: ["active", "failed"],
-        active: [],
+        active: job.pose==="water"?["leaving"]:[],
         leaving: ["completed", "failed"],
       };
       if (
         phase === old &&
-        (body.approach_index ?? job.approach_index) === job.approach_index
+        (body.approach_index ?? job.approach_index) === job.approach_index && body.carrying===undefined
       )
         return json({ ok: true, interaction: job });
-      if (!allowed[old].includes(phase))
+      if (!(phase===old&&job.pose==="water"&&typeof body.carrying==="boolean") && !allowed[old].includes(phase))
         return json({ error: "Invalid phase transition" }, 400);
       let config: Data | undefined,
         obj: State["objects"][number] | undefined,
         index: number | null = null;
-      if (job.pose !== "walk") {
+      if(job.pose==="water"){
+        index=0;
+        if(body.approach_index!==0)return json({error:"Invalid watering approach"},400);
+      } else if (job.pose !== "walk") {
         obj = state.objects.find((o) => o.id === job.target_id)!;
         config =
           this.ctx.assets[obj.asset_id!].interactions![
@@ -588,7 +593,20 @@ export class HouseApp {
         approach_index: index,
         error: phase === "failed" ? body.error : null,
       });
-      if (phase === "active") {
+      if(job.pose==="water"&&job.action!=="leave"){
+        const position=phase==="approaching"&&body.carrying===true ? job.water.pickup
+          : ["entering","active","leaving"].includes(phase) ? job.water.target : null;
+        if(position)Object.assign(state.character,{...position,activity:"idle"});
+      }
+      if(body.carrying!==undefined){
+        if(job.pose!=="water"||typeof body.carrying!=="boolean")return json({error:"Invalid carrying feedback"},400);
+        job.carrying=body.carrying;
+      }
+      if(job.pose==="water"&&phase==="active"&&job.watered_at===undefined){
+        const plant=state.objects.find(o=>o.id===job.target_id)!;
+        plant.properties={...plant.properties,last_watered_at:now};job.watered_at=now;
+      }
+      if (phase === "active" && job.pose!=="water") {
         const p = worldPoint(obj!, config!.root);
         Object.assign(state.character, {
           x: p.x,
@@ -616,10 +634,11 @@ export class HouseApp {
       }
       if (phase === "completed" && job.action === "walk_to")
         Object.assign(state.character, { ...job.target, activity: "idle" });
+      if(phase==="completed"&&job.pose==="water")state.character.activity="idle";
       if ("position" in body) {
         if (
           phase !== "completed" ||
-          job.action !== "leave" ||
+          (job.action !== "leave" && job.pose!=="water") ||
           !record(body.position) ||
           Object.keys(body.position).sort().join(",") !== "x,yaw,z"
         )

@@ -75,7 +75,7 @@ async function request(method, path, body) {
 }
 
 const BUSY = new Set(["requested", "approaching", "entering", "active", "leaving"]);
-const BODY_ACTIONS = new Set(["sit", "sleep", "read", "play", "draw"]);
+const BODY_ACTIONS = new Set(["sit", "lie", "sleep", "read", "play", "draw", "water"]);
 
 export class ActionError extends Error {
   constructor(code, message, details = {}) {
@@ -115,7 +115,7 @@ export async function waitForJob(request, expected, {
     const matchingBody = last.fresh === true && last.body_job_id === expected.id;
     if (job?.id === expected.id && matchingBody) {
       const body = last.body;
-      const arrived = ["walk_to", "leave"].includes(expected.action) && job.phase === "completed" && body?.pose === "stand" && body.moving === false &&
+      const arrived = ["walk_to", "leave", "water"].includes(expected.action) && job.phase === "completed" && body?.pose === "stand" && body.moving === false &&
         (expected.action !== "walk_to" || (expected.target &&
           Math.hypot(body.x - expected.target.x, body.z - expected.target.z) <= .08));
       const holding = job.phase === "active" && BODY_ACTIONS.has(expected.action) &&
@@ -158,7 +158,13 @@ export function createActions(request) {
     return { ok: true, target: result.body.state.interaction.target, target_id: result.body.state.interaction.target_id ?? null, observe: feedback };
   }
   async function doAction(targetId, action) {
-    if (BODY_ACTIONS.has(action)) await clearJob();
+    if (BODY_ACTIONS.has(action)) {
+      const {body:state}=await request("GET","/api/state"),old=state.interaction;
+      const sameSofa=old?.target_id===targetId && old.phase==="active" &&
+        ["sit","lie","sleep"].includes(old.pose) && ["sit","lie","sleep"].includes(action) &&
+        state.objects.find(o=>o.id===targetId)?.kind==="sofa";
+      if (!sameSofa) await clearJob();
+    }
     const result = await command("interact", { target_id: targetId, action });
     if (!BODY_ACTIONS.has(action) && action !== "leave") return { ...result.body, target_id: targetId, action };
     const feedback = await wait(result, 60000);

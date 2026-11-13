@@ -154,7 +154,7 @@ Agent 自己决定画什么、用什么颜色和线条。一次调用 `draw_cray
 
 ### 电饭锅与小饭碗
 
-家庭预设的餐桌上有一口打开的电饭锅（初始 4 份白饭）和一只空碗，两者是可分别摆放的物件。用 `list_objects {"capability":"serve_rice"}` 找碗，然后 `interact {"target_id":"rice-bowl","action":"serve_rice"}` 盛一碗。锅和碗须在同一件家具的同一台面上；有多口锅时用最近且还有饭的那口。盛好后锅的 `properties.servings` 减 1，碗的 `properties.filled` 为 true。不能往满碗重复盛；这是即时物品变化，不是人物吃饭动画。现有存档不会自动被新预设覆盖。
+家庭预设的餐桌上有一口打开的电饭锅（初始 3 份白饭）和一只空碗，两者是可分别摆放的物件。用 `list_objects {"capability":"serve_rice"}` 找碗，然后 `interact {"target_id":"rice-bowl","action":"serve_rice"}` 盛一碗。锅和碗须在同一件家具的同一台面上；有多口锅时用最近且还有饭的那口。盛好后锅的 `properties.servings` 减 1，碗的 `properties.filled` 为 true。不能往满碗重复盛；这是即时物品变化，不是人物吃饭动画。现有存档不会自动被新预设覆盖。
 
 ### 家庭直播和生活区
 
@@ -208,10 +208,46 @@ node agent.mjs connect_rooms '{"dry_run":false}'
 
 阳台晾架的 `air_quilt` 会把一条闲置的睡被挂上，优先取鲸鱼床的，`properties.quilt_from` 记录它来自哪张床。晾着时不能盖这条被子；`bring_in_quilt` 收回。床上留床单，睡被不会同时出现在床和晾架上。新一轮睡觉时，有被子就默认盖好；躺下后可以用 `uncover` 把它折到床尾，或用 `cover` 重新盖上。不会模拟“晒干了”或自动判断天气。可以先读 `/api/outdoors` 决定要不要晒。画好的最近一张绘本会展示在家庭书桌的画板上。
 
-连通布局里饭锅默认常满；已有单房存档可用 `update_object` 给锅设置 `properties.keep_full: true`。对碗 `eat_rice` 后可再 `serve_rice`；不启用常满时也可对锅 `refill_rice`。这些是即时物品状态，不冒充吃饭动画。电视支持重复调用 `turn_on` 或 `turn_off`，关机后屏幕变暗并停止绘制节目。
+饭锅不再常满。一锅能盛 3 次，碗有饭时仍不能重复盛；对碗 `eat_rice` 后可继续盛。锅空后对锅 `cook_rice`，30 分钟后才能再盛，期间不能重复启动。原来的 `keep_full` 和 `refill_rice` 已取消；旧存档升级会关闭常满、把余量限制到最多 3 份，不重置布局。煮饭和吃饭是物品状态，不冒充淘米或进食动画。电视支持重复调用 `turn_on` 或 `turn_off`，关机后屏幕变暗并停止绘制节目。
 
 想看她在房间之间小跑，用 `set_camera {"preset":"companion"}`（画布上叫「家长跟拍」）。相机以约 1.6 米眼高跟着她，不随她转头旋转；根据墙面和家具包围盒检查头、躯干、脚的视线，受挡时换一个角度，空间太窄则取遮挡最少的位置。跟拍时可以拖动、平移或缩放镜头。松手后保留这个角度 30 秒，再平滑回到所选机位；再次调整会重新计时，直接选择机位则立即切换。这个操作只影响自己的观看窗口。走跑走模式在长而通畅的路段最高约 1.65 米/秒，转弯、靠近家具和抵达前收步；「慢慢走」保持原速。
 
 只有「房间全景」「房间俯视」「全屋留影」会剖开近侧墙壁。家庭直播、人物镜头和角色视角截图均保留实墙及阳台栏杆，能透过真实门窗看到另一间房，但不会为了看到角色而隐藏墙壁；固定直播机位不保证总能看到在隔壁活动的她。
 
 连通小家的饲养员卧室有阅读角；`evening-paperback` 是摊开的书和折起的眼镜，`evening-lamp` 可独立开关。走廊挂架和浴室镜前的牙刷套件也都是独立物品。较早的标准连通存档可以在角色空闲时预演 `node agent.mjs update_layout @docs/examples/connected-evening.json`，通过后再将副本的 `dry_run` 改为 `false` 应用。自定义过户型或摆放时先核对位置和 ID，不需要重新套用预设。
+
+### 沙发休息与办公椅
+
+客厅奶油沙发（含宽座款）和云朵沙发支持 `sit`、`lie`、`sleep`。先用 `list_interactions` 确认可达；动作自行走到前侧再进入姿势。软垫办公椅支持 `sit`，用 `leave` 起身，暂不提供转椅或推椅。
+
+同一张沙发已经处于 active 的坐卧姿势时，可以直接切换，不必先起身：
+
+```sh
+node agent.mjs interact '{"target_id":"sofa","action":"sit"}'
+# 确认 active 和匹配的身体反馈之后再发下一条
+node agent.mjs interact '{"target_id":"sofa","action":"lie"}'
+node agent.mjs interact '{"target_id":"sofa","action":"sleep"}'
+node agent.mjs interact '{"target_id":"sofa","action":"uncover"}'
+node agent.mjs interact '{"target_id":"sofa","action":"leave"}'
+```
+
+`lie` 睁着眼侧躺，默认不盖毯；电视沿用自己的开关和节目，不会因为躺下自动开机。同房间有打开的电视时会小幅偏头（最多约 21 度），角色视角截图同步朝向；不会隔墙找儿童房外的屏幕。`sleep` 闭眼并默认盖毯，也可以在躺着时单独 `cover` / `uncover`。客厅使用扶手搭毯，展开时不再同时显示扶手上那一条；起身后恢复。没有扶手搭毯的沙发配一条折毯。抱枕和抱偶在侧躺时视觉上收拢到空的一端，起身复位，不改存档摆放。均为预设接触与布形，不是物理布料模拟；小沙发保持侧卧，不做床上的大幅翻身。
+
+### 绿植养护与煮饭时间
+
+`list_objects`、`list_interactions` 和角色观察返回 `care`：绿植有 `moisture`、`needs_water`、`water_due_at`；饭锅有 `status`（ready / empty / cooking）、`servings`、`ready_at`、`remaining_seconds`。时间戳是 UTC 秒，使用真实时间；暂停画面、关浏览器和重启服务不会暂停煮饭或土壤变干，也不需要后台轮询计时任务。
+
+这是统一的虚拟养护规则，不是按真实植物品种推断：3 天后提示浇水，7 天降到 0%，不会永久死掉；浇后恢复 100%，半天内不重复浇。旧绿植从升级时开始算，新放的绿植从摆入时开始算；移动不会重置时间，预演也不会开始计时。
+
+连通模板的阳台配有可独立移动的 `watering-can`（薄荷绿小水壶）。已有连通存档可先预演 `update_layout @docs/examples/watering-can.json`，检查通过后把副本的 `dry_run` 改为 false 应用；不要为添水壶重套模板。自定义布局需调整落点。
+
+```sh
+node agent.mjs list_interactions '{"capability":"water"}'
+node tools/agent-home.mjs do balcony-ficus water
+node agent.mjs list_objects '{"capability":"cook_rice"}'
+node agent.mjs interact '{"target_id":"rice-cooker","action":"cook_rice"}'
+```
+
+`water` 是有限的身体任务：取壶 → 走到盆栽旁 → 倾倒浇水 → 把壶放回。倒水完成反馈后才记录浇水，取消取壶不算浇过；最终要等同一 job 的 completed、fresh、stand，不能把受理当完成。高于约 1 米或隔着家具够不到的盆栽会拒绝，请先移到可达处。水壶当前不模拟容量消耗，未做灌水流程。
+
+物品菜单可看湿度、剩余碗数、煮饭剩余时间。到点的米饭在下次查询时结算，不因读状态重复加饭；相关时间保存在原 SQLite 存档里，不随模板之外的文件更新清空。

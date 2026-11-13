@@ -1,10 +1,11 @@
+import {waterPlan} from '../shared/water-plan.mjs';
 import {createNavigation} from '../shared/navigation.mjs';
 import {interactionApproach} from '../shared/interaction-approach.mjs';
 import {routeLength} from '../shared/object-destination.mjs';
 import {objectList} from './objects.js';
 import {type Context,type State,type Data} from './types.js';
 
-const POSES=new Set(['sit','sleep','read','draw','play']);
+const POSES=new Set(['sit','lie','sleep','read','draw','play','water']);
 
 export function interactionList(state:State,ctx:Context,snapshot:Data|null,now:number,category?:string|null,capability?:string|null) {
   const fresh=!!snapshot?.visible && now-snapshot.received_at<6;
@@ -12,7 +13,7 @@ export function interactionList(state:State,ctx:Context,snapshot:Data|null,now:n
   const viewerReason=!fresh?'没有新鲜的身体反馈，请打开小家页面':snapshot?.paused?'小家已暂停，请先恢复':null;
   let nav:ReturnType<typeof createNavigation>|undefined;
   const checked=new Map<string,ReturnType<typeof interactionApproach>>();
-  const objects=objectList(state,ctx,category,capability).objects.flatMap(obj=>{
+  const objects=objectList(state,ctx,category,capability,now).objects.flatMap(obj=>{
     if(!obj.actions.length)return [];
     const actions=obj.actions.filter(a=>!capability||a.id===capability).map(action=>{
       const pose=POSES.has(action.id),bodyAction=pose||action.id==='leave';
@@ -21,8 +22,15 @@ export function interactionList(state:State,ctx:Context,snapshot:Data|null,now:n
       let approach:Data|null=null;
       if(available&&bodyAction&&viewerReason){available=false;reason=viewerReason}
       if(available&&pose) {
-        if(body?.pose!=='stand') {available=false;reason='先起身站稳，再开始新的动作'}
-        else {
+        if(obj.kind==='sofa' && state.interaction?.target_id===obj.id && state.interaction?.phase==='active' && ['sit','lie','sleep'].includes(body?.pose)) {
+          reachability='not_required';
+        } else if(body?.pose!=='stand') {available=false;reason='先起身站稳，再开始新的动作'}
+        else if(action.id==='water'){
+          nav??=createNavigation(state.objects,ctx.catalog,{assets:ctx.assets,room:state.room??{}});
+          const plan:Data=waterPlan(state.objects,ctx.catalog,ctx.assets,state.room??{},body,obj.id,undefined,nav);
+          if(plan.ok){reachability='reachable';approach={...plan.target,distance_m:Math.round(plan.distance*100)/100}}
+          else{available=false;reachability='blocked';reason=plan.reason}
+        } else {
           nav??=createNavigation(state.objects,ctx.catalog,{assets:ctx.assets,room:state.room??{}});
           const kind=['read','draw'].includes(action.id)?'sit':action.id;
           const key=obj.id+':'+kind;
@@ -36,7 +44,7 @@ export function interactionList(state:State,ctx:Context,snapshot:Data|null,now:n
         }
       }
       if(action.id==='leave'&&available)reachability='not_required';
-      return {...action,available,reason,reachability,execution:pose?'walk_then_pose':bodyAction?'leave_pose':'state_update',
+      return {...action,available,reason,reachability,execution:action.id==='water'?'fetch_water_return':pose?'walk_then_pose':bodyAction?'leave_pose':'state_update',
         ...(approach?{approach}:{}),command:{tool:'interact',arguments:{target_id:obj.id,action:action.id}}};
     });
     return [{id:obj.id,label:obj.label,category:obj.category,category_label:obj.category_label,actions}];

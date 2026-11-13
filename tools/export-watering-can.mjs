@@ -1,0 +1,13 @@
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {createWateringCan} from '../house3d/web/watering-can.js';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+globalThis.FileReader=class{readAsArrayBuffer(blob){blob.arrayBuffer().then(v=>{this.result=v;this.onloadend?.()})}};
+const name='house3d/assets/furniture/home-watering-can-v1.glb',bytes=new Uint8Array(await new GLTFExporter().parseAsync(createWateringCan(),{binary:true}));
+writeFileSync(name,bytes);
+const catalog=JSON.parse(readFileSync('house3d/furniture-assets.json')),manifest=JSON.parse(readFileSync('runtime-assets.json'));
+const source='Original local geometry: house3d/web/watering-can.js';
+catalog['home-watering-can-v1']={label:'薄荷绿小水壶',kind:'desktop',model:'/models/furniture/home-watering-can-v1.glb',size:[.39,.18],height:.24,native_materials:true,painted:false,recolorable:false,source_type:'native_geometry',source};
+for(const id of ['whale-plant-v1','urban-floor-ficus-v1','urban-shelf-pothos-v1','urban-desk-plant-v1','family-trailing-pothos-v1'])catalog[id].watering_height=id.includes('floor')?.31:id.includes('whale')?.24:.14;
+manifest.assets[name]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),source};
+writeFileSync('house3d/furniture-assets.json',JSON.stringify(catalog,null,2)+'\n');writeFileSync('runtime-assets.json',JSON.stringify(manifest,null,2)+'\n');

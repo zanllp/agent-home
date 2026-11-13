@@ -1,0 +1,6 @@
+{
+  "operations": [
+    {"op":"add","id":"watering-can","asset_id":"home-watering-can-v1","x":-5.65,"z":-0.5,"yaw":0}
+  ],
+  "dry_run": true
+}

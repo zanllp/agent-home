@@ -158,31 +158,146 @@
     "interactions": {
       "sit": {
         "root": [
-          -0.31,
-          -0.012,
-          0.2
+          -0.3,
+          -0.014499999999999957,
+          0.25
         ],
         "yaw": 0,
         "approaches": [
           [
-            -0.31,
+            -0.3,
             0,
-            1.2
+            1.16
           ],
           [
-            -1.4,
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.25,
+            0,
+            0.85
+          ],
+          [
+            1.25,
+            0,
+            0.85
+          ],
+          [
+            -1.4300000000000002,
             0,
             0.25
           ],
           [
-            1.4,
+            1.4300000000000002,
             0,
             0.25
           ]
         ],
-        "seat_height": 0.34
+        "seat_height": 0.337
+      },
+      "lie": {
+        "root": [
+          -0.46,
+          0.317,
+          0.22
+        ],
+        "yaw": -1.5707963267948966,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.25,
+            0,
+            0.85
+          ],
+          [
+            1.25,
+            0,
+            0.85
+          ],
+          [
+            -1.4300000000000002,
+            0,
+            0.25
+          ],
+          [
+            1.4300000000000002,
+            0,
+            0.25
+          ]
+        ],
+        "surface_height": 0.337
+      },
+      "sleep": {
+        "root": [
+          -0.46,
+          0.317,
+          0.22
+        ],
+        "yaw": -1.5707963267948966,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.25,
+            0,
+            0.85
+          ],
+          [
+            1.25,
+            0,
+            0.85
+          ],
+          [
+            -1.4300000000000002,
+            0,
+            0.25
+          ],
+          [
+            1.4300000000000002,
+            0,
+            0.25
+          ]
+        ],
+        "surface_height": 0.337
       }
-    }
+    },
+    "limitations": [
+      "已标定坐卧接触和可收拢的搭毯；非实时布料模拟，不提供任意家具自动适配。"
+    ]
   },
   "whale-lamp-v1": {
     "label": "鲸梦阅读灯",
@@ -210,7 +325,8 @@
     "height": 0.949999988079071,
     "painted": true,
     "recolorable": false,
-    "source": "Tripo H3.1, original isolated image reference; task 4f10304f-214f-40e9-b42a-6298846d23f9"
+    "source": "Tripo H3.1, original isolated image reference; task 4f10304f-214f-40e9-b42a-6298846d23f9",
+    "watering_height": 0.24
   },
   "whale-window-v1": {
     "label": "鲸梦窗帘小窗",
@@ -355,7 +471,7 @@
     "label": "奶油三人沙发",
     "kind": "sofa",
     "limitations": [
-      "靠垫与沙发为整体静态模型；未标定坐卧接触点"
+      "已标定坐卧接触和可收拢的搭毯；非实时布料模拟，不提供任意家具自动适配。"
     ],
     "style": "cozy-family-painted",
     "model": "/models/furniture/family-sofa-stylized-v2.glb",
@@ -375,13 +491,153 @@
         ],
         "height": 0.442
       }
+    },
+    "interactions": {
+      "sit": {
+        "root": [
+          -0.3,
+          0.08350000000000002,
+          0.25
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.5,
+            0,
+            0.85
+          ],
+          [
+            1.5,
+            0,
+            0.85
+          ],
+          [
+            -1.6800000000000002,
+            0,
+            0.25
+          ],
+          [
+            1.6800000000000002,
+            0,
+            0.25
+          ]
+        ],
+        "seat_height": 0.435
+      },
+      "lie": {
+        "root": [
+          0.46,
+          0.415,
+          0.22
+        ],
+        "yaw": 1.5707963267948966,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.5,
+            0,
+            0.85
+          ],
+          [
+            1.5,
+            0,
+            0.85
+          ],
+          [
+            -1.6800000000000002,
+            0,
+            0.25
+          ],
+          [
+            1.6800000000000002,
+            0,
+            0.25
+          ]
+        ],
+        "surface_height": 0.435
+      },
+      "sleep": {
+        "root": [
+          0.46,
+          0.415,
+          0.22
+        ],
+        "yaw": 1.5707963267948966,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.5,
+            0,
+            0.85
+          ],
+          [
+            1.5,
+            0,
+            0.85
+          ],
+          [
+            -1.6800000000000002,
+            0,
+            0.25
+          ],
+          [
+            1.6800000000000002,
+            0,
+            0.25
+          ]
+        ],
+        "surface_height": 0.435
+      }
     }
   },
   "ergonomic-chair-stylized-v2": {
     "label": "软垫办公椅",
     "kind": "office_chair",
     "limitations": [
-      "椅轮、扶手与椅背不能独立调节；网布为不透明彩绘；未标定坐点"
+      "已标定坐点；椅轮、扶手与椅背仍为静态部件。"
     ],
     "style": "cozy-family-painted",
     "model": "/models/furniture/ergonomic-chair-stylized-v2.glb",
@@ -392,7 +648,60 @@
     "height": 1.149999976158142,
     "painted": true,
     "recolorable": false,
-    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 710661f5-e444-4fba-9b12-562cd1fb46bc"
+    "source": "Tripo H3.1 + quad retopology, approved stylized built-in image_gen reference; task 710661f5-e444-4fba-9b12-562cd1fb46bc",
+    "interactions": {
+      "sit": {
+        "root": [
+          0,
+          0.132,
+          -0.14
+        ],
+        "yaw": 0,
+        "seat_height": 0.4835,
+        "approaches": [
+          [
+            0,
+            0,
+            1.03
+          ],
+          [
+            -1,
+            0,
+            0.18
+          ],
+          [
+            1,
+            0,
+            0.18
+          ],
+          [
+            -0.94,
+            0,
+            -0.3
+          ],
+          [
+            0.94,
+            0,
+            -0.3
+          ],
+          [
+            0,
+            0,
+            -1.04
+          ],
+          [
+            -0.65,
+            0,
+            -0.8
+          ],
+          [
+            0.65,
+            0,
+            -0.8
+          ]
+        ]
+      }
+    }
   },
   "oak-coffee-table-stylized-v2": {
     "label": "浅木双层茶几",
@@ -1120,7 +1429,8 @@
     "source": "Tripo H3.1 + quad retopology, generated original reference; task 3d57ba0a-1da7-4430-87d4-625b0f10d08b",
     "limitations": [
       "静态叶片与花盆，可以布置；没有浇水、生长或拿取动作"
-    ]
+    ],
+    "watering_height": 0.31
   },
   "urban-shelf-pothos-v1": {
     "label": "垂枝绿萝",
@@ -1139,7 +1449,8 @@
       "静态叶片与花盆，可以布置；没有浇水、生长或拿取动作"
     ],
     "placement": "surface",
-    "support_offset": -0.02276933193206787
+    "support_offset": -0.02276933193206787,
+    "watering_height": 0.14
   },
   "urban-floating-shelf-high-v1": {
     "label": "浅木高位置物板",
@@ -1314,7 +1625,8 @@
     "limitations": [
       "静态物件，可独立布置；不代表饮用、拿取或书写能力"
     ],
-    "native_materials": true
+    "native_materials": true,
+    "watering_height": 0.14
   },
   "urban-study-organizer-v1": {
     "label": "分格文具收纳盒",
@@ -2578,7 +2890,8 @@
         0.1989438682794571,
         0.21402666717767715
       ]
-    }
+    },
+    "watering_height": 0.14
   },
   "family-enamel-washer-v1": {
     "label": "暖白珐琅滚筒洗衣机",
@@ -2722,7 +3035,7 @@
     "label": "宽座奶油三人沙发",
     "kind": "sofa",
     "limitations": [
-      "较宽款与原款共用原色贴图，扶手保留原形；可独立摆放抱枕和搭毯，未标定人物坐点。"
+      "已标定坐卧接触和可收拢的搭毯；非实时布料模拟，不提供任意家具自动适配。"
     ],
     "style": "cozy-family-painted",
     "model": "/models/furniture/family-sofa-stylized-v2.glb",
@@ -2743,7 +3056,147 @@
         "height": 0.442
       }
     },
-    "lounge_extension": 0.64
+    "lounge_extension": 0.64,
+    "interactions": {
+      "sit": {
+        "root": [
+          -0.3,
+          0.08350000000000002,
+          0.25
+        ],
+        "yaw": 0,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.82,
+            0,
+            0.85
+          ],
+          [
+            1.82,
+            0,
+            0.85
+          ],
+          [
+            -2,
+            0,
+            0.25
+          ],
+          [
+            2,
+            0,
+            0.25
+          ]
+        ],
+        "seat_height": 0.435
+      },
+      "lie": {
+        "root": [
+          0.46,
+          0.415,
+          0.22
+        ],
+        "yaw": 1.5707963267948966,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.82,
+            0,
+            0.85
+          ],
+          [
+            1.82,
+            0,
+            0.85
+          ],
+          [
+            -2,
+            0,
+            0.25
+          ],
+          [
+            2,
+            0,
+            0.25
+          ]
+        ],
+        "surface_height": 0.435
+      },
+      "sleep": {
+        "root": [
+          0.46,
+          0.415,
+          0.22
+        ],
+        "yaw": 1.5707963267948966,
+        "approaches": [
+          [
+            -0.3,
+            0,
+            1.16
+          ],
+          [
+            -0.75,
+            0,
+            1.16
+          ],
+          [
+            0.55,
+            0,
+            1.16
+          ],
+          [
+            -1.82,
+            0,
+            0.85
+          ],
+          [
+            1.82,
+            0,
+            0.85
+          ],
+          [
+            -2,
+            0,
+            0.25
+          ],
+          [
+            2,
+            0,
+            0.25
+          ]
+        ],
+        "surface_height": 0.435
+      }
+    }
   },
   "family-task-lamp-v1": {
     "label": "暖白双臂阅读灯",
@@ -2919,5 +3372,20 @@
     "painted": false,
     "recolorable": false,
     "source": "Original local geometry: tools/export-evening-props.mjs"
+  },
+  "home-watering-can-v1": {
+    "label": "薄荷绿小水壶",
+    "kind": "desktop",
+    "model": "/models/furniture/home-watering-can-v1.glb",
+    "size": [
+      0.39,
+      0.18
+    ],
+    "height": 0.24,
+    "native_materials": true,
+    "painted": false,
+    "recolorable": false,
+    "source_type": "native_geometry",
+    "source": "Original local geometry: house3d/web/watering-can.js"
   }
 }

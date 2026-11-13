@@ -1177,8 +1177,7 @@
           "yaw": 0
         },
         "properties": {
-          "keep_full": true,
-          "servings": 4
+          "servings": 3
         }
       },
       {
@@ -2292,6 +2291,14 @@
           "z": 0,
           "yaw": 0.01
         }
+      },
+      {
+        "id": "watering-can",
+        "kind": "desktop",
+        "asset_id": "home-watering-can-v1",
+        "x": -5.65,
+        "z": -0.5,
+        "yaw": 0
       }
     ],
     "spawn": {

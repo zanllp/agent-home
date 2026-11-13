@@ -1,3 +1,4 @@
+import {initializeCare,settleCare} from '../shared/home-care.mjs';
 import {spaceBounds,regionAt} from '../shared/space.mjs';
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
@@ -15,7 +16,7 @@ import { dimensions } from "./geometry.js";
 import { observe } from "./observation.js";
 export class Store {
   readonly db: DatabaseSync;
-  constructor(path: string, initial: State) {
+  constructor(path: string, initial: State, readonly clock=()=>Date.now()/1000, readonly care=false) {
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec(
@@ -32,13 +33,16 @@ export class Store {
     this.db
       .prepare("INSERT OR IGNORE INTO state VALUES(1,?)")
       .run(JSON.stringify(initial));
+    if(care)this.transaction(()=>this.save(this.state()));
   }
   state(): State {
-    return JSON.parse(
+    const state=JSON.parse(
       (this.db.prepare("SELECT body FROM state WHERE id=1").get() as Data).body,
     );
+    return this.care?settleCare(state,this.clock()):state;
   }
   save(state: State) {
+    if(this.care)initializeCare(state,this.clock());
     this.db
       .prepare("UPDATE state SET body=? WHERE id=1")
       .run(JSON.stringify(state));
@@ -112,7 +116,7 @@ export class Store {
       );
     if(state.room?.balcony||state.room?.floorplan)requireValue(regionAt(state.room,a)!==null,"Body is outside interior/balcony");
     requireValue(
-      ["stand", "sit", "sleep", "read", "play", "draw", "transition"].includes(a.pose) &&
+      ["stand", "sit", "lie", "sleep", "read", "play", "draw", "water", "transition"].includes(a.pose) &&
         typeof a.moving === "boolean",
       "Invalid body pose",
     );

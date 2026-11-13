@@ -63,3 +63,7 @@
 鲸梦小床的活动被面从原 Tripo 网格分出，与床架共用原来的纹理和 UV；可用 `tools/separate-bed-quilt.py` 从原始 GLB 重新分离。雾蓝双人床直接使用自带的 Channel-quilt。两张床的折被与盖身形状由浏览器根据睡姿混合，不运行布料物理。
 
 家长房的书和折起的眼镜、浴室牙刷和卷尾牙膏是本地建模的两个小组合（`tools/export-evening-props.mjs`），不是 Tripo 生成件；同组的小零件随物件移动。薄被上的小叶纹固定在原布面 UV，翻身和折被时随布面一起变化。
+
+## 小水壶（养护动作）
+
+`home-watering-can-v1.glb` 是本项目原创的薄荷绿圆肚水壶，有奶油色环柄、长壶嘴与喷头，源文件 `house3d/web/watering-can.js`，可用 `tools/export-watering-can.mjs` 导出。摆放模型和提壶动作使用同一设计，提起时隐藏原处，归位再显示，不是两只常驻的壶。本轮没有使用 Tripo 积分。为保持运行包低于 100 MB，仅压缩了预构建服务端 JavaScript；没有缩图、减面或替换既有角色和家具素材。

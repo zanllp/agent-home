@@ -1,3 +1,5 @@
+import {waterPlan} from '../shared/water-plan.mjs';
+import {COOK_SECONDS,RICE_CAPACITY} from '../shared/home-care.mjs';
 import {airingBed} from '../shared/airing.mjs';
 import {CONNECTED_HOME} from '../shared/apartment.mjs';
 import {connectHome} from './connect-home.js';
@@ -29,7 +31,7 @@ export function transition(
   input: State,
   command: Data,
   ctx: Context,
-  { check_geometry = true, check_busy = true, navigation_start = null }: Data = {},
+  { check_geometry = true, check_busy = true, navigation_start = null, now = Date.now()/1000 }: Data = {},
 ): State {
   let state = clone(input);
   const op = command.tool,
@@ -63,7 +65,7 @@ export function transition(
     throw Error(
       "Finish the current object interaction with interact/leave before moving furniture or the character",
     );
-  const mutate = (s: State, c: Data, o: Data = {}) => transition(s, c, ctx, o);
+  const mutate = (s: State, c: Data, o: Data = {}) => transition(s, c, ctx, {...o,now});
   if(op==='connect_rooms'){
     requireValue(typeof (args.dry_run??true)==='boolean'&&args.dry_run!==null,'dry_run must be boolean');
     connectHome(state,ctx,navigation_start);
@@ -196,19 +198,24 @@ export function transition(
     requireValue(obj, "Target object not found");
     const action = args.action;
     requireValue(
-      actionsFor(obj, ctx, state).some((a) => a.id === action && a.available),
+      actionsFor(obj, ctx, state,now).some((a) => a.id === action && a.available),
       "Action unavailable for this object/state",
     );
-    if(action==="serve_rice"){
-      const pot=riceSource(obj,state)!;
-      pot.properties={...pot.properties,servings:pot.properties?.keep_full?4:(pot.properties?.servings??4)-1};
+    if(action==="water"){
+      requireValue(navigation_start,"浇水需要新鲜的站立身体反馈");
+      const plan:Data=waterPlan(state.objects,ctx.catalog,ctx.assets,state.room??{},navigation_start,obj.id);
+      requireValue(plan.ok,plan.reason);
+      state.interaction={id:command.id||"water-"+(state.revision+1),target_id:obj.id,related_id:plan.can_id,action,pose:"water",phase:"requested",water:plan,carrying:false,approach_index:0,error:null};
+    } else if(action==="serve_rice"){
+      const pot=riceSource(obj,state,now)!;
+      pot.properties={...pot.properties,servings:(pot.properties?.servings??RICE_CAPACITY)-1};
       obj.properties={...obj.properties,filled:true};
     } else if(action==="air_quilt"){
       obj.properties={...obj.properties,quilt_from:airingBed(state,obj)!.id};
     } else if(action==="bring_in_quilt"){
       delete obj.properties!.quilt_from;
     } else if(action==="eat_rice"){obj.properties={...obj.properties,filled:false};
-    } else if(action==="refill_rice"){obj.properties={...obj.properties,servings:4};
+    } else if(action==="cook_rice"){obj.properties={...obj.properties,servings:0,cooking_started_at:now,ready_at:now+COOK_SECONDS};
     } else if (action==="tidy" || action==="unpack") {
       obj.properties = {...obj.properties, packed: action==="tidy"};
     } else if (["turn_on", "turn_off"].includes(action)) {
@@ -218,11 +225,14 @@ export function transition(
       obj.properties ??= { covered: true };
       obj.properties.covered = action === "cover";
     } else {
-      if (action === "sleep" && obj.properties?.covered === false &&
+      if (action === "sleep" && (obj.kind === "sofa" || obj.properties?.covered === false) &&
           !state.objects.some(o => o.properties?.quilt_from === obj.id))
         obj.properties = { ...obj.properties, covered: true };
       const old = state.interaction || {};
+      const switching = obj.kind === "sofa" && old.target_id === obj.id && old.phase === "active";
+      if (obj.kind === "sofa" && action === "lie") obj.properties = {...obj.properties, covered: false};
       state.interaction = {
+        ...(action==="leave"&&old.pose==="water"?{water:old.water,carrying:old.carrying,watered_at:old.watered_at}:{}),
         id: command.id || "interaction-" + (state.revision + 1),
         target_id: obj.id,
         action,
@@ -235,7 +245,8 @@ export function transition(
               : null,
         phase: "requested",
         approach_index:
-          action === "leave" ? (old.approach_index ?? null) : null,
+          action === "leave" || switching ? (old.approach_index ?? null) : null,
+        ...(switching && action !== "leave" ? {from_pose: old.pose} : {}),
         from_active:
           action === "leave" && ["active", "entering"].includes(old.phase),
         error: null,
@@ -256,7 +267,7 @@ export function transition(
     if ("properties" in args) {
       const p = args.properties,
         allowed =
-          obj.id===state.room?.balcony?.door_id? ["open"] : obj.kind==="tv"?["on"]:obj.asset_id==="home-rice-cooker-v1"?["keep_full"]:obj.kind === "lamp"
+          obj.id===state.room?.balcony?.door_id? ["open"] : obj.kind==="tv"?["on"]:obj.kind === "lamp"
             ? ["on", "brightness"]
             : ctx.assets[obj.asset_id || ""]?.interactions?.sleep
               ? ["covered"]
@@ -266,7 +277,6 @@ export function transition(
         "Unsupported object properties",
       );
       if('open' in p){requireValue(typeof p.open==='boolean',"open must be boolean");requireValue(!check_busy||!busy(state),"Finish the current action before changing the balcony door")}
-      if ("keep_full" in p)requireValue(typeof p.keep_full==="boolean","keep_full must be boolean");
       if ("covered" in p)
         requireValue(typeof p.covered === "boolean", "covered must be boolean");
       if ("on" in p)
@@ -274,10 +284,10 @@ export function transition(
       if ("brightness" in p) number(p.brightness, 0, 1);
       obj.properties = {
         ...(obj.id===state.room?.balcony?.door_id?{open:obj.properties?.open??true}:obj.properties ??
-          (obj.kind==="tv"?{on:true}:obj.asset_id==="home-rice-cooker-v1"?{servings:4}:obj.kind === "lamp"
+          (obj.kind==="tv"?{on:true}:obj.kind === "lamp"
             ? { on: true, brightness: 0.7 }
             : { covered: true })),
-        ...p,...(p.keep_full===true?{servings:4}:{}),
+        ...p,
       };
     }
     if(obj.id===state.room?.balcony?.door_id&&check_geometry)validateLayout(state,ctx);

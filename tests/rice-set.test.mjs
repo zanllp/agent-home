@@ -13,8 +13,8 @@ test('rice belongs to the nearest nonempty cooker on the same support, and canno
   let s=app.store.state();const bowl=s.objects.find(o=>o.id==='rice-bowl'),on=bowl.on;
   bowl.on={...on,id:'child-desk'};app.store.save(s);assert.equal(serve().status,400);bowl.on=on;
   const pot=s.objects.find(o=>o.id==='rice-cooker');pot.properties={servings:0};app.store.save(s);assert.equal(serve().status,400);
-  pot.properties={servings:4};app.store.save(s);let result=serve();assert.equal(result.status,200);
-  s=result.body.state;assert.equal(s.objects.find(o=>o.id==='rice-cooker').properties.servings,3);
+  pot.properties={servings:3};app.store.save(s);let result=serve();assert.equal(result.status,200);
+  s=result.body.state;assert.equal(s.objects.find(o=>o.id==='rice-cooker').properties.servings,2);
   assert.equal(s.objects.find(o=>o.id==='rice-bowl').properties.filled,true);
   assert.equal(serve().status,400);assert.deepEqual(app.store.state(),s);
  }finally{app.close()}

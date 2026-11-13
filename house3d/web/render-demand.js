@@ -6,7 +6,7 @@ export function createRenderDemand({settleMs=700}={}){
   invalidate(){dirty=true},
   animate(now,{ready,controller,paused,auto,routeLength,phase,pose,weight=0}){
    if(!ready||!controller||paused)return false;
-   const active=auto||routeLength>0||['approaching','entering','leaving'].includes(phase)||(phase==='active'&&['draw','play'].includes(pose))||(phase!=='active'&&weight>.0001);
+   const active=auto||routeLength>0||['approaching','entering','leaving'].includes(phase)||(phase==='active'&&['draw','play','water'].includes(pose))||(phase!=='active'&&weight>.0001);
    if(active)settleUntil=now+settleMs;
    return active||now<settleUntil;
   },

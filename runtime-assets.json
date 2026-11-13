@@ -564,6 +564,11 @@
       "bytes": 9996,
       "sha256": "c714dc2a8e54c43a6346535acb1282ec66e957f1d19274776537858881cf15eb",
       "source": "Original local geometry: tools/export-evening-props.mjs"
+    },
+    "house3d/assets/furniture/home-watering-can-v1.glb": {
+      "bytes": 45312,
+      "sha256": "91e780e9c709cede75fdd983c052b765cd885cdb70893c45cb045b9586fa9739",
+      "source": "Original local geometry: house3d/web/watering-can.js"
     }
   }
 }

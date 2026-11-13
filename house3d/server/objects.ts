@@ -1,3 +1,4 @@
+import {careStatus,RICE_CAPACITY} from '../shared/home-care.mjs';
 import {airingBed} from '../shared/airing.mjs';
 import {drawable} from './crayon.mjs';
 import {regionAt} from '../shared/space.mjs';
@@ -93,31 +94,38 @@ export function drawingBook(chair: Item,state: State) {
   const desk=readingDesk(chair,state);
   return desk && state.objects.find(o=>drawable(o) && o.on?.id===desk.id && o.on.surface==="top");
 }
-export function riceSource(bowl: Item, state: State) {
+export function riceSource(bowl: Item, state: State,now=Date.now()/1000) {
   if(bowl.asset_id!=="home-rice-bowl-v1" || !bowl.on)return undefined;
   return state.objects.filter(o=>o.asset_id==="home-rice-cooker-v1" && o.on?.id===bowl.on!.id &&
-    o.on?.surface===bowl.on!.surface && (o.properties?.servings ?? 4)>0)
+    o.on?.surface===bowl.on!.surface && careStatus(o,now)!.status==="ready")
     .sort((a,b)=>Math.hypot(a.x-bowl.x,a.z-bowl.z)-Math.hypot(b.x-bowl.x,b.z-bowl.z))[0];
 }
-export function actionsFor(obj: Item, ctx: Context, state: State) {
+export function actionsFor(obj: Item, ctx: Context, state: State,now=Date.now()/1000) {
   const def = ctx.assets[obj.asset_id || ""] || {},
     result: Data[] = [],
     job = state.interaction || {};
+  const switching = obj.kind === "sofa" && job.target_id === obj.id && job.phase === "active" && ["sit","lie","sleep"].includes(job.pose);
   for (const name of Object.keys(def.interactions || {}))
     result.push({
       id: name,
-      label: ({ play: "坐下玩机器人", sit: "坐一会儿", sleep: "躺下睡觉" } as Data)[name],
-      available: !busy(state),
-      reason: busy(state) ? "先结束当前互动" : null,
+      label: ({ play: "坐下玩机器人", sit: "坐一会儿", lie: "躺着歇会儿", sleep: "躺下睡觉" } as Data)[name],
+      available: !busy(state) || switching && name !== job.pose,
+      reason: busy(state) && !(switching && name !== job.pose) ? "先结束当前互动" : null,
       reachability: "not_checked",
     });
+  if(obj.kind==="plant"&&ctx.assets["home-watering-can-v1"]){
+    const care=careStatus(obj,now)!;
+    const can=state.objects.some(o=>o.asset_id==="home-watering-can-v1");
+    result.push({id:"water",label:"拿水壶浇花",available:!busy(state)&&care.water_available&&can,
+      reason:busy(state)?"先结束当前互动":!can?"先放一个小水壶":!care.water_available?"刚浇过水，先等半天":null});
+  }
   if (obj.asset_id === "home-rice-bowl-v1") {
-    const full=obj.properties?.filled===true,source=riceSource(obj,state);
+    const full=obj.properties?.filled===true,source=riceSource(obj,state,now);
     result.push({id:"serve_rice",label:"盛一碗白饭",available:!full && !!source,
       reason:full?"碗里已经有饭":source?null:"把碗放到还有饭的电饭锅旁，同一个台面上"});
   }
   if(obj.asset_id==="home-rice-bowl-v1")result.push({id:"eat_rice",label:"吃完碗里的饭",available:obj.properties?.filled===true,reason:obj.properties?.filled?null:"碗里还没有饭"});
-  if(obj.asset_id==="home-rice-cooker-v1")result.push({id:"refill_rice",label:"添满白饭",available:(obj.properties?.servings??4)<4,reason:(obj.properties?.servings??4)<4?null:"锅里已经满了"});
+  if(obj.asset_id==="home-rice-cooker-v1"){const s=careStatus(obj,now)!;result.push({id:"cook_rice",label:"煮一锅饭（30分钟）",available:s.status==="empty",reason:s.status==="cooking"?"正在煮饭，还要等一会儿":s.status==="ready"?"锅里还有饭，吃完再煮":null})}
   if(obj.kind==="tv")result.push({id:"turn_on",label:"打开电视",available:true},{id:"turn_off",label:"关电视",available:true});
   if(obj.kind==="drying_rack"){
     if(obj.properties?.quilt_from)result.push({id:"bring_in_quilt",label:"收回晾着的被子",available:true});
@@ -146,19 +154,19 @@ export function actionsFor(obj: Item, ctx: Context, state: State) {
   if (busy(state) && job.target_id === obj.id)
     result.push({
       id: "leave",
-      label: job.pose === "sleep" ? "起床" : "起身",
+      label: job.pose === "sleep" ? (obj.kind==="sofa" ? "醒来起身" : "起床") : "起身",
       available: job.action !== "leave",
       reason: null,
     });
   if (
     def.interactions?.sleep &&
     job.target_id === obj.id &&
-    job.phase === "active"
+    job.phase === "active" && ["lie","sleep"].includes(job.pose)
   ) {
-    const covered = obj.properties?.covered ?? true;
+    const covered = obj.properties?.covered ?? (obj.kind !== "sofa");
     result.push({
       id: covered ? "uncover" : "cover",
-      label: covered ? "掀开被子" : "盖好被子",
+      label: obj.kind === "sofa" ? (covered ? "掀开毯子" : "盖好毯子") : (covered ? "掀开被子" : "盖好被子"),
       available: !state.objects.some(o=>o.properties?.quilt_from===obj.id),
     });
   }
@@ -174,12 +182,13 @@ export function objectList(
   ctx: Context,
   category?: string | null,
   capability?: string | null,
+  now=Date.now()/1000,
 ) {
   const objects = [];
   for (const obj of state.objects) {
     const def = ctx.assets[obj.asset_id || ""] || {},
       cat = obj.asset_id==="home-rice-bowl-v1"?"tables":CATEGORIES[obj.kind] || "decoration",
-      actions = actionsFor(obj, ctx, state);
+      actions = actionsFor(obj, ctx, state,now);
     if (
       (category && category !== cat) ||
       (capability && !actions.some((a) => a.id === capability))
@@ -195,7 +204,7 @@ export function objectList(
         ? { ...obj.on, base_height: heightOf(obj, state.objects, ctx) }
         : null,
       writable_properties:
-        obj.id===state.room?.balcony?.door_id?{open:{type:"boolean"}}:obj.kind==="tv"?{on:{type:"boolean"}}:obj.asset_id==="home-rice-cooker-v1"?{keep_full:{type:"boolean"}}:obj.kind === "lamp"
+        obj.id===state.room?.balcony?.door_id?{open:{type:"boolean"}}:obj.kind==="tv"?{on:{type:"boolean"}}:obj.kind === "lamp"
           ? {
               on: { type: "boolean" },
               brightness: { type: "number", minimum: 0, maximum: 1 },
@@ -205,12 +214,13 @@ export function objectList(
             : {},
       actions,
       properties:
-        obj.asset_id==="home-rice-cooker-v1"?{servings:4,keep_full:false,...obj.properties}:obj.asset_id==="home-rice-bowl-v1"?{filled:false,...obj.properties}:obj.properties ??
+        obj.asset_id==="home-rice-cooker-v1"?{servings:RICE_CAPACITY,...obj.properties}:obj.asset_id==="home-rice-bowl-v1"?{filled:false,...obj.properties}:obj.properties ??
         (obj.kind==="tv"?{on:true}:obj.kind==="toy_set"?{packed:false}:obj.id===state.room?.balcony?.door_id?{open:true}:obj.kind === "lamp"
           ? { on: true, brightness: 0.7 }
           : obj.kind === "bed"
             ? { covered: true }
             : {}),
+      ...(ctx.assets["home-watering-can-v1"]&&careStatus(obj,now)?{care:careStatus(obj,now)}:{}),
       interaction:
         state.interaction?.target_id === obj.id ? state.interaction : null,
     });

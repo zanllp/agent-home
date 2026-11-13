@@ -33,6 +33,10 @@ export function connectHome(state:State,ctx:Context,start:{x:number,z:number,yaw
   const names=insert(family.objects,0,0,true,'living');
   room.balcony.door_id=names.get(family.room.balcony.door_id);
  }else{insert(state.objects,0,0,false,'living');insert(child.objects,childZone.x,childZone.z,true,'child')}
+ if(!objects.some(o=>o.asset_id==='home-watering-can-v1')){
+  const can=clone(ctx.presets['connected-home'].objects.find((o:Item)=>o.id==='watering-can'));
+  requireValue(!ids.has(can.id),'Watering can ID is already used');ids.add(can.id);objects.push(can);
+ }
  const add=(id:string,asset_id:string,x:number,z:number,label?:string,yaw=0)=>{
   requireValue(!ids.has(id),'New fixture ID already exists: '+id);ids.add(id);
   objects.push({id,asset_id,kind:ctx.assets[asset_id].kind!,x,z,yaw,...(label?{label}:{})});
@@ -55,7 +59,6 @@ export function connectHome(state:State,ctx:Context,start:{x:number,z:number,yaw
   const items=furnished.objects.filter((o:Item)=>o.id.startsWith('evening-')&&zoneAt(base,o)?.id===id);
   insert(items,destination.x-origin.x,destination.z-origin.z,true,'evening');
  }
- for(const pot of objects.filter(o=>o.asset_id==='home-rice-cooker-v1'&&o.properties?.keep_full===undefined))pot.properties={...pot.properties,keep_full:true,servings:4};
  state.objects=objects;state.room=room;state.preset_id=CONNECTED_HOME;
  Object.assign(state.character,start??state.character);
  if(fromChild){state.character.x+=childZone.x;state.character.z+=childZone.z}
