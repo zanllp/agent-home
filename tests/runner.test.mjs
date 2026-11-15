@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { once } from "node:events";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,6 +10,7 @@ import { createServer } from "node:net";
 import * as T from "three";
 import { playbackBuffer } from "../house3d/web/live-playback.js";
 import { batchStaticProp } from "../house3d/web/static-prop-batch.js";
+const runFile = promisify(execFile);
 
 test("display interpolation cannot mutate authoritative snapshots or cross jobs/teleports", () => {
   const buffer = playbackBuffer(),
@@ -135,6 +137,21 @@ test(
         return o.fresh && !o.body.moving && o.body.pose === "stand" &&
           Math.hypot(o.body.x - initial.character.x, o.body.z - initial.character.z) < 0.02;
       });
+      const cli = async (...args) => JSON.parse((await runFile(process.execPath,
+        ["tools/agent-home.mjs", ...args],
+        {env: {...process.env, AGENT_HOME_URL: url}, encoding: "utf8", timeout: 35000})).stdout);
+      assert.ok(Array.isArray(await cli("schemas")));
+      assert.equal((await cli("state")).preset_id, "connected-home");
+      assert.equal((await cli("observe")).fresh, true);
+      const choices = (await cli("interactables")).objects.flatMap(o => o.actions
+        .filter(a => a.available && a.approach)
+        .map(a => ({id: o.id, distance: a.approach.distance_m})));
+      choices.sort((a, b) => a.distance - b.distance);
+      assert.ok(choices.length);
+      assert.equal((await cli("goto", choices[0].id)).observe.job.phase, "completed");
+      const onboardingShot = join(dir, "home-check.png");
+      assert.equal((await cli("screenshot", "character", "--out", onboardingShot)).ok, true);
+      assert.equal(readFileSync(onboardingShot).readUInt32BE(0), 0x89504e47);
       for (const path of [
         "/api/viewer",
         "/api/interactions/a/progress",

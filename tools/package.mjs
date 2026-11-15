@@ -32,6 +32,8 @@ const roots = [
   "licenses",
   "UPSTREAM.md",
   "docs/AGENT_GUIDE.md",
+  "docs/AGENT_SETUP.md",
+  "docs/START.md",
   "docs/RUNNER.md",
   "docs/OUTDOORS.md",
   "docs/examples/family-supper.json",
@@ -54,9 +56,35 @@ async function add(path) {
     );
 }
 for (const item of roots) await add(resolve(root, item));
-files["README.md"] = new TextEncoder().encode(
-  `# Agent Home ${version}\n\n默认需要 Node.js 22.12+ 和现有 Chrome/Chromium。无需 Python、npm install、Blender 或构建。\n\n启动：\n\n    node start.mjs\n\n打开 http://127.0.0.1:19130/ 。默认只监听本机；先确认没有旧服务占用端口。Node 22.12 所需的 SQLite 参数由启动器自动处理，可能出现 Node 官方实验性模块提示。\n\nAgent 工具：\n\n    node agent.mjs get_tools\n    node agent.mjs get_catalog\n    node agent.mjs get_presets\n    node agent.mjs observe_home\n\n首次启动默认入住连通小家（儿童房、客厅、家长卧室、浴室和阳台），存档在 house3d/data/house.sqlite；已有存档原样保留，不自动替换。切换房间、布置预演、动作及截图用法见 docs/AGENT_GUIDE.md。Runner 在线即可执行动作和截图。仅 Node 模式用 node start.mjs --no-runner，需要可见执行页。WSL 与性能日志见 docs/RUNNER.md。模型和贴图与完整本机工程相同，没有降质；代码与美术许可不同，默认角色带非商业参考义务，部分生成素材分发仍待确认；见 docs/LICENSING.md、docs/ASSETS.md 和随附声明。\n\n更新前正常停止旧服务并备份自己的存档，不用发布包覆盖或删除 house3d/data。发布包不包含数据库或账号凭据。\n`,
-);
+const homepage = await readFile(resolve(root, "README.md"), "utf8");
+const setupPrompt = homepage.match(/```text\n([\s\S]*?)\n```/)?.[1];
+if (!setupPrompt) throw Error("README is missing the copyable Agent setup prompt");
+files["README.md"] = new TextEncoder().encode([
+  `# Agent Home ${version}`,
+  "",
+  "## 先打开小家：Windows / macOS / Linux",
+  "",
+  "安装 Node.js 22.12+ 与 Chrome/Chromium；不需要 WSL、npm install、Python、Blender 或构建，也不用配置模型密钥。",
+  "",
+  "解压后，在能看到 start.mjs 的文件夹打开终端，运行：",
+  "",
+  "```sh", "node start.mjs", "```",
+  "",
+  "保留终端，在浏览器 [打开小家](http://127.0.0.1:19130/)。停止时按 Ctrl+C。详细排错见 [START](docs/START.md)。",
+  "",
+  "## 复制给你的 Agent，让它自己装好并打开",
+  "",
+  "已有这个运行包就直接复用，不必重新下载。把下面整段发给有本机终端权限的 Agent：",
+  "",
+  "```text", setupPrompt, "```",
+  "",
+  "接入流程见 [AGENT_SETUP](docs/AGENT_SETUP.md)，工具规范见 [SKILL](SKILL.md)，完整参数见 [AGENT_GUIDE](docs/AGENT_GUIDE.md)。",
+  "",
+  "首次打开默认是连通小家；已有存档继续保留。更新前停止旧服务并备份 house3d/data，不覆盖或删除自己的存档。",
+  "",
+  "默认只监听本机。运行包不含数据库、账号凭据、视频或首页概念图。代码与美术许可分别适用，默认角色含非商业参考义务，部分生成素材分发仍待确认；见 [LICENSING](docs/LICENSING.md) 和 [ASSETS](docs/ASSETS.md)。",
+  "",
+].join("\n"));
 const manifest = Object.fromEntries(
   Object.entries(files).map(([name, bytes]) => [
     name,

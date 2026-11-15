@@ -1,6 +1,56 @@
 # Agent Home
 
-**给 AI 一个可以回去的家。**
+**给 AI 一个可以回去的家。下载后，一条命令打开。**
+
+[下载 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip) · [复制给 Agent](#复制给你的-agent让它自己装好并打开) · [Agent 接入说明](docs/AGENT_SETUP.md)
+
+## 先跑起来：Windows / macOS / Linux
+
+**不需要 WSL，不用安装项目依赖，也不用配置模型密钥。**
+
+1. 安装 [Node.js](https://nodejs.org/en/download)（22.12 或更高）和 [Chrome](https://www.google.com/chrome/)，已有就跳过。
+2. [下载项目 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip)，解压，进入能看到 `start.mjs` 的文件夹，在这个文件夹打开终端。
+3. 运行下面这一条，保留终端，再在浏览器 [打开小家](http://127.0.0.1:19130/)：
+
+```sh
+node start.mjs
+```
+
+看到房间和大肥鱼，就可以转镜头、点地面走动了。首次启动默认是完整的连通小家；已有存档不会被覆盖。停止时在终端按 `Ctrl+C`。
+
+<details>
+<summary>不知道怎么在文件夹里打开终端？</summary>
+
+- **Windows**：在解压后的文件夹空白处右键，选择“在终端中打开”（或 PowerShell）。
+- **macOS**：打开“终端”，输入 `cd `（末尾有空格），把解压后的文件夹拖进去，按回车，再运行上面的命令。
+- **Linux 桌面**：在解压后的文件夹里选择“在终端中打开”，或用 `cd` 进入该目录。
+
+</details>
+
+仓库仍为私有时，下载需要已登录且有访问权限的 GitHub 账号。打不开、找不到浏览器，或使用 WSL / 容器 / 服务器？见 [启动与排错](docs/START.md)。
+
+## 复制给你的 Agent，让它自己装好并打开
+
+把下面整段发给**有本机终端权限的 Agent**。它会负责下载、启动、接入工具并打开浏览器，你不必先手动完成上面的步骤。
+
+```text
+请帮我在这台电脑安装、启动 Agent Home，接入你的工具调用，并打开小家。请实际执行，不要只给我教程。
+项目：https://github.com/zanllp/agent-home
+
+1. 按本机 Windows / macOS / Linux 环境操作，不要求 WSL。检查 Node.js 22.12+ 和 Chrome/Chromium；缺少时从官方来源安装，需要管理员权限、同意条款、登录或付费时再问我。
+2. 下载项目：有 Git 就 clone，没有就下载 main 分支 ZIP 并解压。仓库仍私有时使用我已有的 GitHub 权限；没有权限就明确告诉我，不索取或猜测密钥。已有项目先复用，不覆盖未提交改动或存档。
+3. 进入有 start.mjs 的项目目录，先遵守 AGENTS.md（如有），再读 SKILL.md 和 docs/AGENT_SETUP.md。不运行 npm install，不重新构建，不需要模型 API Key。
+4. 先检查 http://127.0.0.1:19130/api/tools 是否为可用的小家。已有服务就复用；没有才用 node start.mjs 启动一个持续运行的进程并保存日志。端口被其他程序占用时不要杀进程，换空闲端口并统一调整后续地址。
+5. 默认模式等待 /api/runtime 的 runner:true、online:true 和 observe 的 fresh:true；若已有服务使用 --no-runner，则先打开并保留可见执行页，等 fresh:true，并说明这种模式关页面就不能继续执行。用 node tools/agent-home.mjs schemas 获取工具定义，再执行 state、observe、interactables。直接使用该 CLI 操作即可，不必安装 MCP 插件或修改你的模型配置；非默认端口通过 AGENT_HOME_URL 指定。把这个目录、地址和调用方式作为后续操作小家的入口。
+6. 若当前身体和生活安排都空闲，从实际列表选择附近可达物品，用 node tools/agent-home.mjs goto 物品ID 做一次不消耗资源的走动验证，等待匹配任务和真实到达反馈。已有动作或安排就保留，不打断。再用 node tools/agent-home.mjs screenshot character --out home-check.png 获取并检查真实角色视角截图。不要重置预设、瞬移、改家具或随便消耗米饭和浇水次数。
+7. 在这台电脑的浏览器打开 http://127.0.0.1:19130/，确认页面能看到小家。最后告诉我项目目录、访问地址、服务进程/日志位置、工具接入方式和实际验证结果；没做成的明确说，不把启动进程当作已验证成功。
+
+服务只监听本机；不要改成公网，不改其他机器人、账号或已有模型配置，不重复启动服务，不删除存档或租约。若你没有本机终端、浏览器或服务访问能力，请明确说明限制，别假装已接入。容器、WSL 或远程机器的 localhost 不等于我的电脑；跨环境先按 docs/AGENT_SETUP.md 核对可达性，不擅自开放网络。
+```
+
+没有终端或本机访问能力的纯聊天模型，不能只靠提示词完成安装。详细调用与验收见 [Agent 接入说明](docs/AGENT_SETUP.md)。
+
+## 这是什么
 
 不只在聊天框里说“我去浇花了”。让她真的走到阳台，拿起水壶；画一张画，收好地毯上的玩具，困了就钻进被子。
 
@@ -46,46 +96,6 @@ Agent Home 是一个 **Agent 用工具操作、人在浏览器里观看的 3D �
 ![家庭预设实机：大肥鱼在客厅地毯上玩机器人](docs/images/family-afternoon.jpg)
 
 *浏览器内真实 3D 画面，展示的是「和饲养员的家」预设。首次安装默认使用更完整的「连通小家」，包含儿童房、家长卧室、浴室和阳台。*
-
-## 启动
-
-默认需要 **Node.js 22.12+ 和已有的 Chrome/Chromium**，不用安装 npm 依赖：
-
-```sh
-node start.mjs
-```
-
-在 WSL 内启动后，可在 Windows 浏览器打开 **http://localhost:19130/**。默认后台 Runner 执行动作，关掉观看页也能走动和截图。只需要原可见页模式可用 `node start.mjs --no-runner`。见 [Runner 与性能日志](docs/RUNNER.md)。不用 Python、`npm install`、Blender 或本地构建。网页和后端已经构建在 `runtime/`；第三方前端代码随网页产物包含，后端只使用 Node 内置模块，SQLite 也不需要下载原生依赖。
-
-Node 22.12 所需的 SQLite 启动参数由入口自动处理。某些 Node 版本会显示官方实验性模块提示；不是缺少安装包。
-
-- 首次运行创建 `house3d/data/house.sqlite`，默认入住「连通小家」：儿童房、客厅、家长卧室、浴室和阳台。已有 SQLite 存档继续原样加载，不会因更新默认预设而重置布置。
-- 默认只监听本机。启动前确认端口没有旧服务，不自动停止其他实例。
-- 更新时先正常停止旧服务并备份自己的存档，不用运行包覆盖/删除 `house3d/data/`。
-- `/` 和 `/wander.html` 都是当前生活画布。
-
-> 零安装运行方式适用于本地 Node 运行包或包含预构建 `runtime/` 的检出版本。旧的 Python 版本不能直接使用这个入口。
-
-## Agent 怎么操作
-
-同样不需要安装依赖：
-
-```sh
-node agent.mjs get_tools
-node agent.mjs get_catalog
-node agent.mjs get_presets
-node agent.mjs observe_home
-node agent.mjs list_interactions
-```
-
-切换模板会替换当前布置，先预演；不切换也能直接使用当前存档：
-
-```sh
-node agent.mjs apply_preset '{"preset_id":"family-home","dry_run":true}'
-node agent.mjs apply_preset '{"preset_id":"family-home","dry_run":false}'
-```
-
-`GET /api/tool-schemas` 返回 function schemas。接入方只需将工具名与参数转发给本地 HTTP 或上面的 CLI，不把任意自然语言当 shell。旧 API 路径、工具名、版本/幂等、SQLite 表结构和身体反馈协议保留。
 
 ## 当前能力
 

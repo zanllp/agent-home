@@ -221,6 +221,11 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       await new Promise((r) => setTimeout(r, 40));
     }
     assert.ok(ready, output);
+    const packageReadme = readFileSync(join(folder, "README.md"), "utf8");
+    assert.match(packageReadme, /复制给你的 Agent/);
+    assert.match(packageReadme, /node tools\/agent-home\.mjs schemas/);
+    for (const name of ["docs/AGENT_SETUP.md", "docs/START.md"])
+      assert.ok(existsSync(join(folder, name)), name);
     const initial = (await api("/api/state")).body;
     assert.equal(initial.preset_id, "connected-home");
     assert.equal(initial.room.floorplan, "connected-home");
