@@ -7,11 +7,11 @@
 | 内容 | 许可依据 | 使用时保留 |
 | --- | --- | --- |
 | 项目应用代码、工具、文档中的程序说明 | 根 [LICENSE](../LICENSE) 的 MIT 代码条款；注明的第三方文件除外 | 原版权与许可声明 |
-| Star Office UI 来源 | [UPSTREAM](../UPSTREAM.md) 固定研究版本；根 LICENSE 保留其原始完整声明 | Ring Hyacinth、Simon Lee 署名；不要把其美术条款说成代码条款 |
+| Star Office UI 来源 | [UPSTREAM](../UPSTREAM.md) 固定研究版本；[原始完整声明](../licenses/STAR-OFFICE-UI-LICENSE.md) | Ring Hyacinth、Simon Lee 署名；不要把其美术条款说成代码条款 |
 | 随浏览器产物包含的 Three.js 和 addons | [Three.js MIT 原文](../licenses/THREE-LICENSE.txt) | 原作者版权与 MIT 文本 |
 | 构建/测试 npm 依赖 | `package-lock.json` 与相应包的许可 | 修改或另行分发依赖时分别核对；不表示需要运行者安装它们 |
 
-根 LICENSE 最初来自 Star Office UI，含代码与其美术的分别说明。它不是对后来加入的全部美术来源的一揽子授权。保留上游声明，不暗示上游作者为本项目背书。
+根 LICENSE 使用标准 MIT 文本，适用于项目代码。Star Office UI 的原始代码与美术声明完整保留在 [上游许可副本](../licenses/STAR-OFFICE-UI-LICENSE.md)。素材分别适用各自许可，不暗示上游作者为本项目背书。
 
 ## 默认人物：社区衍生设计，不是官方角色
 
