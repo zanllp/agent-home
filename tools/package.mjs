@@ -64,7 +64,7 @@ files["README.md"] = new TextEncoder().encode([
   "",
   "## 先打开小家：Windows / macOS / Linux",
   "",
-  "安装 Node.js 22.12+ 与 Chrome/Chromium；不需要 WSL、npm install、Python、Blender 或构建，也不用配置模型密钥。",
+  "准备好 Node.js 22.12+ 和 Chrome，下载后运行一条命令即可。",
   "",
   "解压后，在能看到 start.mjs 的文件夹打开终端，运行：",
   "",

@@ -1,11 +1,11 @@
 # 下载、启动、打开
 
-**Windows、macOS、Linux 用相同的项目命令，不需要 WSL。** 想让 Agent 全部代劳，复制 [首页提示词](../README.md#复制给你的-agent让它自己装好并打开)。
+**支持 Windows、macOS 和 Linux。** 想让 Agent 全部代劳，复制 [首页提示词](../README.md#复制给你的-agent让它自己装好并打开)。
 
 ## 最短路线
 
 1. 安装 [Node.js](https://nodejs.org/en/download)（22.12 或更高）与 [Chrome](https://www.google.com/chrome/)；已有就跳过。
-2. [下载项目 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip)，解压到自己的文件夹。仓库仍私有时，需要先登录有权限的 GitHub 账号。
+2. [下载项目 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip)，解压到自己的文件夹。
 3. 在有 `start.mjs` 的文件夹打开终端，运行 `node start.mjs`。不用 `npm install`、Python 或 Blender，不用构建。
 4. 保留终端，在浏览器打开 [http://127.0.0.1:19130/](http://127.0.0.1:19130/)。第一次会加载模型，等房间和人物出现。
 

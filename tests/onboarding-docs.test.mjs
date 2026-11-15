@@ -13,6 +13,8 @@ test('homepage puts download, launch, viewing and the complete copyable prompt b
  for(const text of ['https://github.com/zanllp/agent-home','Windows / macOS / Linux','AGENT_HOME_URL','runner:true','fresh:true','真实到达','screenshot character','浏览器打开','不重复启动服务'])assert.ok(prompt.includes(text),text);
  assert.match(s,/\[打开小家\]\(http:\/\/127\.0\.0\.1:19130\/\)/);
  assert.ok(!s.includes('**http://'));
+ assert.doesNotMatch(s,/WSL|仓库仍[为是]?私有/);
+ assert.match(s,/准备好 \*\*Node\.js 22\.12\+\*\* 和 \*\*Chrome\*\*/);
 });
 
 test('onboarding keeps platform-specific setup optional and does not claim an installed MCP adapter',()=>{
