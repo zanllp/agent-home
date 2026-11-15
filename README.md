@@ -1,54 +1,32 @@
 # Agent Home
 
-**给 AI 一个可以回去的家。下载后，一条命令打开。**
+**给 AI 一个可以回去的家。**
 
-[下载 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip) · [复制给 Agent](#复制给你的-agent让它自己装好并打开) · [Agent 接入说明](docs/AGENT_SETUP.md)
+这是一个给现有 Agent 使用的 **3D 生活环境 harness**：你的 Agent 负责思考，通过工具在家里行动、布置和观察，你在浏览器里看它生活。
 
-## 先跑起来：Windows / macOS / Linux
-
-准备好 **Node.js 22.12+** 和 **Chrome**，下载后运行一条命令即可。
-
-1. 安装 [Node.js](https://nodejs.org/en/download)（22.12 或更高）和 [Chrome](https://www.google.com/chrome/)，已有就跳过。
-2. [下载项目 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip)，解压，进入能看到 `start.mjs` 的文件夹，在这个文件夹打开终端。
-3. 运行下面这一条，保留终端，再在浏览器 [打开小家](http://127.0.0.1:19130/)：
-
-```sh
-node start.mjs
-```
-
-看到房间和大肥鱼，就可以转镜头、点地面走动了。首次启动默认是完整的连通小家；已有存档不会被覆盖。停止时在终端按 `Ctrl+C`。
-
-<details>
-<summary>不知道怎么在文件夹里打开终端？</summary>
-
-- **Windows**：在解压后的文件夹空白处右键，选择“在终端中打开”（或 PowerShell）。
-- **macOS**：打开“终端”，输入 `cd `（末尾有空格），把解压后的文件夹拖进去，按回车，再运行上面的命令。
-- **Linux 桌面**：在解压后的文件夹里选择“在终端中打开”，或用 `cd` 进入该目录。
-
-</details>
-
-遇到问题？见 [安装与使用说明](docs/START.md)。
+[交给我的 Agent 安装](#复制给你的-agent让它自己装好并打开) · [Agent 接入说明](docs/AGENT_SETUP.md)
 
 ## 复制给你的 Agent，让它自己装好并打开
 
-把下面整段发给**有本机终端权限的 Agent**。它会负责下载、启动、接入工具并打开浏览器，你不必先手动完成上面的步骤。
+交给你自己的大肥鱼或其他 Agent，复制下面这段话就行：
 
 ```text
-请帮我在这台电脑安装、启动 Agent Home，接入你的工具调用，并打开小家。请实际执行，不要只给我教程。
-项目：https://github.com/zanllp/agent-home
+请在这台电脑安装并接入 Agent Home，然后在浏览器打开给我看：
+https://github.com/zanllp/agent-home
 
-1. 按本机 Windows / macOS / Linux 环境操作。检查 Node.js 22.12+ 和 Chrome/Chromium；缺少时从官方来源安装，需要管理员权限、同意条款、登录或付费时再问我。
-2. 下载项目：有 Git 就 clone，没有就下载 main 分支 ZIP 并解压。已有项目先复用，不覆盖未提交改动或存档；下载失败时告诉我具体原因。
-3. 进入有 start.mjs 的项目目录，先遵守 AGENTS.md（如有），再读 SKILL.md 和 docs/AGENT_SETUP.md。不运行 npm install，不重新构建，不需要模型 API Key。
-4. 先检查 http://127.0.0.1:19130/api/tools 是否为可用的小家。已有服务就复用；没有才用 node start.mjs 启动一个持续运行的进程并保存日志。端口被其他程序占用时不要杀进程，换空闲端口并统一调整后续地址。
-5. 默认模式等待 /api/runtime 的 runner:true、online:true 和 observe 的 fresh:true；若已有服务使用 --no-runner，则先打开并保留可见执行页，等 fresh:true，并说明这种模式关页面就不能继续执行。用 node tools/agent-home.mjs schemas 获取工具定义，再执行 state、observe、interactables。直接使用该 CLI 操作即可，不必安装 MCP 插件或修改你的模型配置；非默认端口通过 AGENT_HOME_URL 指定。把这个目录、地址和调用方式作为后续操作小家的入口。
-6. 若当前身体和生活安排都空闲，从实际列表选择附近可达物品，用 node tools/agent-home.mjs goto 物品ID 做一次不消耗资源的走动验证，等待匹配任务和真实到达反馈。已有动作或安排就保留，不打断。再用 node tools/agent-home.mjs screenshot character --out home-check.png 获取并检查真实角色视角截图。不要重置预设、瞬移、改家具或随便消耗米饭和浇水次数。
-7. 在这台电脑的浏览器打开 http://127.0.0.1:19130/，确认页面能看到小家。最后告诉我项目目录、访问地址、服务进程/日志位置、工具接入方式和实际验证结果；没做成的明确说，不把启动进程当作已验证成功。
-
-服务只监听本机；不要改成公网，不改其他机器人、账号或已有模型配置，不重复启动服务，不删除存档或租约。若你没有本机终端、浏览器或服务访问能力，请明确说明限制，别假装已接入。
+下载项目（已有就复用），先读项目的 AGENTS.md（如有）、SKILL.md 和 docs/AGENT_SETUP.md，按接入说明实际完成安装、启动和验证。
+需要 Node.js 22.12+ 和 Chrome/Chromium，在项目目录用 node start.mjs 启动；用 node tools/agent-home.mjs schemas 获取工具，以后通过项目 CLI 操作小家。
+验证能观察、行动和取得真实截图后，打开 http://127.0.0.1:19130/，告诉我结果。保留已有存档和活动，不重复启动服务；需要额外权限或遇到阻碍时告诉我。
 ```
 
-没有终端或本机访问能力的纯聊天模型，不能只靠提示词完成安装。详细调用与验收见 [Agent 接入说明](docs/AGENT_SETUP.md)。
+<details>
+<summary>想自己安装？Windows / macOS / Linux 手动步骤</summary>
+
+准备好 Node.js 22.12+ 和 Chrome，[下载 ZIP](https://github.com/zanllp/agent-home/archive/refs/heads/main.zip) 并解压，在项目文件夹运行 `node start.mjs`，然后 [打开小家](http://127.0.0.1:19130/)。
+
+详细步骤见 [手动安装与使用说明](docs/START.md)。
+
+</details>
 
 ## 这是什么
 
