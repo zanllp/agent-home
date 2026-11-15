@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Agent Home 客户端（跑在 dsh-qqbot 容器里，后端在 WSL）。
+ * Agent Home HTTP 客户端，可由本机或已有可达路径的 Agent 环境调用。
  *
  *   node tools/agent-home.mjs schemas
  *   node tools/agent-home.mjs state | observe | objects | catalog | presets
@@ -19,6 +19,7 @@ import { resolve } from "node:path";
 const BASE = new URL(process.env.AGENT_HOME_URL || "http://127.0.0.1:19130");
 const READS = {
   outdoors: "/api/outdoors",
+  "life-plan": "/api/life-plan",
   schemas: "/api/tool-schemas",
   state: "/api/state",
   observe: "/api/observe",
@@ -33,6 +34,7 @@ const READS = {
 const READ_ALIAS = {
   get_outdoors: "outdoors",
   get_state: "state",
+  get_life_plan: "life-plan",
   observe_home: "observe",
   get_catalog: "catalog",
   list_objects: "objects",

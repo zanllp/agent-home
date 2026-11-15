@@ -1,3 +1,5 @@
+> Historical research/prototype record, not the current runtime specification. Current asset scope and rights review: [licensing](../../docs/LICENSING.md). Missing reference images are not included in this lightweight repository.
+
 # 大肥鱼角色素材调研
 
 日期：2026-10-30。用户要求先调研现成素材，目标是高清、经典三头身。没有替换页面角色、安装桌宠/DSH 插件或生成新图，没有提交。

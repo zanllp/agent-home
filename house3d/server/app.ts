@@ -1,3 +1,4 @@
+import {lifeActive,lifeCommand,interruptLife,tickLife} from './life-plan.js';
 import {apartment} from '../shared/apartment.mjs';
 import {interactionList} from './interactions.js';
 import {crayonPng} from './crayon.mjs';
@@ -10,6 +11,7 @@ import {
   type Context,
   type Data,
   record,
+  clone,
   requireValue,
   extra,
   stable,
@@ -44,15 +46,27 @@ export function loadContext(root: string): Context {
   const read = (name: string) =>
     JSON.parse(readFileSync(resolve(root, name), "utf8"));
   const data = read("server-data.json");
+  const presets = read("room-presets.json"), defaults = data.defaultState;
+  requireValue(Object.hasOwn(presets, defaults.preset_id), "Unknown default home preset");
+  const preset = presets[defaults.preset_id];
   return {
     ...data,
+    defaultState: {
+      ...defaults,
+      room: clone(preset.room),
+      objects: clone(preset.objects),
+      camera: preset.camera,
+      light: preset.light,
+      character: { ...defaults.character, ...clone(preset.spawn), activity: "idle" },
+    },
     assets: read("furniture-assets.json"),
     wallpapers: read("wallpapers.json"),
-    presets: read("room-presets.json"),
+    presets,
   };
 }
 export class HouseApp {
   readonly store: Store;
+  private hasLifePlan = false;
   constructor(
     readonly ctx: Context,
     dbPath: string,
@@ -62,6 +76,12 @@ export class HouseApp {
     readonly uuid = () => randomUUID().replaceAll("-", ""),
   ) {
     this.store = new Store(dbPath, ctx.defaultState, this.now, !!ctx.assets["home-watering-can-v1"]);
+    const state=this.store.state();this.hasLifePlan=lifeActive(state.life_plan);
+    if(this.hasLifePlan){
+      state.life_plan.suspended_at??=Math.min(this.now(),this.store.snapshot()?.received_at??this.now());
+      this.store.save(state);
+    }
+    this.hasLifePlan=this.hasLifePlan&&state.life_plan.status!=="paused";
   }
   handle(input: Input): Reply {
     const { method, headers } = input,
@@ -86,6 +106,7 @@ export class HouseApp {
       const row = store.db.prepare("SELECT png FROM drawings WHERE revision=?").get(drawing[1]) as Data | undefined;
       return row ? {status:200,type:"image/png",bytes:Buffer.from(row.png)} : json({error:"Drawing not found"},404);
     }
+    if (get && path === "/api/life-plan") return json({plan:store.state().life_plan??null});
     if (get && path === "/api/state") return json(store.state());
     if (get && path === "/api/catalog") {
       const current=store.state();
@@ -205,6 +226,7 @@ export class HouseApp {
       return json({
         tools: {
           observe_home: { method: "GET", path: "/api/observe" },
+          ...(ctx.definitions.set_life_plan?{get_life_plan:{method:"GET",path:"/api/life-plan"},set_life_plan:["title","steps"],control_life_plan:["action: pause/resume/cancel"]}:{}),
           ...(ctx.definitions.draw_crayon ? {draw_crayon:["title","marks","target_id?","base_url?"]} : {}),
           walk_to: ["x and z, or target_id"],
           cancel_action: ["job_id"],
@@ -406,7 +428,10 @@ export class HouseApp {
         );
       let next: State, report: Data | undefined;
       try {
-        if (body.tool === "update_layout") {
+        if (["set_life_plan","control_life_plan"].includes(body.tool)) {
+          requireValue(!!ctx.definitions[body.tool],"Unknown or unavailable tool");
+          next=lifeCommand(old,body,ctx,store.snapshot(),now);
+        } else if (body.tool === "update_layout") {
           const planned = planLayout(
             old,
             body.arguments === undefined ? {} : body.arguments,
@@ -488,6 +513,7 @@ export class HouseApp {
           });
         return json({ error: (e as Error).message }, 400);
       }
+      if (["walk_to","interact","cancel_action","move_character","set_activity","apply_preset","connect_rooms","update_room","update_layout","place_furniture","update_furniture","remove_furniture","apply_layout"].includes(body.tool)) interruptLife(next,now);
       store.event(now, "command_accepted", {
         command_id: body.id,
         action: body.tool,
@@ -506,6 +532,7 @@ export class HouseApp {
         result.applied = true;
       if (report) Object.assign(result, { applied: true, layout: report });
       store.save(next);
+      this.hasLifePlan=lifeActive(next.life_plan)&&next.life_plan.status!=="paused";
       store.db
         .prepare("INSERT INTO commands VALUES(?,?,?)")
         .run(body.id, stable(body), JSON.stringify(result));
@@ -653,6 +680,7 @@ export class HouseApp {
           return json({ error: (e as Error).message }, 400);
         }
       }
+      if(state.life_plan?.job_id===id)job.feedback_after=now;
       store.event(now, "action_progress", {
         job_id: id,
         action: job.action,
@@ -664,6 +692,17 @@ export class HouseApp {
       state.revision++;
       store.save(state);
       return json({ ok: true, interaction: job });
+    });
+  }
+  tickLifePlan() {
+    if(!this.hasLifePlan)return;
+    this.store.transaction(()=>{
+      const before=this.store.state();
+      const next=tickLife(before,this.ctx,this.store.snapshot(),this.now());
+      if(!next)return;
+      this.store.save(next);this.hasLifePlan=lifeActive(next.life_plan)&&next.life_plan.status!=="paused";
+      const p=next.life_plan;
+      this.store.event(this.now(),"life_plan_progress",{plan_id:p.id,status:p.status,index:p.index,phase:p.phase,job_id:p.job_id,error:p.error??null,wait_reason:p.wait_reason??null});
     });
   }
   close() {

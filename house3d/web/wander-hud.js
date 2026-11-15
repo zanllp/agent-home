@@ -40,6 +40,7 @@ export function menuHit(r,x,y){
  return choice?'choice:'+choice[0]:'menu';
 }
 const albumButton={x:139,y:4,w:52,h:25};
+export const lifePlanButtons=width=>[{id:'life-toggle',x:width<700?8:199,y:width<700?64:4,w:80,h:25},{id:'life-cancel',x:width<700?96:287,y:width<700?64:4,w:68,h:25}];
 export function createCanvasHud(){
  const scene=new T.Scene(),camera=new T.OrthographicCamera(-1,1,1,-1,.1,10);camera.position.z=2;
  function panel(w,h){const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
@@ -47,11 +48,11 @@ export function createCanvasHud(){
   const mesh=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));scene.add(mesh);return {context,texture,mesh,w,h};
  }
  const veil=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false}));veil.renderOrder=-1;scene.add(veil);
- const bar=panel(470,54),title=panel(370,64),menu=panel(224,12+Math.ceil(toolbarChoices.camera.length/2)*rowHeight);menu.mesh.visible=false;let menuRect,menuKey='';let width=1,height=1,rects=[],previous='';
+ const bar=panel(470,54),title=panel(370,96),menu=panel(224,12+Math.ceil(toolbarChoices.camera.length/2)*rowHeight);menu.mesh.visible=false;let menuRect,menuKey='';let hasPlan=false;let width=1,height=1,rects=[],previous='';
  function size(w,h){width=w;height=h;veil.scale.set(w,h,1);rects=hudLayout(w,h);camera.left=-w/2;camera.right=w/2;camera.top=h/2;camera.bottom=-h/2;camera.updateProjectionMatrix();
   const first=rects[0],last=rects[4],bw=last.x+last.w-first.x;bar.mesh.scale.set(bw,54,1);bar.mesh.position.set(0,h/2-first.y-27,0);
   menuKey='';
-  const tw=Math.min(370,w-32);title.mesh.scale.set(tw,64,1);title.mesh.position.set(-w/2+16+tw/2,h/2-48,0);previous='';
+  const tw=Math.min(370,w-32);title.mesh.scale.set(tw,96,1);title.mesh.position.set(-w/2+16+tw/2,h/2-64,0);previous='';
  }
  function lineText(c,text){text=String(text);if(c.measureText(text).width<=350)return text;while(text.length&&c.measureText(text+'…').width>350)text=text.slice(0,-1);return text+'…'}
  function rounded(c,x,y,w,h,r,fill){c.fillStyle=fill;c.beginPath();c.roundRect(x,y,w,h,r);c.fill()}
@@ -76,13 +77,17 @@ export function createCanvasHud(){
   for(let i=0;i<5;i++){const active=[s.auto,s.paused,s.brisk,s.cameraMode!=='home',s.sound][i];if(active)rounded(c,i*94+5,6,84,42,16,'#e4ede1');
    c.font=`bold ${13*470/(rects[0].w*5)}px -apple-system,"PingFang SC",sans-serif`;c.fillStyle=s.ready?'#4b6252':'#9ba396';c.textAlign='center';c.textBaseline='middle';c.fillText(labels[i],i*94+47,28);
   }bar.texture.needsUpdate=true;
-  const night=s.light==='night',t=title.context;t.clearRect(0,0,370,64);t.textAlign='left';t.textBaseline='top';t.shadowColor=night?'#172a47':'rgba(255,253,245,.85)';t.shadowBlur=8;t.font='bold 17px -apple-system,"PingFang SC",sans-serif';t.fillStyle=night?'#f4f0e6':'#455e4c';t.fillText('大肥鱼的小家',8,8);t.shadowBlur=0;
+  const night=s.light==='night',t=title.context;t.clearRect(0,0,370,96);t.textAlign='left';t.textBaseline='top';t.shadowColor=night?'#172a47':'rgba(255,253,245,.85)';t.shadowBlur=8;t.font='bold 17px -apple-system,"PingFang SC",sans-serif';t.fillStyle=night?'#f4f0e6':'#455e4c';t.fillText('大肥鱼的小家',8,8);t.shadowBlur=0;
   rounded(t,albumButton.x,albumButton.y,albumButton.w,albumButton.h,10,'rgba(255,253,247,.93)');
   t.font='bold 12px -apple-system,"PingFang SC",sans-serif';t.fillStyle='#526853';t.fillText('留影',albumButton.x+13,albumButton.y+6);
-  t.fillStyle=night?'#f4f0e6':'#455e4c';t.font='12px -apple-system,"PingFang SC",sans-serif';t.fillStyle=night?'#dde4df':'#687a68';t.fillText(lineText(t,s.error||(!s.ready?'正在穿好小鞋子…':s.notice|| (s.paused?'停一会儿':s.status))),8,35);title.texture.needsUpdate=true;
+  hasPlan=['running','paused','cancelling'].includes(s.lifePlan?.status);
+  if(hasPlan)for(const b of lifePlanButtons(width)){rounded(t,b.x,b.y,b.w,b.h,10,'rgba(255,253,247,.93)');t.fillStyle='#526853';t.fillText(b.id==='life-cancel'?'结束安排':s.lifePlan.status==='paused'?'继续安排':'暂停安排',b.x+12,b.y+6)}
+  const p=s.lifePlan,planLabel=p&&(hasPlan||p.status==='needs_attention')?(p.status==='paused'?'安排已暂停':p.status==='needs_attention'?'安排停住了，等你看看':p.wait_reason||p.label||p.title):null;
+  t.fillStyle=night?'#f4f0e6':'#455e4c';t.font='12px -apple-system,"PingFang SC",sans-serif';t.fillStyle=night?'#dde4df':'#687a68';t.fillText(lineText(t,s.error||(!s.ready?'正在穿好小鞋子…':s.notice|| (s.paused?'停一会儿':planLabel||s.status))),8,35);title.texture.needsUpdate=true;
  }
  return {size,update,menuHit:(id,x,y)=>menuHit(menuLayout(width,height,id),x,y),hit(x,y){
   const u=(x-16)*370/Math.min(370,width-32),v=y-16,b=albumButton;
+  if(hasPlan){const hit=lifePlanButtons(width).find(b=>u>=b.x&&u<=b.x+b.w&&v>=b.y&&v<=b.y+b.h);if(hit)return hit.id}
   if(u>=b.x&&u<=b.x+b.w&&v>=b.y&&v<=b.y+b.h)return 'album';
   return rects.find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)?.id},render(renderer){const clear=renderer.autoClear;renderer.autoClear=false;renderer.render(scene,camera);renderer.autoClear=clear},dispose(){veil.geometry.dispose();veil.material.dispose();for(const p of [bar,title,menu]){p.mesh.geometry.dispose();p.mesh.material.dispose();p.texture.dispose()}}};
 }

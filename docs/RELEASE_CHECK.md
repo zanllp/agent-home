@@ -1,3 +1,5 @@
+> 历史验收记录：下列数量、大小、端口和机器状态只对应当时的迁移，不代表当前版本。当前启动方式见 [README](../README.md)，公开发布前使用 [OPEN_SOURCE](OPEN_SOURCE.md) 的清单。
+
 > 这是首次 Python 轻量版（473f525）的历史交付记录；当前 Node 零安装迁移以 [NODE_MIGRATION.md](NODE_MIGRATION.md) 为准。不要把下方 Python 命令当作当前启动要求。
 
 # 轻量仓库交付检查

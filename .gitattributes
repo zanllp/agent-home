@@ -1,0 +1,8 @@
+# Local runtime and review output must never appear in git archive exports.
+/artifacts export-ignore
+/house3d/data export-ignore
+/house3d/run export-ignore
+/node_modules export-ignore
+/.venv export-ignore
+/.env export-ignore
+/.env.* export-ignore

@@ -16,3 +16,16 @@ __pycache__/
 
 # Local runtime packages and preview data
 /artifacts/
+
+# Local authentication, private exports and diagnostics
+.npmrc
+.netrc
+.pypirc
+*.pem
+*.key
+*.p12
+*.pfx
+*.har
+cookies.json
+cookies.txt
+/public-private/

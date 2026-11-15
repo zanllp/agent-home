@@ -15,7 +15,7 @@ description: Agent Home 里的 3D 小家。查看自己在哪、走到书桌、�
 node agent.mjs TOOL '{"argument":"value"}' --url http://127.0.0.1:19130
 ```
 
-**HTTP 客户端（容器/远程也能用）**
+**HTTP 客户端（需要到本机服务的可达路径）**
 
 ```sh
 node tools/agent-home.mjs state
@@ -26,7 +26,7 @@ node tools/agent-home.mjs screenshot character --out out.png
 
 默认连 `http://127.0.0.1:19130`，可用 `AGENT_HOME_URL` 覆盖（容器里通常是 `http://host.docker.internal:19130`）。
 
-服务端只接受 `Host: localhost`，客户端已处理；不要用浏览器 fetch 直接打接口。
+服务默认仅监听回环地址，并检查 Host/Origin。HTTP 客户端会设置本机 Host；这不是身份认证，也不会自动开放容器或远程访问。不要为接入修改成公网监听。
 
 ## 先看自己在哪
 
@@ -34,24 +34,16 @@ node tools/agent-home.mjs screenshot character --out out.png
 node tools/agent-home.mjs observe
 ```
 
-- `fresh:true`：刚拍的身体反馈，可信
+- `fresh:true`：身体反馈新鲜，但不代表目标动作已完成；还需匹配本次 job 和实际姿态/位置
 - `fresh:false` 或 `execution.paused:true`：身体反馈过期或执行暂停，不能确认动作完成
 - `execution.requires_visible_viewer:true` 只是说明需要可见页面，不代表页面离线
 - `state` 是期望状态，`observe` 才是真实身体反馈
 
 ## 切换房屋预设
 
-演示款：`connected-home`（96 件物品、全屋连通、家长跟拍）。`apply_preset` 是整套替换，先预演；保留原房布置的扩建用 `connect_rooms`。
+可用模板是 `childroom`、`family-home`、`connected-home`。尺寸与物品数以 `get_presets` 的实际返回为准，不按旧文档硬编码。`connected-home` 包含儿童房、客厅、走廊、家长卧室、浴室和阳台。
 
-| id | 名字 | 气质 |
-|---|---|---|
-| `childroom` | 儿童房（鲸鱼主题） | 6×5m，9 件：床 / 书桌 / 椅子 / 书架 / 沙发 / 绿植 / 台灯 / 地毯 / 窗 |
-| `family-home` | 和饲养员的家 | 8×6.5m，79 件，urban 风，带 3.6×2m 阳台 |
-| `connected-home` | 大肥鱼的连通小家 | 96 件，儿童房、客厅、走廊、家长卧室、浴室和阳台 |
-
-- 儿童房完整就是 9 件；少了 `sofa` 或 `window`、房间显空，重新 `apply_preset childroom` 恢复
-- 应用模板会整体重置布置，人物回到出生点；先 `dry_run` 再应用
-- 切换后网页会黑屏几秒（资源加载），等加载完再判断
+`apply_preset` 会整体替换当前布置，人物回到模板起点，必须先 `dry_run`；不要为了“补一件东西”重置用户的家。保留原布置的扩建用 `connect_rooms`，同样先预演。资源首次加载可能需要等待，先确认执行者和反馈再判断失败。
 
 ## 动作
 
@@ -61,7 +53,7 @@ node tools/agent-home.mjs call list_interactions '{"capability":"draw"}'
 node tools/agent-home.mjs do child-chair sit
 ```
 
-`interact` 的 action：`sit`、`sleep`、`read`、`leave`、`play`、`draw`、`tidy`、`unpack`、`serve_rice`、`turn_on`、`turn_off`、`cover`、`uncover`。
+`interact` 的 action：`sit`、`lie`、`sleep`、`read`、`leave`、`play`、`draw`、`tidy`、`unpack`、`serve_rice`、`eat_rice`、`cook_rice`、`water`、`turn_on`、`turn_off`、`cover`、`uncover`（具体以当前目标的动作列表为准）。
 
 - 走路：`goto X Z` 指定精确空地终点；`goto OBJECT_ID` 自动选物品旁可达位置。桌面物品会靠近其支撑家具，不走进桌子中心。需要时先安全起身，整条路线由小家规划。封路或目标不可达会报错，不擅自移家具或瞬移。
 - 看书/画画/坐下直接用 `do TARGET ACTION`，自带走过去，不要先发多段 goto。目标 ID 与动作以 interactables 为准。
@@ -73,9 +65,9 @@ node tools/agent-home.mjs do child-chair sit
 ## 执行者规则
 
 - 默认只有后台 Runner 执行身体。可见页面只是观看端；--no-runner 才使用可见页租约
-- 多个标签页会让动作卡在 `requested` / `approaching`
-- 后台标签页会暂停动作，切回前台会继续
-- 动作卡住：`call cancel_action '{"job_id":"..."}'` 清掉再重试
+- 默认 Runner 模式下多个观看标签页不争抢身体，关闭观看页不停止执行；Runner 离线时观看页不会自动接管
+- 仅 `--no-runner` 模式需要一个持有租约的可见页面；其隐藏或暂停会影响身体执行
+- 动作卡住先查 observe 的任务、错误、执行者与暂停状态；需要取消时用 `call cancel_action '{"job_id":"..."}'` 安全退出，不删数据库或租约，也不盲目重发
 - 默认无需打开观看页；Runner 在线即可走路、坐卧、截图。查看 GET /api/runtime
 
 ## 客户端动作回执
@@ -95,3 +87,16 @@ node tools/agent-home.mjs do child-chair sit
 - 列表带 `revision` 和身体位置。家里或身体变了就重新读；不要沿用旧列表当作成功回执。
 
 例如列表中的 `{"tool":"interact","arguments":{"target_id":"child-chair","action":"draw"}}` 可用 `call interact ... --wait`，也可用 `do child-chair draw` 等待真实身体反馈。若列表说先结束互动，先起身；便捷 `do` 会自动安全起身后再开始身体动作。
+
+## 有限生活安排
+
+查询计划的两种 CLI 写法：
+
+```sh
+node agent.mjs get_life_plan
+node tools/agent-home.mjs call get_life_plan
+```
+
+`call set_life_plan` 接受 `title` 与 `steps`；持续姿态必须给 `duration_seconds`，步骤可带 `when`/`until` 条件。用 `get_life_plan` 读取检查点，`control_life_plan` 暂停、继续或安全取消。完整例子与限制见 [Agent 指南](docs/AGENT_GUIDE.md#生活安排一次决定分步执行)。
+
+计划完成后会停止，不会持续自主选事，也不会唤醒模型。不要因为已提交一张计划，就承诺角色会永远自己生活。浇水有冷却；一锅饭可盛三碗，空锅重新煮饭需要半小时。先看实际物品状态，不重复消耗资源。

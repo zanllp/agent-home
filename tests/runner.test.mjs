@@ -127,6 +127,14 @@ test(
     const abort = new AbortController();
     try {
       await wait(async () => (await get("/api/runtime")).online);
+      const initial = await get("/api/state");
+      assert.equal(initial.preset_id, "connected-home");
+      assert.equal(initial.objects.length, 111);
+      await wait(async () => {
+        const o = await get("/api/observe");
+        return o.fresh && !o.body.moving && o.body.pose === "stand" &&
+          Math.hypot(o.body.x - initial.character.x, o.body.z - initial.character.z) < 0.02;
+      });
       for (const path of [
         "/api/viewer",
         "/api/interactions/a/progress",

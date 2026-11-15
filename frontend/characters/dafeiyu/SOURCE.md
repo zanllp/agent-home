@@ -1,3 +1,5 @@
+> Historical research/prototype record, not the current runtime specification. Current asset scope and rights review: [licensing](../../../docs/LICENSING.md). Missing reference images are not included in this lightweight repository.
+
 # Dafeiyu standing concept v1
 
 Generated on 2026-10-30 with the built-in image generation tool at the user's request.

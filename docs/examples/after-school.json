@@ -1,0 +1,11 @@
+{
+  "title": "放学后慢慢来",
+  "steps": [
+    {"action":"water","target_id":"ficus-window","label":"看看窗边的花，渴了就浇水","when":{"condition":"needs_water","target_id":"ficus-window"}},
+    {"action":"play","target_id":"floor-workshop","label":"在地毯上玩一会儿机器人","duration_seconds":240},
+    {"action":"tidy","target_id":"floor-workshop","label":"把玩具收回盒子"},
+    {"action":"draw","target_id":"child-chair","label":"坐到小书桌前画画","duration_seconds":240},
+    {"action":"sit","target_id":"sofa","label":"去沙发上歇一会儿","duration_seconds":180},
+    {"action":"walk_to","target_id":"balcony-ficus","label":"去阳台看看"}
+  ]
+}

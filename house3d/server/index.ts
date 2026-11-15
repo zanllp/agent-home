@@ -140,6 +140,9 @@ const server = createServer(async (req, res) => {
     else res.end();
   }
 });
+const lifeTimer=setInterval(()=>{
+  try{app.tickLifePlan()}catch(e){metrics.log("life_plan_error",{error:(e as Error).message})}
+},1000);lifeTimer.unref();
 server.requestTimeout = 15000;
 server.headersTimeout = 10000;
 server.on("error", (error) => {
@@ -171,6 +174,7 @@ for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.on(signal, async () => {
     if (closing) return;
     closing = true;
+    clearInterval(lifeTimer);
     const closed = new Promise<void>((done) => server.close(() => done()));
     live.close();
     await runner?.stop();

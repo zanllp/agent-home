@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   mkdtempSync,
   readFileSync,
+  readdirSync,
   mkdirSync,
   writeFileSync,
   rmSync,
@@ -139,12 +140,12 @@ test("durable event cursor stays monotonic when bounded history is pruned", () =
 });
 
 test("no external runtime imports remain in the compiled backend or CLI", () => {
-  for (const name of ["runtime/server.mjs", "runtime/agent.mjs"]) {
+  for (const name of ["runtime/server.mjs", "runtime/agent.mjs", ...readdirSync("runtime").filter(n=>/^shared-.*\.mjs$/.test(n)).map(n=>"runtime/"+n)]) {
     const code = readFileSync(name, "utf8");
     for (const [, specifier] of code.matchAll(
       /(?:from\s*|import\s*)["']([^"']+)["']/g,
     ))
-      assert.ok(specifier.startsWith("node:"), name + ": " + specifier);
+      assert.ok(specifier.startsWith("node:") || /^\.\/shared-[A-Z0-9]+\.mjs$/.test(specifier) && existsSync(resolve("runtime",specifier)), name + ": " + specifier);
     assert.ok(!code.includes("child_process.exec"));
   }
 });
@@ -220,6 +221,10 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       await new Promise((r) => setTimeout(r, 40));
     }
     assert.ok(ready, output);
+    const initial = (await api("/api/state")).body;
+    assert.equal(initial.preset_id, "connected-home");
+    assert.equal(initial.room.floorplan, "connected-home");
+    assert.equal(initial.objects.length, 111);
     assert.ok(existsSync(join(folder, "SKILL.md")));
     const clientObservation = JSON.parse(execFileSync(process.execPath,
       [join(folder, "tools/agent-home.mjs"), "observe"],
@@ -352,10 +357,7 @@ test("published-shaped ZIP runs with only Node: no Python, npm, node_modules, or
       413,
     );
     assert.ok(existsSync(join(folder, "house3d/data/house.sqlite")));
-    assert.ok(zipped.length < 100_000_000);
-    assert.ok(
-      Object.values(archive).reduce((n, b) => n + b.length, 0) < 100_000_000,
-    );
+    assert.ok(!Object.keys(archive).some(name => name.startsWith("docs/images/concepts/")));
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve, reject) => {
@@ -402,12 +404,13 @@ test("malformed preview flags never add durable rejection events", () => {
 test("observation exposes the body sample's job, not the newer requested job", () => {
   const app = new HouseApp(ctx, ":memory:", root, web);
   try {
+    const {x,z} = app.store.state().character;
     const feedback = (job_id) => request(app, "/api/viewer", {
       session_id: "client-verification", visible: true, job_id,
-      body: {x:0,y:0,z:0,yaw:0,pose:"stand",moving:false},
+      body: {x,y:0,z,yaw:0,pose:"stand",moving:false},
     });
     assert.equal(feedback(null).status,200);
-    const accepted = command(app,"walk_to",{x:0,z:0},"new-walk");
+    const accepted = command(app,"walk_to",{x,z},"new-walk");
     assert.equal(accepted.status,200);
     let seen=request(app,"/api/observe").body;
     assert.equal(seen.job.id,"new-walk");

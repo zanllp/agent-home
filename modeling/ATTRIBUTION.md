@@ -1,3 +1,5 @@
+> Historical research/prototype record, not the current runtime specification. Current asset scope and rights review: [licensing](../docs/LICENSING.md). Missing reference images are not included in this lightweight repository.
+
 # 大肥鱼建模小样的来源与改编记录
 
 制作日期：2026-10-30。本次使用 Blender Python 创建几何、材质、骨骼、衣服、家具和动作；没有把参考图片贴在平面上，也没有将参考图片当作 UV 贴图。几何和动作是本次新制作，人物识别特征仍属于社区角色的衍生设计，不因此成为无来源、无条件可商用的角色。

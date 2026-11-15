@@ -167,7 +167,7 @@ const mount=document.getElementById('app');
  function pick(event){if(!ui.ready||!pointer||Math.hypot(event.clientX-pointer.x,event.clientY-pointer.y)>5)return;if(interaction?.busy){ui.notice='先起身，再去那边玩。';noticeUntil=performance.now()+3000;return}if(!ui.ready||!pointer||Math.hypot(event.clientX-pointer.x,event.clientY-pointer.y)>5)return;
   const rect=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),camera);
   if(!ray.ray.intersectPlane(plane,hit))return;
-  if(spectator){command('walk_to',{x:hit.x,z:hit.z}).catch(failNotice);return}
+  if(spectator||ui.lifePlan&&['running','paused'].includes(ui.lifePlan.status)){command('walk_to',{x:hit.x,z:hit.z}).catch(failNotice);return}
   if(walker.go({x:hit.x,z:hit.z})){invalidateBody();ui.auto=false;walker.setAutonomous(false);ui.status='去那边看看';marker.position.set(hit.x,.025,hit.z);marker.visible=true}else ui.status='这里走不过去，点一块空地吧';
  }
  function groundHeight(x,z){return groundHeightAt(x,z,rugs,furnitureAssets)}
@@ -307,7 +307,7 @@ async function init(){try{
    if(spectator){
     if(id==='auto')command('set_activity',{activity:value==='wander'?'walk':'idle'}).catch(failNotice);
     else post('/api/runtime/control',id==='pause'?{paused:value==='paused'}:{brisk:value==='brisk'}).then(r=>{if(!r.ok)throw Error('Runner 尚未就绪')}).catch(failNotice);
-   }else if(id==='auto')setAuto(value==='wander');
+   }else if(id==='auto'){if(ui.lifePlan&&['running','paused'].includes(ui.lifePlan.status))command('set_activity',{activity:value==='wander'?'walk':'idle'}).catch(failNotice);else setAuto(value==='wander')}
    else if(id==='pause')ui.paused=value==='paused';
    else if(id==='speed')setBrisk(value==='brisk');
   }
@@ -320,6 +320,9 @@ async function init(){try{
     return;
    }
    menu();
+   if(id==='life-toggle'||id==='life-cancel'){
+    command('control_life_plan',{action:id==='life-cancel'?'cancel':ui.lifePlan?.status==='paused'?'resume':'pause'}).catch(failNotice);return;
+   }
    if(id==='album'){view('album',true);return}
    if(id==='items'){selfMap.close();objectPanel.activate('toggle');return}
    if(id==='self-map'){if(objectPanel.open)objectPanel.activate('toggle');selfMap.toggle();return}
@@ -370,6 +373,7 @@ async function init(){try{
       nav=nextNav;walker=createWalker(nav,position);walker.setBrisk(ui.brisk);walker.setAutonomous(ui.auto);lastSteps=0;marker.visible=false;}
       navKey=navigationKey(next.objects,next.room);rugs=next.objects.filter(o=>o.kind==='rug');layoutKey=key;captureNotBefore=performance.now()+450;
      }
+     const p=next.life_plan;ui.lifePlan=p?{title:p.title,status:p.status,label:p.steps[p.index]?.label,wait_reason:p.wait_reason}:null;
      await room.setFinish(next.room);if(next.revision!==roomRevision)renderDemand.invalidate();if(dimensionsChanged&&['home','broadcast','album'].includes(ui.cameraMode))view(ui.cameraMode,true);
      if(!spectator){const heartbeat=await ownerFetch('/api/viewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...feedbackEnvelope(viewerSession,bodySnapshot(avatar,walker,interaction,ui.paused),interaction,true,ui.paused),job_id:interaction.jobId===next.interaction?.id?interaction.jobId:null})});
      if(!heartbeat.ok){controller=false;throw Error('身体反馈暂时没同步')}controller=(await heartbeat.json()).controller;if(!controller){ui.notice='小家正在另一个窗口里运行。';noticeUntil=performance.now()+2000}}

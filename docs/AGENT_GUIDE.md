@@ -8,6 +8,7 @@ Agent Home 是一个独立的可观察、可操作环境。不要把模型生成
 - `get_tools`：HTTP/命令入口。
 - `get_catalog`：资产、承载面、墙纸、房间边界与尺寸限制。
 - `get_presets`：`childroom`、`family-home`、`connected-home` 三套模板。
+- 无存档的首次启动默认使用 `connected-home`；更新不会自动替换已有布置。已有用户想换成它，仍需先预演再明确应用 `apply_preset`。
 - `list_objects`：已放置的物品、分类、状态；支持 `category`/`capability` 筛选。
 - `list_interactions`（`GET /api/interactions`）：可直接执行的动作列表，保留不可用原因、当前身体的路线检查和 `command.tool/arguments`；同样支持分类/动作筛选。只在选择动作时查询，不必逐帧检查。
 - `observe_home`：身体视角反馈；`get_state`：持久化的期望状态。两者不是同一回事。
@@ -251,3 +252,34 @@ node agent.mjs interact '{"target_id":"rice-cooker","action":"cook_rice"}'
 `water` 是有限的身体任务：取壶 → 走到盆栽旁 → 倾倒浇水 → 把壶放回。倒水完成反馈后才记录浇水，取消取壶不算浇过；最终要等同一 job 的 completed、fresh、stand，不能把受理当完成。高于约 1 米或隔着家具够不到的盆栽会拒绝，请先移到可达处。水壶当前不模拟容量消耗，未做灌水流程。
 
 物品菜单可看湿度、剩余碗数、煮饭剩余时间。到点的米饭在下次查询时结算，不因读状态重复加饭；相关时间保存在原 SQLite 存档里，不随模板之外的文件更新清空。
+
+## 生活安排：一次决定，分步执行
+
+不必每个坐姿都等下一次模型唤醒。模型给出有限步骤，由当前服务调度、原有 Runner 执行；不增加模型调用或第二个身体执行者。不改 DSH 的 16–20 分钟周期，也没有接入提前唤醒模型。
+
+先检查物品 ID 和当前姿态，再提交（示例用于 `connected-home`；不要为用示例重置已有布置）：
+
+```sh
+node agent.mjs set_life_plan @docs/examples/after-school.json
+node agent.mjs get_life_plan
+node agent.mjs control_life_plan '{"action":"pause"}'
+node agent.mjs control_life_plan '{"action":"resume"}'
+node agent.mjs control_life_plan '{"action":"cancel"}'
+```
+
+- 1–16 步；`action` 和 `target_id` 从实际物品能力选择。坐、读书、画画、玩具、躺卧、睡觉必须给 `duration_seconds`（5–1200 秒）。时间从**匹配 job 的真实姿态反馈**开始，不从受理开始。画画步骤只是已有持笔动作，不会代替模型生成画作；盛饭/吃饭只是已有物品状态操作，不冒充完整进食动画。
+- 浇水等有限动作等待完整完成；持续姿态到时安全起身再走下一步。盛饭、开电视、收玩具等物品操作会先走近目标。每步以当前布局和可用性重新检查，不绕过冷却、空碗、剩饭或寻路规则。
+- `when:{condition,target_id,on_false?,timeout_seconds?}`：条件为 `needs_water`、`rice_ready`、`bowl_empty` 或 `bowl_full`；不满足默认跳过。`on_false:"wait"` 可等待（默认1900秒，允许5–3600秒），到时仍不满足就停止并报告原因。
+- 持续姿态可加 `until:{condition,target_id}`，如玩玩具时等饭好；条件满足或持续时间耗尽均安全退出。它只判断家里的实际状态，不自行编造需求或理解新信息。
+- `get_life_plan` 返回 `status`、`index`、当前 `phase/job_id`、`history` 和错误。`completed` 才是整个安排完成；`needs_attention` 要重新观察、处理原因，再提交新安排，不自动重试耗材动作。
+- `pause` 暂停安排和计时，不会硬切断正在走的路或正在倒的水。`cancel` 会安全退出自己的动作，等匹配的站立反馈后才标记 `cancelled`。画布顶部有“暂停/继续安排”和“结束安排”，底部原有“暂停”仍是暂停整个身体。
+- 手动身体指令和布置修改成功后，安排让出控制并暂停；不抢回用户的新动作。若原 job 已被替换，旧安排不能直接继续，应取消后重新安排。
+- Runner 离线、页面不可见或全局暂停时不推进计时。重启保留检查点，恢复新鲜反馈后继续原步骤，不快进或重放已完成的盛饭/浇水。调用方仍需查看反馈，不能保证关机时身体继续活动。
+
+例如“饭好后去盛饭”可以放在玩具步骤后：
+
+```json
+{"action":"serve_rice","target_id":"rice-bowl","label":"饭好啦，去盛一小碗","when":{"condition":"rice_ready","target_id":"rice-cooker","on_false":"wait","timeout_seconds":1900}}
+```
+
+只在有安排时每秒检查一次；静态等待不反复写存档、不强制画帧。现有米饭半小时和植物天级时间规则不变。调度过程写入已有事件流 `life_plan_progress`，便于接入方以后按完成、失败或需要重新决策的事件唤醒模型。

@@ -41,6 +41,7 @@ try {
   let result: Record<string, any>;
   const reads: Record<string, string> = {
     get_state: "/api/state",
+    get_life_plan: "/api/life-plan",
     get_catalog: "/api/catalog",
     get_outdoors: "/api/outdoors",
     get_tools: "/api/tools",

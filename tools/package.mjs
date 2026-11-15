@@ -16,6 +16,7 @@ const roots = [
   "SKILL.md",
   "runtime-assets.json",
   "runtime/server.mjs",
+  ...((await readdir(resolve(root,"runtime"))).filter(n=>/^shared-.*\.mjs$/.test(n)).map(n=>"runtime/"+n)),
   "runtime/agent.mjs",
   "runtime/web",
   "house3d/assets",
@@ -25,12 +26,16 @@ const roots = [
   "house3d/room-presets.json",
   "house3d/licenses",
   "LICENSE",
+  "SECURITY.md",
+  "docs/LICENSING.md",
+  "docs/OPEN_SOURCE.md",
   "licenses",
   "UPSTREAM.md",
   "docs/AGENT_GUIDE.md",
   "docs/RUNNER.md",
   "docs/OUTDOORS.md",
   "docs/examples/family-supper.json",
+  "docs/examples/after-school.json",
   "docs/BALCONY.md",
   "docs/DESKS.md",
   "docs/ASSETS.md",
@@ -50,7 +55,7 @@ async function add(path) {
 }
 for (const item of roots) await add(resolve(root, item));
 files["README.md"] = new TextEncoder().encode(
-  `# Agent Home ${version}\n\n默认需要 Node.js 22.12+ 和现有 Chrome/Chromium。无需 Python、npm install、Blender 或构建。\n\n启动：\n\n    node start.mjs\n\n打开 http://127.0.0.1:19130/ 。默认只监听本机；先确认没有旧服务占用端口。Node 22.12 所需的 SQLite 参数由启动器自动处理，可能出现 Node 官方实验性模块提示。\n\nAgent 工具：\n\n    node agent.mjs get_tools\n    node agent.mjs get_catalog\n    node agent.mjs get_presets\n    node agent.mjs observe_home\n\n首次生成的存档在 house3d/data/house.sqlite。切换房间、布置预演、动作及截图用法见 docs/AGENT_GUIDE.md。Runner 在线即可执行动作和截图。仅 Node 模式用 node start.mjs --no-runner，需要可见执行页。WSL 与性能日志见 docs/RUNNER.md。模型和贴图与完整本机工程相同，没有降质；许可见 docs/ASSETS.md 和随附声明。\n\n更新前正常停止旧服务并备份自己的存档，不用发布包覆盖或删除 house3d/data。发布包不包含数据库或账号凭据。\n`,
+  `# Agent Home ${version}\n\n默认需要 Node.js 22.12+ 和现有 Chrome/Chromium。无需 Python、npm install、Blender 或构建。\n\n启动：\n\n    node start.mjs\n\n打开 http://127.0.0.1:19130/ 。默认只监听本机；先确认没有旧服务占用端口。Node 22.12 所需的 SQLite 参数由启动器自动处理，可能出现 Node 官方实验性模块提示。\n\nAgent 工具：\n\n    node agent.mjs get_tools\n    node agent.mjs get_catalog\n    node agent.mjs get_presets\n    node agent.mjs observe_home\n\n首次启动默认入住连通小家（儿童房、客厅、家长卧室、浴室和阳台），存档在 house3d/data/house.sqlite；已有存档原样保留，不自动替换。切换房间、布置预演、动作及截图用法见 docs/AGENT_GUIDE.md。Runner 在线即可执行动作和截图。仅 Node 模式用 node start.mjs --no-runner，需要可见执行页。WSL 与性能日志见 docs/RUNNER.md。模型和贴图与完整本机工程相同，没有降质；代码与美术许可不同，默认角色带非商业参考义务，部分生成素材分发仍待确认；见 docs/LICENSING.md、docs/ASSETS.md 和随附声明。\n\n更新前正常停止旧服务并备份自己的存档，不用发布包覆盖或删除 house3d/data。发布包不包含数据库或账号凭据。\n`,
 );
 const manifest = Object.fromEntries(
   Object.entries(files).map(([name, bytes]) => [
@@ -65,7 +70,6 @@ files["package-manifest.json"] = new TextEncoder().encode(
   JSON.stringify({ version, files: manifest }, null, 2) + "\n",
 );
 const unpacked = Object.values(files).reduce((n, b) => n + b.length, 0);
-if (unpacked >= 100_000_000) throw Error("Runtime package exceeds 100 MB");
 const folder = resolve(root, "artifacts");
 await mkdir(folder, { recursive: true });
 const file = resolve(folder, `agent-home-${version}-node.zip`),

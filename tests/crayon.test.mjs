@@ -12,7 +12,7 @@ test('one tool call produces a persistent static PNG with no viewer',()=>{
  const args={title:'窗边',marks:[['oval','ochre',50,30,10,10],['line','mint',10,70,50,60,90,70]]};
  try{
   assert.ok(get('/api/tool-schemas').body.some(v=>v.function.name==='draw_crayon'));
-  const first=call('draw_crayon',args,'first',0);assert.equal(first.status,200);assert.equal(first.body.artwork.target_id,null);
+  const first=call('draw_crayon',args,'first',0);assert.equal(first.status,200);assert.equal(first.body.artwork.target_id,'workbook');
   assert.deepEqual(call('draw_crayon',args,'first',0),first);
   const png=get(first.body.artwork.url);assert.equal(png.type,'image/png');assert.equal(png.bytes.readUInt32BE(16),480);assert.equal(png.bytes.readUInt32BE(20),360);
   assert.equal(call('apply_preset',{preset_id:'family-home',dry_run:false},'preset',1).status,200);
@@ -24,6 +24,17 @@ test('one tool call produces a persistent static PNG with no viewer',()=>{
    assert.equal(call('draw_crayon',{...args,...invalid},'invalid',3).status,400);
    assert.deepEqual(get('/api/state').body,state);
   }
+ }finally{app.close()}
+});
+
+test('drawing still produces a PNG when a custom home has no drawing book',()=>{
+ const app=new HouseApp(loadContext('house3d'),':memory:','house3d','runtime/web');
+ try{
+  const state=app.store.state();state.objects=[];app.store.save(state);
+  const r=app.handle({method:'POST',url:'/api/commands',headers:{},body:{id:'no-book',expected_revision:0,tool:'draw_crayon',arguments:{title:'太阳',marks:[['sun','ochre',50,30,10,10]]}}});
+  assert.equal(r.status,200);assert.equal(r.body.artwork.target_id,null);
+  const image=app.handle({method:'GET',url:r.body.artwork.url,headers:{}});
+  assert.equal(image.type,'image/png');assert.equal(image.bytes.readUInt32BE(16),480);
  }finally{app.close()}
 });
 

@@ -2,7 +2,7 @@
 
 ## 一次构建、Node 服务与浏览器执行者
 
-TS 后端 → esbuild → `runtime/server.mjs`；浏览器源码 → Vite → `runtime/web/`。构建仅由开发/发布者执行。运行者使用 `node start.mjs`，不用安装 npm 包、Python 或原生数据库模块。后端只导入 Node 内置模块；第三方前端 Three.js 已包含在浏览器 bundle。
+TS 后端 → esbuild → `runtime/server.mjs` 与随附 `runtime/shared-*.mjs`（与测试入口共用代码，避免重复体积）；浏览器源码 → Vite → `runtime/web/`。构建仅由开发/发布者执行。运行者使用 `node start.mjs`，不用安装 npm 包、Python 或原生数据库模块。后端只导入 Node 内置模块；第三方前端 Three.js 已包含在浏览器 bundle。
 
 要求 Node 22.12+。22.12 的 SQLite 开关由启动器用同一个 Node 可执行文件自动处理；无需执行 shell、下载安装或改变全局配置。新版本无需额外开关。实验性 SQLite 提示来自 Node，未通过屏蔽警告冒充 API 已稳定。
 
@@ -32,6 +32,8 @@ TS 后端 → esbuild → `runtime/server.mjs`；浏览器源码 → Vite → `r
 
 运行包不携带数据库。更新/恢复前正常停止旧实例，保留并备份自己的数据；不要运行中替换数据库，也不删租约来抢身体执行权。
 
+没有存档时，`loadContext` 用 `server-data.json` 的 `defaultState.preset_id` 展开「连通小家」的布置、出生点、相机和灯光。只作为 SQLite 首次插入的初始值；已有状态不会重新应用预设，也不自动迁移布局。
+
 ## 安全及限制
 
 只监听 127.0.0.1。保留本机 Host、跨源写入、5 MiB 请求体限制和静态目录边界；不开放公网/认证权限，不接 DSH/QQ/模型服务。参数只影响声明的家居状态，不作为 shell 脚本执行。
@@ -51,3 +53,7 @@ TS 后端 → esbuild → `runtime/server.mjs`；浏览器源码 → Vite → `r
 `renderStats` 还记录累计 draw calls、三角形和 CPU 绘制提交时间（不是 GPU 耗时）。开发对照用 `?renderStats=continuous` 恢复旧的持续身体/场景/阴影更新；不要日常开启。2026-11-06 本机同一 984×1538 家庭场景连续采样：闲置且电视/双屏播放时，按需版约 10.3 场景帧/秒、1.41 万 draw calls/秒，对照约 25.4 帧/秒、6.64 万 calls/秒；CPU 提交时间约 118 对 176 ms/秒。节目随机轮播、机器负载有波动，这不是 GPU 百分比或跨设备性能承诺。
 
 近景跟随在人物停止后留 3 秒收敛时间，再停止重复插值；OrbitControls 小于 1e-6 的矩阵浮点抖动不触发重画。人物重新移动或切换镜头时恢复跟随，拖动/缩放仍由 OrbitControls 自身事件即时更新。
+
+## 有限生活安排
+
+`life-plan.ts` 保存有界步骤与执行检查点；原 Node 服务仅在有活动安排时每秒检查，原 Runner 仍是唯一身体执行者。内部动作复用 `transition` 和相同安全校验，步骤与新 job 在同一 SQLite 事务中保存，不缓存一份全屋命令响应到每秒日志。新鲜的 job/身体匹配后才进入持续计时或完成；没有进展时不写库。暂停/离线冻结计划时钟，重启按旧反馈时间保留剩余时长。手动控制优先，不自动调用模型、DSH 或外部 shell。
