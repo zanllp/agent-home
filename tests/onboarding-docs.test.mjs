@@ -28,6 +28,15 @@ test('onboarding keeps platform-specific setup optional and does not claim an in
  for(const text of ['Windows PowerShell','macOS / Linux','HOUSE_PORT','HOUSE_CHROME'])assert.ok(start.includes(text),text);
 });
 
+test('homepage briefly explains everyday use and the existing QQBot integration path',()=>{
+ const s=read('README.md');
+ const usage=s.split('## 装好以后怎么玩\n')[1]?.split('\n## ')[0];
+ assert.ok(usage&&usage.length<600);
+ for(const text of ['QQBot','[SKILL.md](SKILL.md)','CLI','消息收发和模型调用','行动与反馈','可用动作由工具查询'])assert.ok(usage.includes(text),text);
+ assert.ok(s.indexOf('## 复制给你的 Agent')<s.indexOf('## 装好以后怎么玩'));
+ assert.ok(s.indexOf('## 装好以后怎么玩')<s.indexOf('![想给大肥鱼'));
+});
+
 test('local links in the new entry documents resolve to shipped or existing files',()=>{
  for(const file of ['README.md','docs/START.md','docs/AGENT_SETUP.md']){
   const s=read(file);
