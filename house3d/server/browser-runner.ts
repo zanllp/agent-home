@@ -47,10 +47,15 @@ export function launchRunner(
   onExit: (reason: string) => void
 ) {
   const profile = mkdtempSync(join(tmpdir(), "agent-home-chrome-"));
+  const extraChromeArgs = (process.env.HOUSE_CHROME_ARGS || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   const child = spawn(
     binary,
     [
-      "--headless",
+      "--headless=new",
+      ...extraChromeArgs,
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-extensions",

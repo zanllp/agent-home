@@ -13,7 +13,19 @@ tail -f house3d/data/logs/performance.jsonl
 
 `runner:true, online:true` 表示服务最近收到了 Runner 的状态，不代表某条指令已完成。照旧用 observe_home 的 fresh、body_job_id、job.phase 和身体姿态判断。关闭观看页不影响导航、姿态保持、Agent 截图。截图由 Runner 按家中相机预设或角色视角生成，不拷贝某位观众临时拖动过的镜头。不同观看页可以独立转镜头，也可以请求共享动作、暂停和快慢切换。
 
-Runner 载入一次场景和模型（有内存和初始化开销），平时只推进身体与交互，不持续向 GPU 画全屋；截图时才应用视觉姿态并绘制。观看页通过本机事件流接收姿态，插值展示，不执行导航、不提交动作回执、不争截图。远端显示使用本地 GPU，观看者越多总绘制成本仍会增加。无公网监听、鉴权服务或 DSH 改动。
+默认只监听 `127.0.0.1`。需要从同机容器访问时，显式设置监听地址和允许的 Host，而不是修改公共默认值：
+
+```sh
+HOUSE_HOST=0.0.0.0 HOUSE_ALLOWED_HOSTS=host.docker.internal node start.mjs
+```
+
+额外的 Chromium 参数可通过 `HOUSE_CHROME_ARGS` 传入。该变量按空白拆分，适合追加本机 GPU 或平台专用 flag：
+
+```sh
+HOUSE_CHROME_ARGS="--use-angle=d3d11 --ignore-gpu-blocklist" node start.mjs
+```
+
+Runner 载入一次场景和模型（有内存和初始化开销），平时只推进身体与交互，不持续向 GPU 画全屋；截图时才应用视觉姿态并绘制。观看页通过本机事件流接收姿态，插值展示，不执行导航、不提交动作回执、不争截图。远端显示使用本地 GPU，观看者越多总绘制成本仍会增加。默认无公网监听，也不包含鉴权服务或 DSH 改动。
 
 `node start.mjs --no-runner` 或 `HOUSE_RUNNER=0` 关闭后台浏览器：服务端仍只需 Node，此模式由一个可见页面执行身体与截图。不要对同一存档再启动第二个服务。正常 Ctrl+C 会关闭本服务创建的浏览器并清理临时配置。Runner 异常退出时不会让旁观页悄悄接管或自动重放命令；查日志，正常重启服务。
 

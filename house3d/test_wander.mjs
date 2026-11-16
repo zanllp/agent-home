@@ -15,7 +15,7 @@ test('path routes around furniture and rejects occupied goals',()=>{
 });
 test('ten simulated minutes of wandering stay free and include rest and turns',()=>{
  const w=createWalker(nav,{x:0,z:.5},{random});let travel=0,rest=0,turn=0,p={...w.state};
- for(let i=0;i<18000;i++){const s=w.update(1/30,1.3);assert.ok(nav.free(s));travel+=Math.hypot(s.x-p.x,s.z-p.z);if(s.mode==='rest')rest++;if(s.mode==='turn')turn++;assert.ok(s.speed<=.3);p={...s}}
+ for(let i=0;i<18000;i++){const s=w.update(1/30,1.3);assert.ok(nav.free(s));assert.ok(Math.abs(s.yaw)<=Math.PI+1e-9);travel+=Math.hypot(s.x-p.x,s.z-p.z);if(s.mode==='rest')rest++;if(s.mode==='turn')turn++;assert.ok(s.speed<=.3);p={...s}}
  assert.ok(travel>50);assert.ok(rest>100);assert.ok(turn>100);assert.ok(w.state.steps>200);
 });
 test('gait phase is distance driven and speed changes do not teleport',()=>{

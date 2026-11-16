@@ -59,12 +59,14 @@ const mount=document.getElementById('app');
  const ownerFetch=(url,opts={})=>fetch(url,{...opts,headers:{...opts.headers,...(runnerKey?{'X-House-Runner':runnerKey}:{})}});
  const post=(url,body)=>ownerFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
  async function command(tool,args){const state=await (await fetch('/api/state')).json(),r=await post('/api/commands',{id:crypto.randomUUID(),expected_revision:state.revision,tool,arguments:args});if(!r.ok)throw Error((await r.json()).error)}
+ let lastFaultKey='',lastFaultAt=0;
+ function runtimeFault(where,e){const detail=String(e?.stack||e?.message||e).replaceAll(runnerKey||'','[runner]').slice(0,1200),key=where+':'+detail;if(key===lastFaultKey&&performance.now()-lastFaultAt<10000)return;lastFaultKey=key;lastFaultAt=performance.now();post('/api/runtime/fault',{message:where+': '+detail}).catch(()=>{})}
  function failNotice(e){ui.notice=e.message;noticeUntil=performance.now()+3500}
  function publish(now,contact){if(framePending||now-lastPublish<(watchers?80:500))return;
   const w=walker.state, packet={jobId:interaction.jobId,phase:interaction.phase,pose:interaction.pose,gait,targetId:interaction.targetId,relatedId:interaction.relatedId,busy:interaction.busy,contact,body:bodySnapshot(avatar,walker,interaction,ui.paused),walk:{x:w.x,z:w.z,yaw:w.yaw,speed:w.speed,phase:w.phase,mode:w.mode,steps:w.steps,runBlend:w.runBlend},auto:ui.auto,brisk:ui.brisk,paused:ui.paused,status:ui.status};
   const serial=JSON.stringify(packet);if(serial===lastPacket&&now-lastPublish<1000)return;
   lastPublish=now;framePending=true;
-  post('/api/runtime/frame',packet).then(async r=>{if(!r.ok)throw Error('Runner 状态同步失败');lastPacket=serial;const c=await r.json();watchers=c.watchers;if(c.revision!==controlRevision){controlRevision=c.revision;if(c.pausedRev>pausedRev){ui.paused=c.paused;pausedRev=c.pausedRev}if(c.briskRev>briskRev){setBrisk(c.brisk);briskRev=c.briskRev}}}).catch(failNotice).finally(()=>framePending=false);
+  post('/api/runtime/frame',packet).then(async r=>{if(!r.ok)throw Error('Runner 状态同步失败');lastPacket=serial;const c=await r.json();watchers=c.watchers;if(c.revision!==controlRevision){controlRevision=c.revision;if(c.pausedRev>pausedRev){ui.paused=c.paused;pausedRev=c.pausedRev}if(c.briskRev>briskRev){setBrisk(c.brisk);briskRev=c.briskRev}}}).catch(e=>{runtimeFault('frame',e);failNotice(e)}).finally(()=>framePending=false);
  }
  const ray=new T.Raycaster(),plane=new T.Plane(new T.Vector3(0,1,0),0),hit=new T.Vector3();
  async function objectCommand(target_id,action){
@@ -225,8 +227,8 @@ const mount=document.getElementById('app');
   const turnChanged=(spectator?(remote?.gait?.sleepSide??0):gait.sleepSide)!==lastDrawnSide;
   const animateBody=ui.ready&&(spectator?!!remote&&(remoteDirty||bodyDirty||turnChanged||(!ui.paused&&(remote.body.moving||remote.walk.mode==='turn'||remote.phase==='approaching'||remote.phase==='entering'||remote.phase==='leaving'||remote.phase==='active'&&['draw','play','water'].includes(remote.pose)))):controller&&!ui.paused&&(continuousBaseline||bodyDirty||(!isRunner&&turnChanged)||renderDemand.animate(now,{ready:ui.ready,controller,paused:ui.paused,auto:ui.auto,routeLength:walker?.state.route.length||0,phase:interaction?.phase,pose:interaction?.pose,weight:isRunner?0:weight})));
   perf?.tick(elapsed*1000,animateBody);
-  if(isRunner&&ui.ready&&controller){
-   if(animateBody){bodyDirty=false;gait.poseTime+=dt;const c=interaction.tick(dt);if(c&&!c.walking){avatar.position.set(c.x,c.y,c.z);avatar.rotation.set(c.pitch,c.yaw,0,'YXZ')}else{
+  if(isRunner&&ui.ready){
+   if(controller&&animateBody){bodyDirty=false;gait.poseTime+=dt;const c=interaction.tick(dt);if(c&&!c.walking){avatar.position.set(c.x,c.y,c.z);avatar.rotation.set(c.pitch,c.yaw,0,'YXZ')}else{
     const oldYaw=walker.state.yaw,w=walker.update(dt,scale);gait.turn=(w.yaw-oldYaw)/dt;gait.time+=dt;gait.weight+=((w.mode==='walk'?1:0)-gait.weight)*Math.min(1,dt*8);avatar.position.set(w.x,groundHeight(w.x,w.z),w.z);avatar.rotation.set(0,w.yaw,0,'YXZ');if(!interaction.busy)ui.status=w.route.length?'去那边看看':'停一停，看看周围';
    }}
    publish(now,interaction.frame);return;
@@ -376,7 +378,7 @@ async function init(){try{
      const p=next.life_plan;ui.lifePlan=p?{title:p.title,status:p.status,label:p.steps[p.index]?.label,wait_reason:p.wait_reason}:null;
      await room.setFinish(next.room);if(next.revision!==roomRevision)renderDemand.invalidate();if(dimensionsChanged&&['home','broadcast','album'].includes(ui.cameraMode))view(ui.cameraMode,true);
      if(!spectator){const heartbeat=await ownerFetch('/api/viewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...feedbackEnvelope(viewerSession,bodySnapshot(avatar,walker,interaction,ui.paused),interaction,true,ui.paused),job_id:interaction.jobId===next.interaction?.id?interaction.jobId:null})});
-     if(!heartbeat.ok){controller=false;throw Error('身体反馈暂时没同步')}controller=(await heartbeat.json()).controller;if(!controller){ui.notice='小家正在另一个窗口里运行。';noticeUntil=performance.now()+2000}}
+     if(!heartbeat.ok){const detail=await heartbeat.text();throw Error(`身体反馈暂时没同步 (${heartbeat.status}): ${detail}`)}controller=(await heartbeat.json()).controller;if(!controller){ui.notice='小家正在另一个窗口里运行。';noticeUntil=performance.now()+2000}}
      consumeControls(received,next);if(controller){const previousJob=interaction.jobId;interaction.consume(next.interaction);if(previousJob!==interaction.jobId)invalidateBody()}const objectResponse=await fetch('/api/objects');if(objectResponse.ok){const data=await objectResponse.json();if(objectPanel.open&&JSON.stringify(data)!==JSON.stringify(objectData))renderDemand.invalidate();objectData=data}received=next;roomRevision=next.revision;ui.error='';
      if(!spectator){const shots=await ownerFetch('/api/screenshots/pending?viewer=life-v2');if(!shots.ok)throw Error('拍照请求暂时不可用');
      const shot=await shots.json();
@@ -384,7 +386,7 @@ async function init(){try{
       if(!cleanView(ui.cameraMode)){hud.update(ui);hud.render(renderer);selfMap.render(renderer);objectPanel.update(objectData);objectPanel.render(renderer)}
       const blob=shot.view==='character'?await captureCharacterView({renderer,scene,avatar,pose:bodySnapshot(avatar,walker,interaction,ui.paused).pose,book:readingBook.position,toy:drawingPose.focus||floorPlay.lookAt,room,gazeYaw:glance?.yaw,sofaSide:interaction.frame?.sofa,spectatorCamera:camera,spectatorOptions:roomViewOptions(ui.cameraMode)}):await capturePng(renderer.domElement);const uploaded=await ownerFetch(`/api/screenshots/${shot.id}`,{method:'POST',headers:{'Content-Type':'image/png','X-House-Viewer':'life-v2'},body:blob});renderDemand.invalidate();perf?.add('capture_ms',performance.now()-shotStart);if(!uploaded.ok)throw Error('照片暂时没存好')}}
     }
-   }catch(e){perf?.add('sync_errors');ui.error='布置暂时没能更新，请稍后重试';console.warn(e)}
+   }catch(e){perf?.add('sync_errors');runtimeFault('syncRoom',e);ui.error='布置暂时没能更新，请稍后重试';console.warn(e)}
    if(!disposed)syncTimer=setTimeout(syncRoom,1200);
   }
   async function syncOutdoors(){try{if(isRunner||!document.hidden){const res=await fetch('/api/outdoors');if(res.ok&&!disposed){const value=await res.json();if(!disposed&&(value.weather!==outdoorState?.weather||value.daylight!==outdoorState?.daylight)){outdoorState=value;room.setOutdoors(value);lighting.setOutdoors(value);renderDemand.invalidate();renderer.shadowMap.needsUpdate=true}}}}catch(e){console.warn('窗外天气暂时无法更新',e)}if(!disposed)outdoorTimer=setTimeout(syncOutdoors,60000)}

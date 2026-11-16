@@ -17,6 +17,16 @@ if (!Number.isInteger(port) || port < 1 || port > 65535)
   throw Error("HOUSE_PORT must be an integer between 1 and 65535");
 const enabled =
   process.env.HOUSE_RUNNER !== "0" && !process.argv.includes("--no-runner");
+const listenHost = process.env.HOUSE_HOST || "127.0.0.1";
+const allowedHosts = new Set([
+  "127.0.0.1",
+  "localhost",
+  ...(listenHost === "0.0.0.0" ? [] : [listenHost]),
+  ...(process.env.HOUSE_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean),
+]);
 const binary = enabled ? browserBinary() : null;
 const db = process.env.HOUSE_DB || resolve(root, "data/house.sqlite");
 const metrics = performanceLog(
@@ -42,7 +52,7 @@ const server = createServer(async (req, res) => {
   try {
     const host = req.headers.host || "";
     if (
-      !["127.0.0.1", "localhost"].includes(host.split(":")[0]) ||
+      !allowedHosts.has(host.split(":")[0].toLowerCase()) ||
       (req.headers.origin && req.headers.origin !== "http://" + host)
     ) {
       reply({ status: 403, body: { error: "Local origin only" } });
@@ -150,9 +160,9 @@ server.on("error", (error) => {
   app.close();
   process.exitCode = 1;
 });
-server.listen(port, "127.0.0.1", () => {
+server.listen(port, listenHost, () => {
   console.log(
-    `Agent Home: http://127.0.0.1:${port}/ (${
+    `Agent Home: http://${listenHost === "0.0.0.0" ? "127.0.0.1" : listenHost}:${port}/ (${
       enabled ? "headless runner" : "visible viewer"
     })`
   );
