@@ -458,7 +458,8 @@ export class HouseApp {
           const snapshot = store.snapshot();
           const navigation_start = snapshot?.visible && !snapshot.paused && now-snapshot.received_at<6 && snapshot.body.pose === "stand" ? snapshot.body : null;
           if(body.tool==='connect_rooms'&&snapshot?.visible&&now-snapshot.received_at<6)requireValue(!snapshot.body.moving&&snapshot.body.pose==='stand','Stand still before connecting rooms');
-          next = transition(old, body, ctx, {navigation_start,now});
+          next = transition(old, body, ctx, {navigation_start,now,
+            recovery_body:snapshot?.visible&&now-snapshot.received_at<6?snapshot.body:null});
           const changesDoor = body.tool === 'update_object' && body.arguments?.id === old.room?.balcony?.door_id && 'open' in (body.arguments?.properties ?? {});
           if((old.room?.balcony||next.room?.balcony)&&(changesDoor||['place_furniture','update_furniture','remove_furniture','apply_layout'].includes(body.tool))){
             const snap=store.snapshot();if(snap?.visible&&now-snap.received_at<6){
@@ -513,14 +514,19 @@ export class HouseApp {
           });
         return json({ error: (e as Error).message }, 400);
       }
+      if(body.tool==='cancel_action' && body.arguments?.force===true && next.life_plan?.status==='cancelling'){
+        next.life_plan.status='cancelled';next.life_plan.finished_at=now;
+      }
       if (["walk_to","interact","cancel_action","move_character","set_activity","apply_preset","connect_rooms","update_room","update_layout","place_furniture","update_furniture","remove_furniture","apply_layout"].includes(body.tool)) interruptLife(next,now);
       store.event(now, "command_accepted", {
         command_id: body.id,
         action: body.tool,
         arguments: body.arguments ?? {},
-        status: next.interaction?.id === body.id ? "requested" : "applied",
+        status: next.interaction?.id === body.id && BUSY_PHASES.has(next.interaction?.phase) ? "requested" : "applied",
       });
       const result: Data = { ok: true, state: next };
+      if(body.tool==='cancel_action' && body.arguments?.force===true)
+        Object.assign(result,{unlocked:true,body_confirmed:false});
       if (body.tool === "draw_crayon") {
         const base = body.arguments.base_url;
         const row = base ? store.db.prepare("SELECT png FROM drawings WHERE revision=?").get(/^\/api\/drawings\/(\d+)\.png$/.exec(base)?.[1] ?? "") as Data | undefined : undefined;

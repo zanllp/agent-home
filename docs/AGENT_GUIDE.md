@@ -285,3 +285,17 @@ node agent.mjs control_life_plan '{"action":"cancel"}'
 ```
 
 只在有安排时每秒检查一次；静态等待不反复写存档、不强制画帧。现有米饭半小时和植物天级时间规则不变。调度过程写入已有事件流 `life_plan_progress`，便于接入方以后按完成、失败或需要重新决策的事件唤醒模型。
+
+## 动作卡住：通用强制退出
+
+先试正常退出 `node tools/agent-home.mjs cancel`。走路、浇水、坐卧、阅读、画画等任意互动连退出都卡住时：
+
+```sh
+node tools/agent-home.mjs cancel --force
+```
+
+函数调用为 `cancel_action`，参数 `{"job_id":"查询得到的当前任务ID","force":true}`。版本、幂等与任务 ID 检查仍保留；不会取消后来替换的新任务。普通退出逻辑不变，也不会在超时后擅自强退。
+
+强退立即解除后端动作锁，旧任务标记 failed 并保留 cancelled_job_id；不伪造原动作完成、浇水或资源消耗。在线身体停止旧动作并恢复安全站位，必要时会从家具内重置到最近可站地面；手持道具恢复为原处摆放状态。离线时也能解锁，等执行者重新连接后再验证画面。
+
+CLI 的 unlocked 只表示锁已释放。继续操作前读 observe：fresh 为 true、body_job_id 匹配这次强退任务、pose 为 stand、moving 为 false；原任务的迟到回执会被拒绝。已有运行计划让出控制，正在取消的计划结束为 cancelled，不会偷偷接着执行。

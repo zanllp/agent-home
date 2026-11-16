@@ -100,3 +100,15 @@ node tools/agent-home.mjs call get_life_plan
 `call set_life_plan` 接受 `title` 与 `steps`；持续姿态必须给 `duration_seconds`，步骤可带 `when`/`until` 条件。用 `get_life_plan` 读取检查点，`control_life_plan` 暂停、继续或安全取消。完整例子与限制见 [Agent 指南](docs/AGENT_GUIDE.md#生活安排一次决定分步执行)。
 
 计划完成后会停止，不会持续自主选事，也不会唤醒模型。不要因为已提交一张计划，就承诺角色会永远自己生活。浇水有冷却；一锅饭可盛三碗，空锅重新煮饭需要半小时。先看实际物品状态，不重复消耗资源。
+
+## 动作卡住时强制退出
+
+正常退出用 `node tools/agent-home.mjs cancel`，等待安全起身。若退出本身卡住，可明确执行：
+
+```sh
+node tools/agent-home.mjs cancel --force
+```
+
+也可先查询当前 job，再调用 `cancel_action {"job_id":"实际任务ID","force":true}`。适用于走路、浇水、坐卧、阅读、画画等全部互动。强制退出不依赖执行页回执，解除任务锁并中断旧动作；必要时重置到最近安全地面站位，手持道具回到摆放状态。原任务保留为 failed，不补记浇水或其他未确认成果。
+
+`unlocked:true` 只表示锁已解除，`body_confirmed:false` 不是身体已恢复的证明。重新查询 observe，确认 fresh、body_job_id 对应这次退出、pose 为 stand 且 moving 为 false 后，再继续行动。执行者离线时先报告离线；不要反复强制退出或自动重试旧任务。

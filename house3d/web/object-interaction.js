@@ -13,13 +13,20 @@ export function contactFrame(kind,start,target,progress){
 export function createObjectInteraction({context,onStart,onExit,onStatus,report}){
  const water=createWaterInteraction({context,onStart,onExit,onStatus,report});let watering=false;
  let switchFrom=null,exitStart=null,playSurface='软垫',job=null,phase='none',start,target,approachPoint,index=0,time=0,progress=0,leaveFrom=1,queue=Promise.resolve(),kind='sit',lastFrame=null;
- function send(next,error){const id=job.id,body={phase:next,approach_index:index,...(error?{error}: {}),...(next==='completed'&&job.action==='leave'?{position:((s)=>({x:s.x,z:s.z,yaw:s.yaw}))(context().walker.state)}:{})};queue=queue.then(()=>report(id,body)).catch(e=>onStatus('互动状态暂时没同步：'+e.message));}
+ function send(next,error){const id=job.id,body={phase:next,approach_index:index,...(error?{error}: {}),...(next==='completed'&&job.action==='leave'?{position:((s)=>({x:s.x,z:s.z,yaw:s.yaw}))(context().walker.state)}:{})};queue=queue.then(()=>report(id,body)).catch(e=>{if(job?.id===id)onStatus('互动状态暂时没同步：'+e.message)});}
  function consume(next){
+  if(next?.forced && next.phase==='failed'){
+   if(job?.id===next.id && !watering && phase==='none')return;
+   water.reset();watering=false;job=next;phase='none';lastFrame=null;switchFrom=null;exitStart=null;progress=0;
+   const ctx=context();ctx.walker.stop();onStart();onExit({...ctx.walker.state,...next.recovery_position});
+   onStatus('已强制退出，旧动作没有算作完成');return;
+  }
+  if(watering && next?.pose!=="water" && next?.id!==water.jobId)water.reset();
   if(next?.pose==="water"){watering=true;water.consume(next);return}watering=false;
   if(!next||next.id===job?.id||['completed','failed'].includes(next.phase))return;
   const old=job,oldPhase=phase,oldFrame=lastFrame;job=next;kind=next.pose;const ctx=context();
   if(kind==='walk'){
-   onStart();progress=0;target=next.target;
+   onStart();progress=0;lastFrame=null;target=next.target;
    if(next.action==='leave'){ctx.walker.stop();phase='none';onExit({...ctx.walker.state});send('completed');return}
    if(!ctx.walker.go(target)){phase='none';onStatus('那里走不过去，换一块空地吧');send('failed','No collision-free route to the destination');return}
    phase='approaching';send('approaching');return;

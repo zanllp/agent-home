@@ -79,7 +79,7 @@ test("missing explicit Chromium executable fails clearly without a download", ()
 });
 test(
   "real headless runner owns execution with zero viewers, streams identical poses, captures PNG and shuts down",
-  { skip: process.env.HOUSE_TEST_RUNNER !== "1", timeout: 90000 },
+  { skip: process.env.HOUSE_TEST_RUNNER !== "1", timeout: 120000 },
   async () => {
     const dir = mkdtempSync(join(tmpdir(), "runner-test-")),
       probe = createServer();
@@ -243,6 +243,28 @@ test(
         readFileSync(join(dir, "logs/performance.jsonl"), "utf8"),
         /action_progress/
       );
+      const forced = await cli("cancel", "--force");
+      assert.equal(forced.unlocked, true);
+      assert.equal(forced.body_confirmed, false);
+      const forceId = forced.state.interaction.id;
+      await wait(async () => {
+        const o = await get("/api/observe");
+        return o.fresh && o.body_job_id === forceId && o.job.forced &&
+          o.job.phase === "failed" && o.body.pose === "stand" && !o.body.moving;
+      });
+      assert.equal((await cli("goto", "child-chair")).observe.job.phase, "completed");
+      await cmd("apply_preset",{preset_id:"connected-home",dry_run:false});
+      const waterState=await get("/api/state");
+      await wait(async()=>{const o=await get("/api/observe");return o.fresh&&o.body.pose==="stand"&&!o.body.moving&&Math.hypot(o.body.x-waterState.character.x,o.body.z-waterState.character.z)<.02});
+      const waterOptions=(await cli("interactables")).objects;
+      const waterChoices=waterOptions.filter(o=>o.actions.some(a=>a.id==="water"&&a.available));
+      assert.ok(waterChoices.length,JSON.stringify(waterOptions.filter(o=>o.actions.some(a=>a.id==="water"))));
+      const wateringId = await cmd("interact",{target_id:waterChoices[0].id,action:"water"});
+      await wait(async()=>{const o=await get("/api/observe");return o.fresh&&o.body_job_id===wateringId});
+      const waterExit = await cli("cancel","--force");
+      await wait(async()=>{const o=await get("/api/observe");return o.fresh&&o.body_job_id===waterExit.state.interaction.id&&o.body.pose==="stand"&&!o.body.moving});
+      assert.equal((await cli("do","childroom-chair","read")).observe.body.pose,"read");
+
     } finally {
       abort.abort();
       p.kill("SIGTERM");

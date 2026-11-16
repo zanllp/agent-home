@@ -1,3 +1,4 @@
+import {createNavigation} from '../shared/navigation.mjs';
 import {waterPlan} from '../shared/water-plan.mjs';
 import {COOK_SECONDS,RICE_CAPACITY} from '../shared/home-care.mjs';
 import {airingBed} from '../shared/airing.mjs';
@@ -31,7 +32,7 @@ export function transition(
   input: State,
   command: Data,
   ctx: Context,
-  { check_geometry = true, check_busy = true, navigation_start = null, now = Date.now()/1000 }: Data = {},
+  { check_geometry = true, check_busy = true, navigation_start = null, recovery_body = null, now = Date.now()/1000 }: Data = {},
 ): State {
   let state = clone(input);
   const op = command.tool,
@@ -181,18 +182,30 @@ export function transition(
     };
   } else if (op === "cancel_action") {
     const old = state.interaction || {};
-    requireValue(
-      busy(state) && old.id === args.job_id,
-      "No matching active job",
-    );
-    state.interaction = {
-      ...old,
-      id: command.id || "cancel-" + (state.revision + 1),
-      action: "leave",
-      phase: "requested",
-      from_active: ["active", "entering"].includes(old.phase),
-      error: null,
-    };
+    requireValue(args.force === undefined || typeof args.force === "boolean", "force must be boolean");
+    requireValue(old.id && old.id === args.job_id && (args.force || busy(state)), "No matching active job");
+    if (args.force) {
+      const nav = createNavigation(state.objects, ctx.catalog, {assets:ctx.assets,room:state.room??{}});
+      const origin = recovery_body ?? state.character;
+      const point = nav.free(origin) ? origin : nav.nodes.reduce<{x:number,z:number}|null>((best,p) =>
+        !best || Math.hypot(p.x-origin.x,p.z-origin.z)<Math.hypot(best.x-origin.x,best.z-origin.z) ? p : best, null);
+      requireValue(point, "No safe floor position available for emergency exit");
+      const position = {x:point.x,z:point.z,yaw:origin.yaw??state.character.yaw};
+      state.interaction = {...old,id:command.id||"force-"+(state.revision+1),action:"leave",phase:"failed",
+        forced:true,cancelled_job_id:old.id,recovery_position:position,carrying:false,
+        error:"Action forcibly interrupted; original completion is not confirmed"};
+      Object.assign(state.character,position,{activity:"idle"});
+      state.control_revisions = {...state.control_revisions,position:state.revision+1,activity:state.revision+1};
+    } else {
+      state.interaction = {
+        ...old,
+        id: command.id || "cancel-" + (state.revision + 1),
+        action: "leave",
+        phase: "requested",
+        from_active: ["active", "entering"].includes(old.phase),
+        error: null,
+      };
+    }
   } else if (op === "interact") {
     const obj = state.objects.find((o) => o.id === args.target_id);
     requireValue(obj, "Target object not found");

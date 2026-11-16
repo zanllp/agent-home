@@ -142,6 +142,13 @@ export function createActions(request) {
   async function wait(result, timeoutMs) {
     return waitForJob(request, result.body.state?.interaction, { timeoutMs });
   }
+  async function cancel(force=false) {
+    if (!force) { await clearJob(); return {ok:true}; }
+    const state=checked(await request("GET","/api/state")),job=state.interaction;
+    if (!job?.id) return {ok:true,unlocked:true,body_confirmed:false};
+    const result=await command("cancel_action",{job_id:job.id,force:true});
+    return {...result.body,unlocked:true,body_confirmed:false};
+  }
   async function clearJob() {
     const feedback = checked(await request("GET", "/api/observe")), job = feedback.job;
     if (!job || !BUSY.has(job.phase)) return;
@@ -172,7 +179,7 @@ export function createActions(request) {
     const feedback = await wait(result, 60000);
     return { ok: true, target_id: targetId, action, observe: feedback };
   }
-  return { command, goto, doAction };
+  return { command, cancel, goto, doAction };
 }
 const actions = createActions(request);
 
@@ -211,7 +218,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(fs.realpathSync(resolve
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (!cmd || cmd === "help") {
-    console.log("用法: node tools/agent-home.mjs <schemas|state|observe|objects|catalog|presets|interactables|do TARGET ACTION|goto X Z|goto OBJECT_ID|screenshot [character|spectator] --out FILE|call TOOL JSON>");
+    console.log("用法: node tools/agent-home.mjs <schemas|state|observe|objects|catalog|presets|interactables|do TARGET ACTION|goto X Z|goto OBJECT_ID|cancel [--force]|screenshot [character|spectator] --out FILE|call TOOL JSON>");
     process.exit(0);
   }
   if (cmd in READS) {
@@ -231,6 +238,11 @@ try {
       if (rest.length !== 2 || !rest[0].trim() || !rest[1].trim() || !Number.isFinite(x) || !Number.isFinite(z)) throw new Error("用法: goto X Z 或 goto OBJECT_ID");
       out(await actions.goto(x, z));
     }
+    process.exit(0);
+  }
+  if (cmd === "cancel") {
+    if (rest.some(arg=>arg!=="--force")) throw new Error("Usage: cancel [--force]");
+    out(await actions.cancel(rest.includes("--force")));
     process.exit(0);
   }
   if (cmd === "screenshot") {
@@ -263,7 +275,7 @@ try {
     let args = {};
     if (argText) args = JSON.parse(argText);
     const result = await actions.command(tool, args);
-    if (wait && (tool === "walk_to" || tool === "cancel_action" ||
+    if (wait && !(tool === "cancel_action" && args.force === true) && (tool === "walk_to" || tool === "cancel_action" ||
         (tool === "interact" && (BODY_ACTIONS.has(args.action) || args.action === "leave")))) {
       const observe = await waitForJob(request, result.body.state?.interaction, { timeoutMs: 60000 });
       out({ ...result.body, observe });

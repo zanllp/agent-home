@@ -376,11 +376,15 @@
       []
     ],
     "cancel_action": [
-      "Cancel the matching current job. Seated/lying characters get up safely before completion.",
+      "Cancel the matching current job. Normal cancellation gets up safely. Use force:true explicitly for emergency interruption/unlock; this does not confirm the original action completed.",
       {
         "job_id": {
           "type": "string",
           "description": "Current job id"
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Explicit emergency stop: release the action lock even if normal exit is stuck or the executor is offline; reset to a safe floor position when the executor reconnects. Default false."
         }
       },
       [

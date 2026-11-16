@@ -1,10 +1,10 @@
 // Finite job: fetch the placed can, pour at the plant, return the same can.
 export function createWaterInteraction({context,onStart,onExit,onStatus,report}){
  let job=null,phase='none',leg='fetch',time=0,carry=0,frame=null,queue=Promise.resolve();
- const send=(next,extra={})=>{const id=job.id;queue=queue.then(()=>report(id,{phase:next,approach_index:0,...extra})).catch(e=>onStatus(e.message))};
+ const send=(next,extra={})=>{const id=job.id;queue=queue.then(()=>report(id,{phase:next,approach_index:0,...extra})).catch(e=>{if(job?.id===id)onStatus(e.message)})};
  const done=()=>{const ctx=context();phase='none';carry=0;frame=null;onExit({...ctx.walker.state});send('completed',{carrying:false,position:{x:ctx.walker.state.x,z:ctx.walker.state.z,yaw:ctx.walker.state.yaw}})};
  const walk=(p)=>{if(context().walker.go(p))return true;phase='none';carry=0;frame=null;send('failed',{error:'浇水路线被挡住了，请先留出通道'});return false};
- return {consume(next){
+ return {reset(){job=null;phase='none';carry=0;frame=null;time=0;context().walker.stop()},consume(next){
   if(!next||job?.id===next.id||['failed','completed'].includes(next.phase))return;
   const held=carry;job=next;onStart();time=0;
   if(next.action==='leave'){
