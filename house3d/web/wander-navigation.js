@@ -12,7 +12,7 @@ export function createWalker(nav,start,{random=Math.random}={}){
   if(!state.route.length){state.speed=0;state.runBlend=0;state.mode='rest';state.wait-=dt;if(autonomous&&state.wait<=0)pick();return state}
   let p=state.route[0],dx=p.x-state.x,dz=p.z-state.z,d=Math.hypot(dx,dz);
   if(d<.003){state.route.shift();if(!state.route.length){state.wait=1.8+random()*3.2;destination=null}return state}
-  const angle=Math.atan2(dx,dz),error=shortestAngle(state.yaw,angle),turn=Math.sign(error)*Math.min(Math.abs(error),dt*(brisk?4.5:2.5));state.yaw+=turn;
+  const angle=Math.atan2(dx,dz),error=shortestAngle(state.yaw,angle),turn=Math.sign(error)*Math.min(Math.abs(error),dt*(brisk?4.5:2.5));state.yaw=Math.atan2(Math.sin(state.yaw+turn),Math.cos(state.yaw+turn));
   // Speeds are in room metres/second, independent of the imported rig's units.
   const walking=brisk ? .67 : .12/.62*scale,running=1.65,accel=brisk?2.85:.65;
   const ahead={x:state.x+dx/d*.45,z:state.z+dz/d*.45};

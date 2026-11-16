@@ -107,13 +107,15 @@ export class Store {
         y: size.height + 0.2,
         yaw: 10,
       };
-    for (const k of ["x", "y", "z", "yaw"])
+    for (const k of ["x", "y", "z"])
       requireValue(
         typeof a[k] === "number" &&
           Number.isFinite(a[k]) &&
           Math.abs(a[k]) <= limits[k],
         "Invalid body coordinate",
       );
+    requireValue(typeof a.yaw === "number" && Number.isFinite(a.yaw), "Invalid body yaw");
+    a.yaw = Math.atan2(Math.sin(a.yaw), Math.cos(a.yaw));
     if(state.room?.balcony||state.room?.floorplan)requireValue(regionAt(state.room,a)!==null,"Body is outside interior/balcony");
     requireValue(
       ["stand", "sit", "lie", "sleep", "read", "play", "draw", "water", "transition"].includes(a.pose) &&

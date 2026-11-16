@@ -50,7 +50,7 @@ export function launchRunner(
   const child = spawn(
     binary,
     [
-      "--headless",
+      "--headless=new", "--use-angle=d3d11", "--ignore-gpu-blocklist", "--enable-gpu-rasterization", "--disable-software-rasterizer",
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-extensions",
