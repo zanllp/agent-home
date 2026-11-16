@@ -105,7 +105,6 @@ export class Store {
         x: (state.room?.balcony||state.room?.floorplan)?Math.max(Math.abs(extent.minX),Math.abs(extent.maxX))+.2:size.width / 2 + 0.2,
         z: (state.room?.balcony||state.room?.floorplan)?Math.max(Math.abs(extent.minZ),Math.abs(extent.maxZ))+.2:size.depth / 2 + 0.2,
         y: size.height + 0.2,
-        yaw: 10,
       };
     for (const k of ["x", "y", "z"])
       requireValue(
