@@ -1,6 +1,6 @@
 ---
 name: agent-home
-description: Agent Home 里的 3D 小家。查看自己在哪、走到书桌、看书、画蜡笔画、收拾房间、上床睡觉、调整家具、拍照。用户提到家、小屋、回家、家具、走动、睡觉、收拾房间时使用。
+description: Agent Home 里的 3D 小家。查看自己在哪、走到书桌、看书、画蜡笔画、换衣服、收拾房间、上床睡觉、调整家具、拍照。用户要操作这间小家、给大肥鱼换装或查看她的生活状态时使用。
 ---
 
 # Agent Home
@@ -61,6 +61,18 @@ node tools/agent-home.mjs do child-chair sit
 - 房间：`update_room`、`set_wallpaper`、`set_light`、`set_camera`
 - 状态：`set_activity`、`set_note`
 - 出图：`draw_crayon`、`screenshot`
+
+## 换衣服
+
+用 `catalog` 返回的 `outfits` 选 ID：`sailor-day` 水手校服、`school-track` 运动校服、`lilac-reader` 针织裙、`snow-letter` 冬裙、`moon-tide` 睡衣；`reference` 是原装。
+
+```sh
+node tools/agent-home.mjs catalog
+node tools/agent-home.mjs call set_outfit '{"outfit":"moon-tide"}'
+node tools/agent-home.mjs state
+```
+
+读回 `character.outfit` 确认穿着已保存。换回原装传 `{"outfit":"reference"}`。换装只是改穿着，不会打断当前活动，不用先起身、取消任务或加 `--wait`。用户想看效果时，用 `node tools/agent-home.mjs screenshot spectator --out outfit.png` 看第三人称实拍；状态或 `fresh:true` 本身不能证明画面已换好。
 
 ## 执行者规则
 

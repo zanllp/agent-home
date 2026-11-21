@@ -1,0 +1,37 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>试衣手记 · 大肥鱼的小家</title>
+<style>
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#faf8f4;color:#292e40;font:16px/1.55 system-ui,sans-serif}main{max-width:1150px;padding:34px clamp(16px,4vw,58px) 80px;margin:auto}header{border-block:1px solid #c9c5bc;padding:25px 0 19px}h1{font: bold clamp(32px,5vw,51px)/1.15 Georgia,serif;margin:.15em 0}.kicker,small{font-size:13px;color:#505d74}.kicker{letter-spacing:.15em}.status{color:#49415b;background:#ece8f3;border-radius:20px;padding:4px 12px;font-size:14px}.summary{color:#585d67;margin:6px 0}.controls{margin:22px 0}button,select{font:inherit;color:inherit;cursor:pointer}button{border:1px solid #bcb9c4;background:#fffdfa;border-radius:99px;padding:6px 14px;margin:2px 5px 3px 0}button[aria-pressed=true]{background:#344158;color:#fff;border-color:#344158}select{padding:4px 8px;background:white;border:1px solid #bbb;border-radius:6px}h2{font-size:23px;line-height:1.2;margin:32px 0 14px}section{scroll-margin-top:16px}article{break-inside:avoid;min-width:0;padding:6px}h3{font-size:15px;margin:8px 0 5px}figure{margin:0;position:relative;flex:1;min-width:0;text-align:center}figure button{display:block;background:#ede9e1;border:0;border-radius:9px;overflow:hidden;width:100%;margin:0;padding:0;cursor:zoom-in}figure img{display:block;width:100%;height:auto}figcaption,.note{color:#606777;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}.paired .grid{grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))}.pair{display:flex}.pair figure+figure{margin-left:4px}.note{margin:0}.toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}details{margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere}dialog{background:#faf8f4;border:0;border-radius:15px;text-align:center;max-width:96vw}dialog::backdrop{background:#171824cf}dialog img{display:block;max-width:88vw;max-height:77vh;margin:auto}dialog p{margin:.5em}button:focus-visible,select:focus-visible{outline:3px solid #31649a}footer{margin-top:35px;border-top:1px solid #c9c5bc;padding-top:15px}
+</style><main><header><span class="kicker">大肥鱼的小家　／　衣橱</span><h1>试衣手记</h1><p class="summary"><!--SUMMARY-->　<span class="status"><!--STATUS--></span></p></header>
+<div class="controls"><div id="outfits" aria-label="选择套装"></div><div class="toolbar"><label>查看　<select id="part"><option>全部部位</option></select></label><small id="hint"></small></div></div>
+<div id="gallery"></div><footer><details><summary>检测记录</summary><ul><!--CHECKS--></ul><small><!--STAMP--></small></details></footer></main>
+<dialog id="zoom" aria-labelledby="caption"><img alt=""><p id="caption"></p><button autofocus>关闭</button></dialog>
+<script type="application/json" id="payload"><!--DATA--></script><script>
+const {gallery,media,hasBaseline}=JSON.parse(document.querySelector('#payload').textContent);
+const $=s=>document.querySelector(s),make=(tag,text)=>{const el=document.createElement(tag);if(text)el.textContent=text;return el};
+let selected=gallery[0];const zoom=$('#zoom');
+function picture(src,title,label){
+ const fig=make('figure'),btn=make('button'),img=make('img');img.src=media[src];img.alt=title;img.loading='lazy';btn.title='放大查看：'+title;btn.append(img);fig.append(btn);
+ if(label)fig.append(make('figcaption',label));
+ btn.onclick=()=>{const big=zoom.querySelector('img');big.src=media[src];big.alt=title;$('#caption').textContent=title;zoom.showModal()};return fig;
+}
+function draw(){
+ const host=$('#gallery');host.replaceChildren();host.className=hasBaseline?'paired':'';
+ for(const b of $('#outfits').children)b.setAttribute('aria-pressed',b.dataset.id===selected.id);
+ const shots=(selected?.shots||[]).filter(s=>$('#part').selectedIndex===0||s.part===$('#part').value);
+ for(const part of new Set(shots.map(s=>s.part))){
+  const sec=make('section'),grid=make('div');grid.className='grid';sec.append(make('h2',part),grid);host.append(sec);
+  for(const s of shots.filter(s=>s.part===part)){
+   const card=make('article'),pair=make('div'),name=selected.label+' · '+s.label;pair.className='pair';card.append(make('h3',s.label),pair);
+   if(s.baseline)pair.append(picture(s.baseline,name+' · 基准','认可基准'));
+   pair.append(picture(s.image,name+' · 本次',s.baseline?'本次':''));if(s.note)card.append(make('p',s.note));
+   grid.append(card);
+  }
+ }
+ if(!shots.length)host.append(make('p','这一项没有生成实拍，请查看下方检测记录。'));
+}
+for(const o of gallery){const b=make('button',o.label);b.dataset.id=o.id;b.onclick=()=>{selected=o;draw()};$('#outfits').append(b)}
+for(const part of new Set(gallery.flatMap(o=>o.shots.map(s=>s.part))))$('#part').add(new Option(part,part));
+$('#hint').textContent=hasBaseline?'同机位对照 · 点图放大':'本次实拍 · 尚未指定认可基准 · 点图放大';
+$('#part').onchange=draw;zoom.querySelector('button').onclick=()=>zoom.close();zoom.onclick=e=>{if(e.target===zoom)zoom.close()};draw();
+</script></html>

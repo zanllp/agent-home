@@ -1,0 +1,47 @@
+{
+  "rig": "dafeiyu-contact-v1",
+  "base_sha256": "aa08ee52ce73d87b4b7e333c87233015a5ffa64a3f8d8455020955c09e6ac34e",
+  "coverage": "dress-sleeves-legs-v1",
+  "outfits": [
+    {
+      "id": "snow-letter",
+      "label": "雪夜来信",
+      "file": "../../house3d/assets/outfits/snow-letter.glb",
+      "sha256": "254534c1cbaef86fbe670384f5820480d381befd668814d7365ce3e8821f70d2",
+      "source": "Tripo H3.1 multiview",
+      "task": "00e5ed18-ec6c-413c-9757-dd232800c299"
+    },
+    {
+      "id": "moon-tide",
+      "label": "晚安小鲸",
+      "file": "../../house3d/assets/outfits/moon-tide.glb",
+      "sha256": "ae8a1c693cd92cac0bc56201bf48e1496044c17c9d34e60a572d9fce7806d81a",
+      "source": "Tripo H3.1 multiview",
+      "task": "ecba1fed-b102-40e8-ae5e-5bc3c8b0fb09"
+    },
+    {
+      "id": "sailor-day",
+      "label": "水手校服",
+      "file": "../../house3d/assets/outfits/sailor-day.glb",
+      "sha256": "61258a2c0eacedfd9e0158685aab8f5e67fbe5b3547e7bef13f802ed835d7f1f",
+      "source": "Tripo H3.1 multiview",
+      "task": "6567c949-0725-4aaf-ac42-ed814f6ea118"
+    },
+    {
+      "id": "school-track",
+      "label": "蓝白运动校服",
+      "file": "../../house3d/assets/outfits/school-track.glb",
+      "sha256": "1132a7b0735deb301ad8547b1e21bdcb470cdc217bcaf92242336c3bb672c9af",
+      "source": "Tripo H3.1 multiview",
+      "task": "ad3a8730-c6c4-41be-83bf-a07a096dd0f8"
+    },
+    {
+      "id": "lilac-reader",
+      "label": "窗边读书",
+      "file": "../../house3d/assets/outfits/lilac-reader.glb",
+      "sha256": "c401872f0eb802275d948ede154f2fe0e7895004ac4fd9d85ae81f1b42d50e35",
+      "source": "Tripo H3.1 multiview",
+      "task": "916f137f-ff2c-4916-8642-cf1269a16298"
+    }
+  ]
+}

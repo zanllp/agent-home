@@ -29,3 +29,6 @@ __pycache__/
 cookies.json
 cookies.txt
 /public-private/
+
+# Superseded fitting-room exports; shipped garments are in house3d/assets/outfits.
+/modeling/wardrobe/packs/

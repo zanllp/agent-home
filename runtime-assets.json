@@ -2,8 +2,8 @@
   "note": "Byte sizes and SHA256 of shipped assets, including documented local model refinements.",
   "assets": {
     "house3d/assets/dafeiyu-contact.glb": {
-      "bytes": 5634724,
-      "sha256": "4a347b12540333140750a22b7c0c7a5f0664c0b46c03e4a9f36692e62a9d218f"
+      "bytes": 5656764,
+      "sha256": "aa08ee52ce73d87b4b7e333c87233015a5ffa64a3f8d8455020955c09e6ac34e"
     },
     "house3d/assets/materials/honey-oak-floor-v1.png": {
       "bytes": 1773528,
@@ -569,6 +569,31 @@
       "bytes": 45312,
       "sha256": "91e780e9c709cede75fdd983c052b765cd885cdb70893c45cb045b9586fa9739",
       "source": "Original local geometry: house3d/web/watering-can.js"
+    },
+    "house3d/assets/outfits/moon-tide.glb": {
+      "bytes": 3815016,
+      "sha256": "ae8a1c693cd92cac0bc56201bf48e1496044c17c9d34e60a572d9fce7806d81a",
+      "source": "Moon Tide 03, Tripo H3.1 multiview ecba1fed-b102-40e8-ae5e-5bc3c8b0fb09; fitted to the original contact rig."
+    },
+    "house3d/assets/outfits/snow-letter.glb": {
+      "bytes": 6881296,
+      "sha256": "254534c1cbaef86fbe670384f5820480d381befd668814d7365ce3e8821f70d2",
+      "source": "Snow Letter 01, Tripo H3.1 multiview 00e5ed18-ec6c-413c-9757-dd232800c299; fitted to the original contact rig."
+    },
+    "house3d/assets/outfits/sailor-day.glb": {
+      "bytes": 5975756,
+      "sha256": "61258a2c0eacedfd9e0158685aab8f5e67fbe5b3547e7bef13f802ed835d7f1f",
+      "source": "Tripo H3.1 multiview 6567c949-0725-4aaf-ac42-ed814f6ea118; original 4K color, fitted to the contact rig."
+    },
+    "house3d/assets/outfits/school-track.glb": {
+      "bytes": 6161656,
+      "sha256": "1132a7b0735deb301ad8547b1e21bdcb470cdc217bcaf92242336c3bb672c9af",
+      "source": "Tripo H3.1 multiview ad3a8730-c6c4-41be-83bf-a07a096dd0f8; original 4K color, fitted to the contact rig."
+    },
+    "house3d/assets/outfits/lilac-reader.glb": {
+      "bytes": 7231196,
+      "sha256": "c401872f0eb802275d948ede154f2fe0e7895004ac4fd9d85ae81f1b42d50e35",
+      "source": "Tripo H3.1 multiview 916f137f-ff2c-4916-8642-cf1269a16298; original 4K color, fitted to the contact rig."
     }
   }
 }

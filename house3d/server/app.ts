@@ -142,7 +142,7 @@ export class HouseApp {
           walls: wallsFor(size),
         },
         activities: ["idle", "walk", "sit"],
-        outfits: ["reference"],
+        outfits: ctx.definitions.set_outfit?.[1].outfit.enum ?? ["reference"],
         hairstyles: ["reference"],
         viewer: {
           path: "/wander.html",
@@ -153,7 +153,7 @@ export class HouseApp {
           adapter: "Local HTTP only; no DSH connection",
         },
         limitations: [
-          "No independent wardrobe yet",
+          ...(!ctx.definitions.set_outfit ? ["No independent wardrobe yet"] : []),
           "move_character relocates rather than animating a route",
           "Screenshot requires an open visible house page",
         ],
@@ -265,6 +265,7 @@ export class HouseApp {
           apply_layout: ["objects"],
           remove_furniture: ["id"],
           move_character: ["x", "z", "yaw"],
+          ...(ctx.definitions.set_outfit?{set_outfit:["outfit"]}:{}),
           set_activity: ["activity"],
           set_camera: ["preset"],
           set_light: ["preset"],

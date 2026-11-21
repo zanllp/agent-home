@@ -686,6 +686,11 @@
         "text"
       ]
     ],
+    "set_outfit": [
+      "Change clothes without moving or interrupting an activity. moon-tide: 晚安小鲸睡衣; snow-letter: 雪夜来信冬装; sailor-day: 水手校服; school-track: 蓝白运动校服; lilac-reader: 窗边读书装; reference: 原装.",
+      { "outfit": { "type": "string", "enum": ["reference", "moon-tide", "snow-letter", "sailor-day", "school-track", "lilac-reader"] } },
+      ["outfit"]
+    ],
     "set_activity": [
       "idle and walk control the Canvas viewer. sit remains a legacy experimental pose, not supported by the wander viewer.",
       {

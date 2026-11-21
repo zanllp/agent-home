@@ -51,7 +51,7 @@ export function prepareBedding(root, asset) {
       new MeshStandardMaterial({color:'#a57554',roughness:.69}));
     rail.position.set(0,.177,.006); root.add(rail);
   }
-  const geometry=quilt.geometry, p=geometry.attributes.position, folded=[], occupied=[], side=[];
+  const geometry=quilt.geometry, p=geometry.attributes.position, folded=[], occupied=[], side=[], sleepwear=[];
   const start=child?-.439:-.41, end=child?.78:1.05;
   const [cx,rootY,rootZ]=asset.interactions.sleep.root;
   const contact=sheetContact();contact.position.set(cx,(child?.441:.48)+.001,rootZ-.45);
@@ -73,8 +73,12 @@ export function prepareBedding(root, asset) {
     occupied.push(x,flat+under,newZ);
     const sideLoft=(rootY+loft+.105-sheetY)*Math.exp(-Math.pow((x-cx+.035)/(reach*.88),4));
     side.push(x,flat+sideLoft,newZ);
+    // Add clearance for the pajama collar, gathered shoulders and trouser cuffs.
+    // Absolute morph: its delta is added to the existing back/side shape.
+    const allowance=(.044*(1-smooth((d+.55)/.28))+.019*Math.exp(-(((d+.16)/.15)**2)))*Math.exp(-Math.pow((x-cx)/.35,4));
+    sleepwear.push(x,y+allowance,z);
   }
-  geometry.morphAttributes.position=[folded,occupied,side].map(a=>new Float32BufferAttribute(a,3));
+  geometry.morphAttributes.position=[folded,occupied,side,sleepwear].map(a=>new Float32BufferAttribute(a,3));
   geometry.morphAttributes.normal=geometry.morphAttributes.position.map(position=>{
     const copy=geometry.clone(); copy.morphAttributes={}; copy.setAttribute('position',position);
     copy.computeVertexNormals();const n=copy.attributes.normal;copy.dispose();return n;
@@ -83,10 +87,10 @@ export function prepareBedding(root, asset) {
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
 }
 
-export function poseBedding(quilt, sleep, covered, away, side=0) {
+export function poseBedding(quilt, sleep, covered, away, side=0, pajamas=false) {
   quilt.visible=!away;
   const influences=quilt.morphTargetInfluences;
   const turn=smooth(sleep/.46);
   const tuck=covered?smooth((sleep-.64)/.36):0;
-  influences[0]=turn*(1-tuck); influences[1]=tuck*(1-side); influences[2]=tuck*side;
+  influences[0]=turn*(1-tuck); influences[1]=tuck*(1-side); influences[2]=tuck*side; influences[3]=pajamas&&!away?tuck:0;
 }

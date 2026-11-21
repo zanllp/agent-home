@@ -193,7 +193,7 @@ async function screenshot(view, output) {
   const created = await request("POST", "/api/screenshots", { view: v });
   if (created.status >= 400 || !created.body?.id) {
     out({ status: created.status, ...(created.body || {}) });
-    process.exit(1);
+    return 1;
   }
   const id = created.body.id;
   const deadline = Date.now() + 20000;
@@ -202,34 +202,34 @@ async function screenshot(view, output) {
     if (r.status === 200 && r.buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
       fs.writeFileSync(output, r.buffer);
       out({ ok: true, file: output, bytes: r.buffer.length, view: v });
-      return;
+      return 0;
     }
     if (r.status === 410) {
       out({ status: 410, error: "screenshot expired" });
-      process.exit(1);
+      return 1;
     }
     await new Promise((res) => setTimeout(res, 700));
   }
   out({ status: 408, error: "screenshot timeout (viewer 没取走截图)" });
-  process.exit(1);
+  return 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(fs.realpathSync(resolve(process.argv[1]))).href) {
+async function main() {
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (!cmd || cmd === "help") {
     console.log("用法: node tools/agent-home.mjs <schemas|state|observe|objects|catalog|presets|interactables|do TARGET ACTION|goto X Z|goto OBJECT_ID|cancel [--force]|screenshot [character|spectator] --out FILE|call TOOL JSON>");
-    process.exit(0);
+    return 0;
   }
   if (cmd in READS) {
     const r = await request("GET", READS[cmd]);
     out(r.body);
-    process.exit(r.status >= 400 ? 1 : 0);
+    return r.status >= 400 ? 1 : 0;
   }
   if (cmd === "do") {
     if (!rest[0] || !rest[1]) throw new Error("用法: do TARGET_ID ACTION");
     out(await actions.doAction(rest[0], rest[1]));
-    process.exit(0);
+    return 0;
   }
   if (cmd === "goto") {
     if (rest.length === 1 && rest[0].trim()) out(await actions.goto(rest[0]));
@@ -238,19 +238,18 @@ try {
       if (rest.length !== 2 || !rest[0].trim() || !rest[1].trim() || !Number.isFinite(x) || !Number.isFinite(z)) throw new Error("用法: goto X Z 或 goto OBJECT_ID");
       out(await actions.goto(x, z));
     }
-    process.exit(0);
+    return 0;
   }
   if (cmd === "cancel") {
     if (rest.some(arg=>arg!=="--force")) throw new Error("Usage: cancel [--force]");
     out(await actions.cancel(rest.includes("--force")));
-    process.exit(0);
+    return 0;
   }
   if (cmd === "screenshot") {
     const view = rest.find((a) => a === "character" || a === "spectator") || "spectator";
     const i = rest.indexOf("--out");
     const output = i >= 0 && rest[i + 1] ? rest[i + 1] : "/workspace/output/agent-home-shot.png";
-    await screenshot(view, output);
-    process.exit(0);
+    return await screenshot(view, output);
   }
   if (cmd === "call") {
     const tool = rest[0];
@@ -262,13 +261,12 @@ try {
       const query = filterable ? new URLSearchParams(args).toString() : "";
       const r = await request("GET", READS[READ_ALIAS[tool]] + (query ? "?"+query : ""));
       out(r.body);
-      process.exit(r.status >= 400 ? 1 : 0);
+      return r.status >= 400 ? 1 : 0;
     }
     if (tool === "screenshot") {
       let args = {};
       if (rest[1]) args = JSON.parse(rest[1]);
-      await screenshot(args.view, args.out || "/workspace/output/agent-home-shot.png");
-      process.exit(0);
+      return await screenshot(args.view, args.out || "/workspace/output/agent-home-shot.png");
     }
     const wait = rest.includes("--wait");
     const argText = rest[1] && rest[1] !== "--wait" ? rest[1] : null;
@@ -280,11 +278,15 @@ try {
       const observe = await waitForJob(request, result.body.state?.interaction, { timeoutMs: 60000 });
       out({ ...result.body, observe });
     } else out(result.body);
-    process.exit(0);
+    return 0;
   }
   throw new Error(`未知命令: ${cmd}`);
 } catch (e) {
   out({ ok: false, error: e.message || String(e), code: e.code || "client_error", ...e.details });
-  process.exit(1);
+  return 1;
 }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(fs.realpathSync(resolve(process.argv[1]))).href) {
+  process.exitCode = await main();
 }

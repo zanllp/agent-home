@@ -483,6 +483,9 @@ export function transition(
       ),
     };
     state = trial;
+  } else if (op === "set_outfit") {
+    requireValue(props.outfit.enum.includes(args.outfit), "Unknown outfit");
+    state.character.outfit = args.outfit;
   } else if (op === "set_activity") {
     requireValue(
       ["idle", "walk", "sit"].includes(args.activity),

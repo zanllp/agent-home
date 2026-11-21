@@ -31,6 +31,20 @@ node agent.mjs list_interactions '{"capability":"draw"}'
 
 检查 `available` 和 `reason`，直接提交返回的 `command`。`execution: walk_then_pose` 已含整段走路和进入姿态；`approach` 是预演信息，不是让 Agent 逐段下发的路线。`state_update` 仅改变物品状态，`leave_pose` 为安全起身。`reachable` 基于当时的身体和布置，执行时仍会重新核验；收到受理后还要确认实际完成。
 
+### 换衣服
+
+用 `get_catalog.outfits`（目录响应的 `outfits` 字段）发现套装。穿衣不改变位置，也不会中断当前任务；`get_state.character.outfit` 会保留到下次启动。上床是另一个动作，先从物品列表找到能睡的床。
+
+```sh
+# 日常装：水手校服 sailor-day、运动校服 school-track、针织裙 lilac-reader
+node agent.mjs set_outfit '{"outfit":"sailor-day"}'
+node agent.mjs set_outfit '{"outfit":"snow-letter"}'
+node agent.mjs set_outfit '{"outfit":"moon-tide"}'
+node agent.mjs interact '{"target_id":"childroom-bed","action":"sleep"}'
+# 想换回原来的裙子：
+node agent.mjs set_outfit '{"outfit":"reference"}'
+```
+
 ## 2. 布置：选择、预演、应用
 
 先从目录选资产/支撑面，再提交有序操作：

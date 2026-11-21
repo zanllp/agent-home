@@ -19,6 +19,7 @@ import {createObjectInteraction} from './object-interaction.js';
 import {createObjectPanel} from './object-panel.js';
 import {sleepTurnClock,applySleepTurn} from './sleep-turn.js';
 import {createSleepFace} from './sleep-face.js';
+import {homeOutfit} from './home-outfit.js';
 import {createFloorPlay} from './floor-play.js';
 import {createDrawingPose} from './drawing-pose.js';
 import {createReadingBook} from './reading-book.js';
@@ -46,7 +47,7 @@ function invalidateBody(){if(renderer)renderer.shadowMap.needsUpdate=true;bodyDi
 const ui={ready:false,error:'',auto:true,paused:false,brisk:true,sound:false,status:'正在穿好小鞋子…',cameraMode:'home',menuId:null,menuHover:null,light:'day',notice:''};
 const mount=document.getElementById('app');
  let companion,companionLayout,companionBoxes,companionPlan,companionBalcony;
- let activityCamera,drawingPose,floorPlay,playTime=0;
+ let wardrobe,activityCamera,drawingPose,floorPlay,playTime=0;
  let scene,renderer,camera,controls,resize,raf,walker,mixer,walk,run,rest,avatar,scale=1,weight=0,last=0,disposed=false,marker,nav,pointer,audio,lastSteps=0,tapTimer=0,room,motion,rugs=[],hud,motionTime=0,turnVelocity=0,syncTimer,layoutKey='',navKey='',roomRevision=-1,furnitureAssets={},lighting,noticeUntil=0,captureNotBefore=0,objectPanel,interaction,sitAction,sleepAction,characterModel,roomObjects=[],objectData={objects:[]},sleepFace,readAction,readingBook,controller=false,selfMap,roomCatalog={},roomSpec=roomDimensions();
  const cleanView=mode=>mode==='broadcast'||mode==='album';
  const viewerSession=crypto.randomUUID();
@@ -179,7 +180,7 @@ const mount=document.getElementById('app');
    lastDrawnSide=side;
    const roll=contact?.sofa ? .90*contact.sofa*(contact.sleep||0) : side*(contact?.sleep||0);
    applySleepTurn(characterModel.parent,roll);
-   sleepFace.update((contact?.sleep||0)-(contact?.awake||0));room.setSleep(interaction?.targetId,contact?.sleep||0,roll);
+   sleepFace.update((contact?.sleep||0)-(contact?.awake||0));room.setSleep(interaction?.targetId,contact?.sleep||0,roll,Boolean(wardrobe && wardrobe.current!=='reference'));
    characterModel.parent.position.y=0;
    if(contact&&!contact.walking){
     motion?.restore();walk.setEffectiveWeight(0);run.setEffectiveWeight(0);rest.setEffectiveWeight(1-contact.sit-contact.sleep);sitAction.setEffectiveWeight(contact.sit*(1-(contact.read||contact.play||contact.draw||0)));readAction.setEffectiveWeight(contact.sit*(contact.read||contact.play||contact.draw||0));readAction.time=.5;sleepAction.setEffectiveWeight(contact.sleep);sitAction.time=sleepAction.time=.5;mixer.update(0);
@@ -280,7 +281,7 @@ async function init(){try{
   walker=createWalker(nav,start);walker.setBrisk(ui.brisk);
   room=createPreviewRoom(scene,{renderer,batchStatic:!continuousBaseline,onChange:()=>renderDemand.invalidate()});await room.update(state.objects,catalog.assets,state.room);lighting.update(state.objects,catalog.assets,state.room);await room.setFinish(state.room);layoutKey=JSON.stringify([state.objects,roomDimensions(state.room)]);navKey=navigationKey(state.objects,state.room);roomRevision=state.revision;
   marker=new T.Mesh(new T.RingGeometry(.09,.12,40),new T.MeshBasicMaterial({color:'#789d83',side:T.DoubleSide}));marker.rotation.x=-Math.PI/2;marker.visible=false;scene.add(marker);
-  const gltf=await new GLTFLoader().loadAsync('/models/dafeiyu-contact.glb?v=brows-4a347b12');const model=gltf.scene;characterModel=model;usePaintedCharacter(model);sleepFace=createSleepFace(model);model.traverse(o=>{if(o.userData.sleep_eye)o.visible=false});model.updateMatrixWorld(true);
+  const gltf=await new GLTFLoader().loadAsync('/models/dafeiyu-contact.glb?v=jaw-aa08ee52');const model=gltf.scene;characterModel=model;usePaintedCharacter(model,{cleanHands:true});sleepFace=createSleepFace(model);model.traverse(o=>{if(o.userData.sleep_eye)o.visible=false});model.updateMatrixWorld(true);
   const box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());scale=1.3/size.y;
   const normalized=new T.Group();normalized.scale.setScalar(scale);model.position.set(-center.x,-box.min.y,-center.z);normalized.add(model);avatar=new T.Group();avatar.rotation.order='YXZ';avatar.add(normalized);waterPose=createWaterPose(scene,model,avatar);glance=sofaGlance(model,normalized);avatar.position.set(start.x,groundHeight(start.x,start.z),start.z);avatar.rotation.y=start.yaw;scene.add(avatar);readingBook=createReadingBook(scene);
   mixer=new T.AnimationMixer(model);const clip=gltf.animations.find(a=>a.name==='little-walk'),idle=gltf.animations.find(a=>a.name==='rest'),running=gltf.animations.find(a=>a.name==='little-run');if(!clip||!idle||!running)throw Error('小碎步动作没有载入完整。');
@@ -357,6 +358,7 @@ async function init(){try{
     if(e.code==='Escape'||(e.code==='KeyV'&&ui.menuId==='camera')){menu();e.preventDefault();return}
    }
    if(cleanView(ui.cameraMode)){if(['Escape','KeyV','KeyG'].includes(e.code)){e.preventDefault();view('home',true)}return}const id={Space:'pause',KeyA:'auto',KeyF:'speed',KeyV:'camera',KeyM:'sound',KeyI:'items',KeyP:'self-map',KeyG:'album'}[e.code];if(id){e.preventDefault();activate(id,true)}});
+  wardrobe=homeOutfit(model,floorPlay,invalidateBody);await wardrobe.apply(state.character.outfit);
   consumeControls(null,state);let received=state;
   // Poll state only while viewed; no rendering service or model call is needed.
   async function syncRoom(){
@@ -379,6 +381,7 @@ async function init(){try{
      await room.setFinish(next.room);if(next.revision!==roomRevision)renderDemand.invalidate();if(dimensionsChanged&&['home','broadcast','album'].includes(ui.cameraMode))view(ui.cameraMode,true);
      if(!spectator){const heartbeat=await ownerFetch('/api/viewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...feedbackEnvelope(viewerSession,bodySnapshot(avatar,walker,interaction,ui.paused),interaction,true,ui.paused),job_id:interaction.jobId===next.interaction?.id?interaction.jobId:null})});
      if(!heartbeat.ok){const detail=await heartbeat.text();throw Error(`身体反馈暂时没同步 (${heartbeat.status}): ${detail}`)}controller=(await heartbeat.json()).controller;if(!controller){ui.notice='小家正在另一个窗口里运行。';noticeUntil=performance.now()+2000}}
+     await wardrobe.apply(next.character.outfit);
      consumeControls(received,next);if(controller){const previousJob=interaction.jobId;interaction.consume(next.interaction);if(previousJob!==interaction.jobId)invalidateBody()}const objectResponse=await fetch('/api/objects');if(objectResponse.ok){const data=await objectResponse.json();if(objectPanel.open&&JSON.stringify(data)!==JSON.stringify(objectData))renderDemand.invalidate();objectData=data}received=next;roomRevision=next.revision;ui.error='';
      if(!spectator){const shots=await ownerFetch('/api/screenshots/pending?viewer=life-v2');if(!shots.ok)throw Error('拍照请求暂时不可用');
      const shot=await shots.json();
@@ -393,5 +396,5 @@ async function init(){try{
   void syncOutdoors();syncTimer=setTimeout(syncRoom,1200);
   invalidateBody();ui.ready=true;ui.status='点空地走过去，拖动转一转';
  }catch(e){ui.error=e.message;hud?.update(ui);if(isRunner)post('/api/runtime/fault',{message:e.message}).catch(()=>{})}}
-window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(outdoorTimer);clearTimeout(syncTimer);cancelAnimationFrame(raf);if(isRunner)clearTimeout(raf);feed?.close();perf?.dispose();resize?.disconnect();controls?.dispose();audio?.close();hud?.dispose();selfMap?.dispose();objectPanel?.dispose();sleepFace?.dispose();readingBook?.dispose();drawingPose?.dispose();floorPlay?.dispose();waterPose?.dispose();room?.dispose();lighting?.dispose();scene?.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[]))m.dispose()});renderer?.dispose()},{once:true});
+window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(outdoorTimer);clearTimeout(syncTimer);cancelAnimationFrame(raf);if(isRunner)clearTimeout(raf);feed?.close();perf?.dispose();resize?.disconnect();controls?.dispose();audio?.close();hud?.dispose();selfMap?.dispose();objectPanel?.dispose();sleepFace?.dispose();readingBook?.dispose();drawingPose?.dispose();wardrobe?.dispose();floorPlay?.dispose();waterPose?.dispose();room?.dispose();lighting?.dispose();scene?.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[]))m.dispose()});renderer?.dispose()},{once:true});
 init();
